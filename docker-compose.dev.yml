@@ -1,0 +1,71 @@
+# Prism AI Frontend - Development Docker Compose
+# Development environment with hot reload
+
+version: '3.8'
+
+services:
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: prism-ai-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+      - "5173:5173"  # Vite dev server
+    environment:
+      # Development environment variables
+      - NODE_ENV=development
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
+      - REACT_APP_DEBUG=true
+      - REACT_APP_API_TIMEOUT=30000
+      - REACT_APP_MAX_FILE_SIZE=100
+      - REACT_APP_DEFAULT_PAGE_SIZE=1000
+      - REACT_APP_ANIMATION_DURATION=400
+      
+      # Vite development settings
+      - VITE_HOST=0.0.0.0
+      - VITE_PORT=5173
+      
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src:cached
+      - ./public:/app/public:cached
+      - ./package.json:/app/package.json:ro
+      - ./vite.config.js:/app/vite.config.js:ro
+      - ./tailwind.config.js:/app/tailwind.config.js:ro
+      - ./index.html:/app/index.html:ro
+      
+      # Prevent node_modules from being overridden
+      - /app/node_modules
+      
+    networks:
+      - prism-ai-dev-network
+      
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+
+  # Optional: Mock backend for frontend-only development
+  mock-backend:
+    image: mockoon/cli:latest
+    container_name: prism-ai-mock-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./mock-api:/data
+    command: --data /data/mock-api.json --port 8000
+    networks:
+      - prism-ai-dev-network
+    profiles:
+      - mock
+
+networks:
+  prism-ai-dev-network:
+    driver: bridge

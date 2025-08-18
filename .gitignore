@@ -1,0 +1,165 @@
+# Prism AI Frontend - Git Ignore Rules
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist/
+build/
+.vite/
+.next/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage/
+.nyc_output/
+.jest/
+test-results/
+playwright-report/
+blob-report/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.vite-cache/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Logs
+*.log
+logs/
+log/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Storybook build outputs
+storybook-static/
+
+# TypeScript
+*.tsbuildinfo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Application specific
+public/uploads/
+src/assets/temp/
+screenshots/
+test-screenshots/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build artifacts
+.rollup.cache/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Runtime configuration
+.npmrc
+.yarnrc
+
+# Local development
+local/
+.local/
+
+# Service worker
+sw.js
+workbox-*.js
+
+# Security files
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Documentation build
+docs/_book/
+docs/.vuepress/dist/
+
+# Analytics
+.vercel
+.netlify
+
+# PWA files
+manifest.json
+service-worker.js
+
+# Playwright
+test-results/
+playwright/.cache/
+
+# Vitest
+coverage/

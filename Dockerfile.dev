@@ -1,0 +1,44 @@
+# Prism AI Frontend - Development Dockerfile
+# Optimized for development with hot reload
+
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV VITE_HOST=0.0.0.0
+ENV VITE_PORT=5173
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies (including dev dependencies)
+RUN npm ci --include=dev
+
+# Copy source code
+COPY . .
+
+# Create non-root user
+RUN addgroup -g 1001 -S reactuser && \
+    adduser -S -D -H -u 1001 -h /app -s /sbin/nologin -G reactuser -g reactuser reactuser
+
+# Change ownership
+RUN chown -R reactuser:reactuser /app
+
+# Switch to non-root user
+USER reactuser
+
+# Expose ports
+EXPOSE 3000 5173
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:5173 || exit 1
+
+# Start development server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
