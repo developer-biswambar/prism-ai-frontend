@@ -11,6 +11,10 @@
     "url": "https://github.com/your-org/prism-ai-frontend.git"
   },
   "keywords": ["react", "vite", "financial", "data-processing", "frontend"],
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host",
@@ -40,7 +44,7 @@
     "test:setup": "node testing/utils/test-data-setup.js",
     "test:debug": "playwright test --headed --debug",
     "test:visual": "node testing/visual-test-runner.js demo",
-    "test:watch": "node testing/visual-test-runner.js interactive", 
+    "test:interactive": "node testing/visual-test-runner.js interactive", 
     "test:step": "node testing/visual-test-runner.js debug",
     "test:discover": "playwright test testing/e2e/simple-ui-test.spec.js --headed --reporter=line",
     "test:reconciliation": "playwright test testing/e2e/reconciliation-functionality.spec.js --headed --reporter=line",

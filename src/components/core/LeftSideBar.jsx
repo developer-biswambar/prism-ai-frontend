@@ -631,8 +631,7 @@ const LeftSidebar = ({
                 </div>
             </div>
 
-            {/* Delete Confirmation Modal */}1
-
+            {/* Delete Confirmation Modal */}
             {showDeleteModal && fileToDelete && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">

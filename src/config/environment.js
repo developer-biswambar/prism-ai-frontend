@@ -9,7 +9,8 @@
  */
 const getEnvVar = (key, defaultValue) => {
     // In React, environment variables must start with REACT_APP_
-    return process.env[key] || defaultValue;
+    // Use import.meta.env for Vite instead of process.env
+    return import.meta.env[key] || defaultValue;
 };
 
 /**

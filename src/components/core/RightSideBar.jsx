@@ -14,14 +14,15 @@ import {
     History,
     Loader,
     RefreshCw,
-    Save,
-    Server,
     Settings,
     Shuffle,
     X,
-    Zap
+    Zap,
+    BookOpen,
+    Plus
 } from 'lucide-react';
 import {useEffect, useState} from "react";
+import UnifiedRulesManager from '../rules/UnifiedRulesManager.jsx';
 
 const RightSidebar = ({
                           processedFiles = [],
@@ -34,17 +35,15 @@ const RightSidebar = ({
                           onProcessedFilesUpdate
                       }) => {
 
-    const [showSaveModal, setShowSaveModal] = useState(false);
-    const [showDeleteRecentResultModal, setShowDeleteRecentResultModal] = useState(false);
-    const [saveModalData, setSaveModalData] = useState(null);
-    const [customFilename, setCustomFilename] = useState('');
-    const [description, setDescription] = useState('');
-    const [saveInProgress, setSaveInProgress] = useState(false);
     const [loadingRecentResults, setLoadingRecentResults] = useState(false);
     const [localProcessedFiles, setLocalProcessedFiles] = useState(processedFiles);
 
     // State for tracking expanded results
     const [expandedResults, setExpandedResults] = useState(new Set());
+    
+    // State for tab management
+    const [activeTab, setActiveTab] = useState('results'); // 'results' or 'rules'
+    const [showRulesManager, setShowRulesManager] = useState(false);
 
     // Load recent results on component mount and merge with processedFiles
     useEffect(() => {
@@ -350,96 +349,6 @@ const RightSidebar = ({
         }
     };
 
-    // Handle save to server
-    const handleSaveToServer = (processId, downloadType, processedFile) => {
-        const processInfo = getProcessTypeInfo(processedFile);
-        setSaveModalData({
-            processId,
-            downloadType,
-            processedFile,
-            processInfo
-        });
-        setCustomFilename('');
-        setDescription('');
-        setShowSaveModal(true);
-    };
-
-    // Confirm save to server
-    const confirmSaveToServer = async () => {
-        if (!saveModalData) return;
-
-        setSaveInProgress(true);
-        try {
-            // Import the deltaApiService for saving
-            const {deltaApiService} = await import('../../services/deltaApiService.js');
-            const {transformationApiService} = await import('../../services/transformationApiService.js');
-
-            let result;
-            const {processId, downloadType, processInfo} = saveModalData;
-
-            if (processInfo.type === 'delta') {
-                let resultType = downloadType;
-                let format = 'csv';
-
-                // Handle special cases
-                if (downloadType === 'all_excel') {
-                    format = 'excel';
-                    resultType = 'all';
-                } else if (downloadType === 'summary_report') {
-                    // Handle summary differently
-                    alert('Summary reports are downloaded directly, not saved to server.');
-                    return;
-                }
-
-                result = await deltaApiService.saveDeltaResultsToServer(
-                    processId,
-                    resultType,
-                    format,
-                    customFilename.trim() || null,
-                    description.trim() || null
-                );
-            } else if (processInfo.type === 'reconciliation') {
-                result = await deltaApiService.saveReconciliationResultsToServer(
-                    processId,
-                    downloadType,
-                    'csv',
-                    customFilename.trim() || null,
-                    description.trim() || null
-                );
-            } else if (processInfo.type === 'file_generation') {
-
-                result = await transformationApiService.saveTransformationResultsToServer(
-                    processId,
-                    downloadType,
-                    'csv',
-                    customFilename.trim() || null,
-                    description.trim() || null
-                )
-
-            }
-
-            if (result.success) {
-                alert(`Results saved successfully! ${result.message}`);
-                setShowSaveModal(false);
-                setSaveModalData(null);
-            } else {
-                throw new Error(result.message || 'Save failed');
-            }
-        } catch (error) {
-            console.error('Error saving to server:', error);
-            alert(`Failed to save results: ${error.message}`);
-        } finally {
-            setSaveInProgress(false);
-        }
-    };
-
-    const closeSaveModal = () => {
-        if (saveInProgress) return;
-        setShowSaveModal(false);
-        setSaveModalData(null);
-        setCustomFilename('');
-        setDescription('');
-    };
 
     return (
         <>
@@ -449,37 +358,88 @@ const RightSidebar = ({
             >
                 {/* Header */}
                 <div className="p-4 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold text-gray-800">📈 Results</h2>
-                        <div className="flex items-center space-x-2">
-                            {autoRefreshInterval && (
-                                <div className="flex items-center space-x-1 text-xs text-blue-600">
-                                    <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <span>Auto-refresh</span>
-                                </div>
-                            )}
-                            {loadingRecentResults && (
-                                <div className="flex items-center space-x-1 text-xs text-gray-600">
-                                    <Loader size={12} className="animate-spin"/>
-                                    <span>Loading...</span>
-                                </div>
-                            )}
+                    {/* Tab Navigation */}
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-1">
                             <button
-                                onClick={handleRefresh}
-                                disabled={loadingRecentResults}
-                                className="text-sm text-blue-600 hover:text-blue-800 transition-colors disabled:opacity-50"
-                                title="Refresh results"
+                                onClick={() => setActiveTab('results')}
+                                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                                    activeTab === 'results'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                }`}
                             >
-                                <RefreshCw size={14} className={loadingRecentResults ? 'animate-spin' : ''}/>
+                                <div className="flex items-center space-x-2">
+                                    <BarChart3 size={16} />
+                                    <span>Results</span>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('rules')}
+                                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                                    activeTab === 'rules'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                                }`}
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <BookOpen size={16} />
+                                    <span>Rules</span>
+                                </div>
                             </button>
                         </div>
+                        
+                        {/* Tab-specific actions */}
+                        <div className="flex items-center space-x-2">
+                            {activeTab === 'results' && (
+                                <>
+                                    {autoRefreshInterval && (
+                                        <div className="flex items-center space-x-1 text-xs text-blue-600">
+                                            <div className="animate-pulse w-2 h-2 bg-blue-500 rounded-full"></div>
+                                            <span>Auto-refresh</span>
+                                        </div>
+                                    )}
+                                    {loadingRecentResults && (
+                                        <div className="flex items-center space-x-1 text-xs text-gray-600">
+                                            <Loader size={12} className="animate-spin"/>
+                                            <span>Loading...</span>
+                                        </div>
+                                    )}
+                                    <button
+                                        onClick={handleRefresh}
+                                        disabled={loadingRecentResults}
+                                        className="text-sm text-blue-600 hover:text-blue-800 transition-colors disabled:opacity-50"
+                                        title="Refresh results"
+                                    >
+                                        <RefreshCw size={14} className={loadingRecentResults ? 'animate-spin' : ''}/>
+                                    </button>
+                                </>
+                            )}
+                            {activeTab === 'rules' && (
+                                <button
+                                    onClick={() => setShowRulesManager(true)}
+                                    className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+                                    title="Open rules manager"
+                                >
+                                    <Settings size={14} />
+                                </button>
+                            )}
+                        </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                        {autoRefreshInterval ? 'Auto-updating every 3 seconds' : localProcessedFiles.length > 0 ? `Showing ${localProcessedFiles.length} recent results` : 'Recent processes & downloads'}
+
+                    {/* Tab Description */}
+                    <p className="text-xs text-gray-500">
+                        {activeTab === 'results' ? (
+                            autoRefreshInterval ? 'Auto-updating every 3 seconds' : 
+                            localProcessedFiles.length > 0 ? `Showing ${localProcessedFiles.length} recent results` : 
+                            'Recent processes & downloads'
+                        ) : (
+                            'Manage your processing rules and configurations'
+                        )}
                     </p>
 
                     {/* View All Results Button */}
-                    {localProcessedFiles.length > 0 && (
+                    {activeTab === 'results' && localProcessedFiles.length > 0 && (
                         <div className="mt-3 space-y-2">
                             <button
                                 onClick={onOpenRecentResults}
@@ -535,11 +495,64 @@ const RightSidebar = ({
                             </button>
                         </div>
                     )}
+
+                    {/* Rules Tab Content */}
+                    {activeTab === 'rules' && (
+                        <div className="mt-3 space-y-2">
+                            <button
+                                onClick={() => setShowRulesManager(true)}
+                                className="w-full inline-flex items-center justify-center px-3 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                                title="Open full rules management interface"
+                            >
+                                <BookOpen className="w-4 h-4 mr-2"/>
+                                <span>Manage All Rules</span>
+                                <ExternalLink className="w-3 h-3 ml-2"/>
+                            </button>
+
+                            {/* Quick Rule Type Access */}
+                            <div className="grid grid-cols-1 gap-1">
+                                <button
+                                    onClick={() => {
+                                        setShowRulesManager(true);
+                                        // Could pass specific rule type here in the future
+                                    }}
+                                    className="w-full inline-flex items-center justify-center px-2 py-1.5 border border-purple-200 shadow-sm text-xs leading-4 font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200"
+                                    title="Manage delta rules"
+                                >
+                                    <GitCompare className="w-3 h-3 mr-1"/>
+                                    <span>Delta Rules</span>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowRulesManager(true);
+                                    }}
+                                    className="w-full inline-flex items-center justify-center px-2 py-1.5 border border-blue-200 shadow-sm text-xs leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                                    title="Manage reconciliation rules"
+                                >
+                                    <Shuffle className="w-3 h-3 mr-1"/>
+                                    <span>Reconciliation Rules</span>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowRulesManager(true);
+                                    }}
+                                    className="w-full inline-flex items-center justify-center px-2 py-1.5 border border-green-200 shadow-sm text-xs leading-4 font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200"
+                                    title="Manage transformation rules"
+                                >
+                                    <Zap className="w-3 h-3 mr-1"/>
+                                    <span>Transformation Rules</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                {/* Results List */}
+                {/* Tab Content */}
                 <div className="flex-1 overflow-y-auto p-4">
-                    {loadingRecentResults ? (
+                    {activeTab === 'results' ? (
+                        <>
+                            {/* Results Content */}
+                            {loadingRecentResults ? (
                         <div className="text-center text-gray-500 mt-8">
                             <Loader size={48} className="mx-auto opacity-30 mb-3 animate-spin"/>
                             <p className="text-sm">Loading recent results...</p>
@@ -733,22 +746,41 @@ const RightSidebar = ({
                                                                 </button>
                                                             </div>
 
-                                                            {/* Download & Save Options */}
+                                                            {/* Download Options */}
                                                             <div className="space-y-1">
                                                                 <div
-                                                                    className="text-xs text-gray-500 font-medium">Download
-                                                                    &
-                                                                    Save Options:
+                                                                    className="text-xs text-gray-500 font-medium">Download Options:
                                                                 </div>
 
-                                                                {/* Primary Downloads/Saves */}
-                                                                <div className="space-y-1">
+                                                                {/* Primary Downloads */}
+                                                                <div className="grid grid-cols-2 gap-1">
                                                                     {downloadOptions.primary.map((option) => {
                                                                         const OptionIcon = option.icon;
                                                                         return (
-                                                                            <div key={option.key}
-                                                                                 className="grid grid-cols-2 gap-1">
+                                                                            <button
+                                                                                key={option.key}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    onDownloadResults(processInfo.id, option.key);
+                                                                                }}
+                                                                                className={`px-2 py-1 text-xs bg-${option.color}-100 text-${option.color}-700 rounded hover:bg-${option.color}-200 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-1`}
+                                                                                title={`Download ${option.label}`}
+                                                                            >
+                                                                                <OptionIcon size={10}/>
+                                                                                <span>{option.label}</span>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                {/* Secondary Downloads */}
+                                                                {downloadOptions.secondary.length > 0 && (
+                                                                    <div className="grid grid-cols-2 gap-1 mt-1">
+                                                                        {downloadOptions.secondary.map((option) => {
+                                                                            const OptionIcon = option.icon;
+                                                                            return (
                                                                                 <button
+                                                                                    key={option.key}
                                                                                     onClick={(e) => {
                                                                                         e.stopPropagation();
                                                                                         onDownloadResults(processInfo.id, option.key);
@@ -759,53 +791,6 @@ const RightSidebar = ({
                                                                                     <OptionIcon size={10}/>
                                                                                     <span>{option.label}</span>
                                                                                 </button>
-                                                                                <button
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        handleSaveToServer(processInfo.id, option.key, processedFile);
-                                                                                    }}
-                                                                                    className={`px-2 py-1 text-xs bg-${option.color}-50 text-${option.color}-600 border border-${option.color}-200 rounded hover:bg-${option.color}-100 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-1`}
-                                                                                    title={`Save ${option.label} to Server`}
-                                                                                >
-                                                                                    <Server size={10}/>
-                                                                                    <span>Save</span>
-                                                                                </button>
-                                                                            </div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-
-                                                                {/* Secondary Downloads/Saves */}
-                                                                {downloadOptions.secondary.length > 0 && (
-                                                                    <div className="space-y-1 mt-1">
-                                                                        {downloadOptions.secondary.map((option) => {
-                                                                            const OptionIcon = option.icon;
-                                                                            return (
-                                                                                <div key={option.key}
-                                                                                     className="grid grid-cols-2 gap-1">
-                                                                                    <button
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            onDownloadResults(processInfo.id, option.key);
-                                                                                        }}
-                                                                                        className={`px-2 py-1 text-xs bg-${option.color}-100 text-${option.color}-700 rounded hover:bg-${option.color}-200 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-1`}
-                                                                                        title={`Download ${option.label}`}
-                                                                                    >
-                                                                                        <OptionIcon size={10}/>
-                                                                                        <span>{option.label}</span>
-                                                                                    </button>
-                                                                                    <button
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            handleSaveToServer(processInfo.id, option.key, processedFile);
-                                                                                        }}
-                                                                                        className={`px-2 py-1 text-xs bg-${option.color}-50 text-${option.color}-600 border border-${option.color}-200 rounded hover:bg-${option.color}-100 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-1`}
-                                                                                        title={`Save ${option.label} to Server`}
-                                                                                    >
-                                                                                        <Server size={10}/>
-                                                                                        <span>Save</span>
-                                                                                    </button>
-                                                                                </div>
                                                                             );
                                                                         })}
                                                                     </div>
@@ -924,122 +909,187 @@ const RightSidebar = ({
                             </div>
                         </div>
                     )}
+                        </>
+                    ) : (
+                        /* Rules Tab Content */
+                        <RulesTabContent onOpenRulesManager={() => setShowRulesManager(true)} />
+                    )}
                 </div>
             </div>
 
-            {/* Save to Server Modal */}
-            {showSaveModal && saveModalData && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                    <Server className="text-green-600" size={20}/>
+            {/* Rules Manager Modal */}
+            {showRulesManager && (
+                <UnifiedRulesManager
+                    isOpen={showRulesManager}
+                    onClose={() => setShowRulesManager(false)}
+                />
+            )}
+
+        </>
+    );
+};
+
+// Rules Tab Content Component
+const RulesTabContent = ({ onOpenRulesManager }) => {
+    const [recentRules, setRecentRules] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadRecentRules();
+    }, []);
+
+    const loadRecentRules = async () => {
+        setLoading(true);
+        try {
+            const { unifiedRulesApiService } = await import('../../services/unifiedRulesApiService.js');
+            const result = await unifiedRulesApiService.getAllRules({ limit: 10 });
+            
+            if (result.success) {
+                // Get the 5 most recent rules
+                const recent = result.rules
+                    .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
+                    .slice(0, 5);
+                setRecentRules(recent);
+            }
+        } catch (error) {
+            console.error('Error loading recent rules:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getRuleTypeInfo = (ruleType) => {
+        const typeMap = {
+            'delta': { icon: GitCompare, color: 'purple', label: 'Delta' },
+            'delta_generation': { icon: GitCompare, color: 'purple', label: 'Delta' },
+            'reconciliation': { icon: Shuffle, color: 'blue', label: 'Reconciliation' },
+            'transformation': { icon: Zap, color: 'green', label: 'Transformation' }
+        };
+        
+        return typeMap[ruleType] || { icon: Settings, color: 'gray', label: 'Other' };
+    };
+
+    if (loading) {
+        return (
+            <div className="text-center text-gray-500 mt-8">
+                <Loader size={48} className="mx-auto opacity-30 mb-3 animate-spin"/>
+                <p className="text-sm">Loading rules...</p>
+                <p className="text-xs mt-1">Please wait while we fetch your rules</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Quick Access Section */}
+            <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Quick Access</h3>
+                <div className="grid grid-cols-1 gap-2">
+                    <button
+                        onClick={onOpenRulesManager}
+                        className="w-full inline-flex items-center justify-center px-3 py-2 border border-blue-300 shadow-sm text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                    >
+                        <BookOpen className="w-4 h-4 mr-2"/>
+                        <span>Open Rules Library</span>
+                    </button>
+                    
+                    <button
+                        onClick={onOpenRulesManager}
+                        className="w-full inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                    >
+                        <Plus className="w-4 h-4 mr-2"/>
+                        <span>Create New Rule</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Recent Rules */}
+            {recentRules.length > 0 ? (
+                <div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-gray-900">Recent Rules</h3>
+                        <button
+                            onClick={onOpenRulesManager}
+                            className="text-xs text-blue-600 hover:text-blue-500"
+                        >
+                            View all
+                        </button>
+                    </div>
+                    <div className="space-y-2">
+                        {recentRules.map(rule => {
+                            const typeInfo = getRuleTypeInfo(rule.rule_type);
+                            const TypeIcon = typeInfo.icon;
+                            return (
+                                <div key={rule.id} className="flex items-center space-x-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                                     onClick={onOpenRulesManager}>
+                                    <div className={`flex-shrink-0 w-6 h-6 bg-${typeInfo.color}-100 rounded flex items-center justify-center`}>
+                                        <TypeIcon className={`w-3 h-3 text-${typeInfo.color}-600`} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-gray-900 truncate">{rule.name}</p>
+                                        <p className="text-xs text-gray-500">
+                                            {typeInfo.label} • {rule.category}
+                                        </p>
+                                    </div>
+                                    <div className="flex-shrink-0 text-xs text-gray-400">
+                                        {rule.usage_count || 0}
+                                    </div>
                                 </div>
-                                <h3 className="text-lg font-semibold text-gray-800">Save to Server</h3>
-                            </div>
-                            <button
-                                onClick={closeSaveModal}
-                                disabled={saveInProgress}
-                                className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                            >
-                                <X size={20}/>
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            {/* Process Info */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-                                <div className="flex items-center space-x-2 mb-2">
-                                    <saveModalData.processInfo.icon size={16}
-                                                                    className={`text-${saveModalData.processInfo.color}-600`}/>
-                                    <span className="text-sm font-medium text-gray-800">
-                                        {saveModalData.processInfo.label}
-                                    </span>
-                                </div>
-                                <p className="text-xs text-gray-600 mb-1">
-                                    Process ID: {saveModalData.processInfo.id}
-                                </p>
-                                <p className="text-xs text-gray-600">
-                                    Data
-                                    Type: {saveModalData.downloadType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                </p>
-                            </div>
-
-                            {/* Custom Filename */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Custom Filename (Optional)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={customFilename}
-                                    onChange={(e) => setCustomFilename(e.target.value)}
-                                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Enter custom filename (without extension)"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    If left blank, a filename will be auto-generated
-                                </p>
-                            </div>
-
-                            {/* Description */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Description (Optional)
-                                </label>
-                                <textarea
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                    rows={3}
-                                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Enter a description for this saved file"
-                                />
-                            </div>
-
-                            {/* Save Info */}
-                            <div className="bg-green-50 border border-green-200 rounded-md p-3">
-                                <div className="flex items-center space-x-2">
-                                    <Save className="text-green-600" size={16}/>
-                                    <p className="text-sm text-green-800">
-                                        <strong>Note:</strong> The file will be saved to server storage and will appear
-                                        in your File Library for future use.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex space-x-3 mt-6">
-                            <button
-                                onClick={closeSaveModal}
-                                disabled={saveInProgress}
-                                className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmSaveToServer}
-                                disabled={saveInProgress}
-                                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-                            >
-                                {saveInProgress ? (
-                                    <>
-                                        <div
-                                            className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                        <span>Saving...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save size={16}/>
-                                        <span>Save File to Server</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                            );
+                        })}
                     </div>
                 </div>
+            ) : (
+                <div className="text-center text-gray-500 mt-8">
+                    <BookOpen size={48} className="mx-auto opacity-30 mb-3"/>
+                    <p className="text-sm">No rules found</p>
+                    <p className="text-xs mt-1">Create rules from your processes to see them here</p>
+                    <button
+                        onClick={onOpenRulesManager}
+                        className="mt-3 px-3 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                    >
+                        Open Rules Library
+                    </button>
+                </div>
             )}
-        </>
+
+            {/* Rule Types Overview */}
+            <div>
+                <h3 className="text-sm font-medium text-gray-900 mb-3">Rule Types</h3>
+                <div className="grid grid-cols-1 gap-2">
+                    {[
+                        { type: 'delta', icon: GitCompare, color: 'purple', label: 'Delta Rules', description: 'Compare file versions' },
+                        { type: 'reconciliation', icon: Shuffle, color: 'blue', label: 'Reconciliation', description: 'Match data sources' },
+                        { type: 'transformation', icon: Zap, color: 'green', label: 'Transformation', description: 'Transform data' }
+                    ].map(ruleType => {
+                        const RuleIcon = ruleType.icon;
+                        return (
+                            <div
+                                key={ruleType.type}
+                                className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer"
+                                onClick={onOpenRulesManager}
+                            >
+                                <div className={`flex-shrink-0 w-8 h-8 bg-${ruleType.color}-100 rounded flex items-center justify-center`}>
+                                    <RuleIcon className={`w-4 h-4 text-${ruleType.color}-600`} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900">{ruleType.label}</p>
+                                    <p className="text-xs text-gray-500">{ruleType.description}</p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Help Section */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="text-xs text-gray-500 text-center">
+                    <p>💡 Rules help you save and reuse configurations</p>
+                    <p className="mt-1">Save rules from your processes to access them quickly later</p>
+                </div>
+            </div>
+        </div>
     );
 };
 
