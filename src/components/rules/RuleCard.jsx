@@ -14,7 +14,7 @@ import {
     Key,
     Layers,
     Save,
-    Settings2,
+    RefreshCw,
     Tag,
     User,
     X
@@ -88,7 +88,7 @@ const RuleCard = ({rule, onUpdateRule, isEditable = true}) => {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Settings2 className="w-4 h-4 text-blue-600"/>
+                            <RefreshCw className="w-4 h-4 text-blue-600"/>
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center space-x-2">
@@ -255,7 +255,7 @@ const RuleCard = ({rule, onUpdateRule, isEditable = true}) => {
                                 className="flex items-center justify-between w-full text-left mb-3 hover:bg-gray-50 p-2 rounded"
                             >
                                 <div className="flex items-center space-x-2">
-                                    <Settings2 className="w-4 h-4 text-gray-600"/>
+                                    <RefreshCw className="w-4 h-4 text-gray-600"/>
                                     <span className="text-sm font-medium text-gray-900">Rule Configuration</span>
                                 </div>
                                 {expandedSections.config ? (

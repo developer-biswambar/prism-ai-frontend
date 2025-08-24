@@ -78,7 +78,7 @@ ReconciliationFlow (Main Orchestrator)
 │       ├── FilterValueSelector
 │       └── ExtractedColumnFilter
 ├── Step 5: Reconciliation Rules (Built-in)
-├── Step 6: Result Columns (Built-in)
+├── Step 6: Output Columns Selection (Built-in)
 ├── Step 7: Review & Configuration (Built-in)
 └── Step 8: Generate & View
     └── ReconciliationPreviewStep
@@ -156,12 +156,12 @@ const [generatedConfig, setGeneratedConfig] = useState(null);
 #### Step Definition Structure
 ```javascript
 const steps = [
-    {id: 'rule_management', title: 'Load/Save Rules', icon: Save},
+    {id: 'rule_management', title: 'Load Rules', icon: Save},
     {id: 'ai_requirements', title: 'AI Configuration', icon: Wand2},
     {id: 'extraction_rules', title: 'Data Parsing', icon: Target},
     {id: 'filter_rules', title: 'Data Filtering', icon: Filter},
     {id: 'reconciliation_rules', title: 'Matching Rules', icon: Settings},
-    {id: 'result_columns', title: 'Result Columns', icon: Columns},
+    {id: 'result_columns', title: 'Output Columns Selection', icon: Columns},
     {id: 'review', title: 'Review & Confirm', icon: Check},
     {id: 'generate_view', title: 'Generate & View', icon: Upload}
 ];
@@ -603,7 +603,7 @@ const removeReconciliationRule = (ruleIndex) => {
 };
 ```
 
-### Step 6: Result Columns (Built-in Interface)
+### Step 6: Output Columns Selection (Built-in Interface)
 
 #### Column Classification System
 The result columns step automatically categorizes columns into mandatory and optional:
@@ -1159,7 +1159,7 @@ The system provides 8 predefined business scenarios to accelerate configuration:
    `Reconcile payroll data by matching employee IDs exactly and validating salary amounts. Include department and position information.`
    ```
 
-### AI Regex Pattern Generation
+### AI Parsing Pattern Generation
 
 #### Integration with AIRegexGenerator
 ```javascript

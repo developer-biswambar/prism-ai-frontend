@@ -68,12 +68,12 @@ const DeltaGenerationFlow = ({
     const [isProcessing, setIsProcessing] = useState(false);
 
     const steps = [
-        {id: 'rule_management', title: 'Load/Save Rules', icon: Save},
+        {id: 'rule_management', title: 'Load Rules', icon: Save},
         {id: 'ai_requirements', title: 'AI Configuration', icon: Wand2},
         {id: 'filter_data', title: 'Filter Data', icon: Filter},
         {id: 'key_rules', title: 'Key Fields (Composite)', icon: Key},
         {id: 'comparison_rules', title: 'Optional Fields', icon: GitCompare},
-        {id: 'result_columns', title: 'Result Columns', icon: Columns},
+        {id: 'result_columns', title: 'Output Columns Selection', icon: Columns},
         {id: 'review', title: 'Review & Confirm', icon: Check},
         {id: 'generate_view', title: 'Generate & View', icon: Upload}
     ];
@@ -652,7 +652,7 @@ const DeltaGenerationFlow = ({
             case 'rule_management':
                 return (
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Choose Configuration Method</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">Choose Method</h3>
                         <p className="text-sm text-gray-600">
                             You can use AI to generate configuration from requirements, load a previously saved rule, 
                             or start fresh with manual configuration.
@@ -702,7 +702,7 @@ const DeltaGenerationFlow = ({
                             <div className="p-4 border border-green-200 bg-green-50 rounded-lg h-full flex flex-col">
                                 <div className="flex items-center space-x-2 mb-3">
                                     <FileText size={20} className="text-green-600"/>
-                                    <h4 className="text-md font-medium text-green-800">Start Fresh Manually</h4>
+                                    <h4 className="text-md font-medium text-green-800">Start Manually</h4>
                                 </div>
                                 <p className="text-sm text-green-700 mb-4 flex-grow">
                                     Create a new delta generation configuration manually from scratch.
@@ -1015,7 +1015,7 @@ const DeltaGenerationFlow = ({
                 return (
                     <div className="space-y-6">
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-800">Result Column Selection</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">Output Column Selection</h3>
                             <p className="text-sm text-gray-600">Choose which columns from each file should be included
                                 in the delta results. Key and comparison rule columns are automatically included.</p>
                         </div>

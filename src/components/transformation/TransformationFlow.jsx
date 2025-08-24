@@ -56,7 +56,7 @@ const TransformationFlow = ({
 
     // Updated step definitions with rule management as first step
     const steps = [
-        {id: 'rule_management', title: 'Load/Save Rules', icon: Save},
+        {id: 'rule_management', title: 'Load Rules', icon: Save},
         {id: 'ai_requirements', title: 'AI Setup', icon: Wand2},
         {id: 'file_selection', title: 'Select Files', icon: FileText},
         {id: 'row_generation', title: 'Configure Rules', icon: Copy},
@@ -310,7 +310,7 @@ const TransformationFlow = ({
             case 'rule_management':
                 return (
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Choose Configuration Method</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">Choose Method</h3>
                         <p className="text-sm text-gray-600">
                             You can use AI to generate configuration from requirements, load a previously saved rule, 
                             or start fresh with manual configuration.
@@ -319,7 +319,7 @@ const TransformationFlow = ({
                             <div className="p-4 border border-purple-200 bg-purple-50 rounded-lg h-full flex flex-col">
                                 <div className="flex items-center space-x-2 mb-3">
                                     <Wand2 size={20} className="text-purple-600"/>
-                                    <h4 className="text-md font-medium text-purple-800">AI Configuration</h4>
+                                    <h4 className="text-md font-medium text-purple-800">AI Assisted</h4>
                                 </div>
                                 <p className="text-sm text-purple-700 mb-4 flex-grow">
                                     Describe your requirements and let AI generate the transformation configuration.
@@ -351,7 +351,7 @@ const TransformationFlow = ({
                             <div className="p-4 border border-green-200 bg-green-50 rounded-lg h-full flex flex-col">
                                 <div className="flex items-center space-x-2 mb-3">
                                     <Settings size={20} className="text-green-600"/>
-                                    <h4 className="text-md font-medium text-green-800">Start Fresh Manually</h4>
+                                    <h4 className="text-md font-medium text-green-800">Start Manually</h4>
                                 </div>
                                 <p className="text-sm text-green-700 mb-4 flex-grow">
                                     Create a new transformation configuration manually from scratch.

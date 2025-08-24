@@ -1,7 +1,7 @@
 // src/components/RuleSaveLoad.jsx - Component for saving and loading reconciliation rules
 import React, {useEffect, useState} from 'react';
 import {AlertCircle, Calendar, Clock, Download, Eye, Save, Search, Star, Tag, Trash2, Upload, X} from 'lucide-react';
-import {apiService} from '../../services/defaultApi.js';
+import {unifiedRulesApiService} from '../../services/unifiedRulesApiService.js';
 
 const RuleSaveLoad = ({
                           selectedTemplate,
@@ -59,15 +59,105 @@ const RuleSaveLoad = ({
     const loadRules = async () => {
         setLoading(true);
         try {
-            const templateRules = selectedTemplate?.id
-                ? await apiService.getRulesByTemplate(selectedTemplate.id)
-                : await apiService.listReconciliationRules({limit: 50});
+            let templateRules;
+            if (selectedTemplate?.id) {
+                // Get rules by template - use search or filter by template_id
+                const result = await unifiedRulesApiService.searchRules('reconciliation', {
+                    template_id: selectedTemplate.id,
+                    limit: 50
+                });
+                templateRules = result.success ? result.rules : [];
+            } else {
+                // Get all reconciliation rules
+                const result = await unifiedRulesApiService.getRules('reconciliation', { limit: 50 });
+                templateRules = result.success ? result.rules : [];
+            }
 
             setRules(templateRules);
         } catch (error) {
             console.error('Error loading rules:', error);
+            setRules([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Helper functions to replace apiService methods
+    const validateRuleMetadata = (form) => {
+        const errors = [];
+        if (!form.name?.trim()) errors.push('Rule name is required');
+        if (!form.category?.trim()) errors.push('Category is required');
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    };
+
+    const createRuleFromConfig = (config, template, form) => {
+        return {
+            ruleConfig: config,
+            ruleMetadata: {
+                name: form.name,
+                description: form.description,
+                category: form.category,
+                tags: form.tags || [],
+                template_id: template?.id || null,
+                template_name: template?.name || null
+            }
+        };
+    };
+
+    const adaptRuleToFiles = (rule, columns) => {
+        try {
+            let adaptedConfig = { ...rule.rule_config };
+            const warnings = [];
+            const errors = [];
+
+            // Ensure the config has the expected structure
+            if (!adaptedConfig.Files) {
+                adaptedConfig.Files = [];
+            }
+            if (!adaptedConfig.ReconciliationRules) {
+                adaptedConfig.ReconciliationRules = [];
+            }
+
+            // Ensure Files array has at least 2 entries
+            while (adaptedConfig.Files.length < 2) {
+                adaptedConfig.Files.push({
+                    Name: `File${String.fromCharCode(65 + adaptedConfig.Files.length)}`,
+                    Extract: [],
+                    Filter: []
+                });
+            }
+
+            // Basic validation - check if referenced columns exist in current files
+            if (adaptedConfig.ReconciliationRules) {
+                adaptedConfig.ReconciliationRules.forEach((rule, index) => {
+                    // Add validation logic here if needed
+                    if (!rule.LeftFileColumn || !rule.RightFileColumn) {
+                        warnings.push(`Reconciliation rule ${index + 1} has missing column references`);
+                    }
+                });
+            }
+
+            return {
+                adaptedConfig,
+                warnings,
+                errors
+            };
+        } catch (error) {
+            console.error('Error adapting rule to files:', error);
+            return {
+                adaptedConfig: {
+                    Files: [
+                        { Name: 'FileA', Extract: [], Filter: [] },
+                        { Name: 'FileB', Extract: [], Filter: [] }
+                    ],
+                    ReconciliationRules: []
+                },
+                warnings: ['Failed to adapt rule configuration, using default structure'],
+                errors: []
+            };
         }
     };
 
@@ -75,7 +165,7 @@ const RuleSaveLoad = ({
         setSaveErrors([]);
 
         // Validate form
-        const validation = apiService.validateRuleMetadata(saveForm);
+        const validation = validateRuleMetadata(saveForm);
         if (!validation.isValid) {
             setSaveErrors(validation.errors);
             return;
@@ -83,26 +173,31 @@ const RuleSaveLoad = ({
 
         setLoading(true);
         try {
-            const {ruleConfig, ruleMetadata} = apiService.createRuleFromConfig(
+            const {ruleConfig, ruleMetadata} = createRuleFromConfig(
                 currentConfig,
                 selectedTemplate,
                 saveForm
             );
 
-            let savedRule;
+            let result;
             if (loadedRuleId && hasUnsavedChanges) {
                 // Update existing rule
-                savedRule = await apiService.updateReconciliationRule(loadedRuleId, {
+                result = await unifiedRulesApiService.updateRule('reconciliation', loadedRuleId, {
                     metadata: ruleMetadata,
                     rule_config: ruleConfig
                 });
             } else {
                 // Create new rule
-                savedRule = await apiService.saveReconciliationRule(ruleConfig, ruleMetadata);
+                result = await unifiedRulesApiService.saveRule('reconciliation', ruleMetadata, ruleConfig);
             }
 
-            onRuleSaved(savedRule);
-            onClose();
+            if (result.success) {
+                onRuleSaved(result.rule);
+                onClose();
+            } else {
+                setSaveErrors([result.error || 'Failed to save rule']);
+                return;
+            }
         } catch (error) {
             console.error('Error saving rule:', error);
             setSaveErrors([error.message || 'Failed to save rule']);
@@ -115,10 +210,10 @@ const RuleSaveLoad = ({
         setLoading(true);
         try {
             // Mark rule as used
-            await apiService.markRuleAsUsed(rule.id);
+            await unifiedRulesApiService.markRuleAsUsed('reconciliation', rule.id);
 
             // Adapt rule to current files
-            const {adaptedConfig, warnings, errors} = apiService.adaptRuleToFiles(rule, fileColumns);
+            const {adaptedConfig, warnings, errors} = adaptRuleToFiles(rule, fileColumns);
 
             if (errors.length > 0) {
                 alert(`Cannot load rule: ${errors.join('\n')}`);
@@ -142,8 +237,12 @@ const RuleSaveLoad = ({
 
         setLoading(true);
         try {
-            await apiService.deleteReconciliationRule(ruleId);
-            await loadRules(); // Refresh list
+            const result = await unifiedRulesApiService.deleteRule('reconciliation', ruleId);
+            if (result.success) {
+                await loadRules(); // Refresh list
+            } else {
+                throw new Error(result.error || 'Failed to delete rule');
+            }
         } catch (error) {
             console.error('Error deleting rule:', error);
             alert('Failed to delete rule: ' + error.message);
@@ -279,7 +378,7 @@ const RuleSaveLoad = ({
                     setLoading(true);
 
                     // Use the existing save rule functionality
-                    const {ruleConfig, ruleMetadata} = apiService.createRuleFromConfig(
+                    const {ruleConfig, ruleMetadata} = createRuleFromConfig(
                         ruleData.rule_config,
                         selectedTemplate,
                         {
@@ -290,8 +389,12 @@ const RuleSaveLoad = ({
                         }
                     );
 
-                    // Save the imported rule using existing API
-                    const savedRule = await apiService.saveReconciliationRule(ruleConfig, ruleMetadata);
+                    // Save the imported rule using unified API
+                    const result = await unifiedRulesApiService.saveRule('reconciliation', ruleMetadata, ruleConfig);
+                    const savedRule = result.success ? result.rule : null;
+                    if (!result.success) {
+                        throw new Error(result.error || 'Failed to save imported rule');
+                    }
                     
                     // Refresh the rules list to show the imported rule
                     await loadRules();

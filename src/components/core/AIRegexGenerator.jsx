@@ -189,7 +189,7 @@ const AIRegexGenerator = ({onRegexGenerated, onClose, sampleText = '', columnNam
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center space-x-2">
                             <Wand2 className="text-purple-500" size={24}/>
-                            <h3 className="text-xl font-semibold text-gray-800">AI Regex Generator</h3>
+                            <h3 className="text-xl font-semibold text-gray-800">AI Pattern Generator</h3>
                             {isFallback && (
                                 <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                                     Fallback Pattern
@@ -376,7 +376,7 @@ const AIRegexGenerator = ({onRegexGenerated, onClose, sampleText = '', columnNam
                                     onClick={handleUseRegex}
                                     className="flex-1 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
                                 >
-                                    Use This Regex
+                                    Submit
                                 </button>
                                 <button
                                     onClick={onClose}

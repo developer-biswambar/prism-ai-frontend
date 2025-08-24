@@ -98,12 +98,12 @@ const ReconciliationFlow = ({
 
     // Step definitions
     const steps = [
-        {id: 'rule_management', title: 'Load/Save Rules', icon: Save},
+        {id: 'rule_management', title: 'Load Rules', icon: Save},
         {id: 'ai_requirements', title: 'AI Configuration', icon: Wand2},
         {id: 'extraction_rules', title: 'Data Parsing', icon: Target},  
         {id: 'filter_rules', title: 'Data Filtering', icon: Filter},
         {id: 'reconciliation_rules', title: 'Matching Rules', icon: Settings},
-        {id: 'result_columns', title: 'Result Columns', icon: Columns},
+        {id: 'result_columns', title: 'Output Columns Selection', icon: Columns},
         {id: 'generate_view', title: 'Generate & View', icon: Upload}
     ];
 
@@ -624,7 +624,7 @@ const ReconciliationFlow = ({
             case 'rule_management':
                 return (
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Choose Configuration Method</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">Choose Method</h3>
                         <p className="text-sm text-gray-600">
                             You can use AI to generate configuration from requirements, load a previously saved rule, 
                             or start fresh with manual configuration.
@@ -634,7 +634,7 @@ const ReconciliationFlow = ({
                             <div className="p-4 border border-purple-200 bg-purple-50 rounded-lg h-full flex flex-col">
                                 <div className="flex items-center space-x-2 mb-3">
                                     <Wand2 size={20} className="text-purple-600"/>
-                                    <h4 className="text-md font-medium text-purple-800">AI Configuration</h4>
+                                    <h4 className="text-md font-medium text-purple-800">AI Assisted</h4>
                                 </div>
                                 <p className="text-sm text-purple-700 mb-4 flex-grow">
                                     Describe your requirements and let AI generate the configuration.
@@ -668,7 +668,7 @@ const ReconciliationFlow = ({
                             <div className="p-4 border border-green-200 bg-green-50 rounded-lg h-full flex flex-col">
                                 <div className="flex items-center space-x-2 mb-3">
                                     <FileText size={20} className="text-green-600"/>
-                                    <h4 className="text-md font-medium text-green-800">Start Fresh Manually</h4>
+                                    <h4 className="text-md font-medium text-green-800">Start Manually</h4>
                                 </div>
                                 <p className="text-sm text-green-700 mb-4 flex-grow">
                                     Create a new reconciliation configuration manually from scratch.
@@ -786,7 +786,7 @@ const ReconciliationFlow = ({
                                                             onChange={(e) => updateExtractionRule(fileIndex, ruleIndex, 'MatchType', e.target.value)}
                                                             className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
                                                         >
-                                                            <option value="regex">Regex Pattern</option>
+                                                            <option value="regex">Parsing Pattern</option>
                                                             <option value="exact">Exact Match</option>
                                                             <option value="contains">Contains</option>
                                                             <option value="starts_with">Starts With</option>
@@ -984,7 +984,7 @@ const ReconciliationFlow = ({
                 return (
                     <div className="space-y-6">
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-800">Result Column Selection</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">Output Column Selection</h3>
                             <p className="text-sm text-gray-600">Choose which columns from each file should be included
                                 in the reconciliation results.</p>
                         </div>
@@ -1275,7 +1275,7 @@ const ReconciliationFlow = ({
                 </div>
             </div>
 
-            {/* AI Regex Generator Modal */}
+            {/* AI Pattern Generator Modal */}
             {showAIRegexGenerator && (
                 <AIRegexGenerator
                     sampleText={currentAIContext.sampleText}

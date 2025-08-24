@@ -1,7 +1,7 @@
 // src/components/DeltaRuleSaveLoad.jsx - Component for saving and loading delta generation rules
 import React, {useEffect, useState} from 'react';
 import {AlertCircle, Calendar, Clock, Eye, GitCompare, Save, Search, Star, Tag, Trash2, Upload, X} from 'lucide-react';
-import {apiService} from '../../services/defaultApi.js';
+import {unifiedRulesApiService} from '../../services/unifiedRulesApiService.js';
 
 const DeltaRuleSaveLoad = ({
                                selectedTemplate,
@@ -69,25 +69,59 @@ const DeltaRuleSaveLoad = ({
     const loadRules = async () => {
         setLoading(true);
         try {
-            const templateRules = selectedTemplate?.id
-                ? await apiService.getDeltaRulesByTemplate(selectedTemplate.id)
-                : await apiService.listDeltaRules({limit: 50});
+            let templateRules;
+            if (selectedTemplate?.id) {
+                // Get rules by template - use search or filter by template_id
+                const result = await unifiedRulesApiService.searchRules('delta', {
+                    template_id: selectedTemplate.id,
+                    limit: 50
+                });
+                templateRules = result.success ? result.rules : [];
+            } else {
+                // Get all delta rules
+                const result = await unifiedRulesApiService.getRules('delta', { limit: 50 });
+                templateRules = result.success ? result.rules : [];
+            }
 
             setRules(templateRules);
         } catch (error) {
             console.error('Error loading delta rules:', error);
-            // Fallback to empty array if API fails
             setRules([]);
         } finally {
             setLoading(false);
         }
     };
 
+    // Helper functions to replace apiService methods
+    const validateRuleMetadata = (form) => {
+        const errors = [];
+        if (!form.name?.trim()) errors.push('Rule name is required');
+        if (!form.category?.trim()) errors.push('Category is required');
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
+    };
+
+    const createRuleFromConfig = (config, template, form) => {
+        return {
+            ruleConfig: config,
+            ruleMetadata: {
+                name: form.name,
+                description: form.description,
+                category: form.category,
+                tags: form.tags || [],
+                template_id: template?.id || null,
+                template_name: template?.name || null
+            }
+        };
+    };
+
     const handleSaveRule = async () => {
         setSaveErrors([]);
 
         // Validate form
-        const validation = apiService.validateDeltaRuleMetadata(saveForm);
+        const validation = validateRuleMetadata(saveForm);
         if (!validation.isValid) {
             setSaveErrors(validation.errors);
             return;
@@ -95,26 +129,31 @@ const DeltaRuleSaveLoad = ({
 
         setLoading(true);
         try {
-            const {ruleConfig, ruleMetadata} = apiService.createDeltaRuleFromConfig(
+            const {ruleConfig, ruleMetadata} = createRuleFromConfig(
                 currentConfig,
                 selectedTemplate,
                 saveForm
             );
 
-            let savedRule;
+            let result;
             if (loadedRuleId && hasUnsavedChanges) {
                 // Update existing rule
-                savedRule = await apiService.updateDeltaRule(loadedRuleId, {
+                result = await unifiedRulesApiService.updateRule('delta', loadedRuleId, {
                     metadata: ruleMetadata,
                     rule_config: ruleConfig
                 });
             } else {
                 // Create new rule
-                savedRule = await apiService.saveDeltaRule(ruleConfig, ruleMetadata);
+                result = await unifiedRulesApiService.saveRule('delta', ruleMetadata, ruleConfig);
             }
 
-            onRuleSaved(savedRule);
-            onClose();
+            if (result.success) {
+                onRuleSaved(result.rule);
+                onClose();
+            } else {
+                setSaveErrors([result.error || 'Failed to save rule']);
+                return;
+            }
         } catch (error) {
             console.error('Error saving delta rule:', error);
             setSaveErrors([error.message || 'Failed to save rule']);
@@ -123,14 +162,71 @@ const DeltaRuleSaveLoad = ({
         }
     };
 
+    const adaptRuleToFiles = (rule, columns) => {
+        try {
+            let adaptedConfig = { ...rule.rule_config };
+            const warnings = [];
+            const errors = [];
+
+            // Ensure the config has the expected structure for delta rules
+            if (!adaptedConfig.KeyRules) {
+                adaptedConfig.KeyRules = [];
+            }
+            if (!adaptedConfig.ComparisonRules) {
+                adaptedConfig.ComparisonRules = [];
+            }
+            if (!adaptedConfig.selected_columns_file_a) {
+                adaptedConfig.selected_columns_file_a = [];
+            }
+            if (!adaptedConfig.selected_columns_file_b) {
+                adaptedConfig.selected_columns_file_b = [];
+            }
+
+            // Basic validation for delta rules
+            if (adaptedConfig.KeyRules) {
+                adaptedConfig.KeyRules.forEach((rule, index) => {
+                    if (!rule.LeftFileColumn || !rule.RightFileColumn) {
+                        warnings.push(`Key rule ${index + 1} has missing column references`);
+                    }
+                });
+            }
+
+            if (adaptedConfig.ComparisonRules) {
+                adaptedConfig.ComparisonRules.forEach((rule, index) => {
+                    if (!rule.LeftFileColumn || !rule.RightFileColumn) {
+                        warnings.push(`Comparison rule ${index + 1} has missing column references`);
+                    }
+                });
+            }
+
+            return {
+                adaptedConfig,
+                warnings,
+                errors
+            };
+        } catch (error) {
+            console.error('Error adapting delta rule to files:', error);
+            return {
+                adaptedConfig: {
+                    KeyRules: [],
+                    ComparisonRules: [],
+                    selected_columns_file_a: [],
+                    selected_columns_file_b: []
+                },
+                warnings: ['Failed to adapt delta rule configuration, using default structure'],
+                errors: []
+            };
+        }
+    };
+
     const handleLoadRule = async (rule) => {
         setLoading(true);
         try {
             // Mark rule as used
-            await apiService.markDeltaRuleAsUsed(rule.id);
+            await unifiedRulesApiService.markRuleAsUsed('delta', rule.id);
 
             // Adapt rule to current files
-            const {adaptedConfig, warnings, errors} = apiService.adaptDeltaRuleToFiles(rule, fileColumns);
+            const {adaptedConfig, warnings, errors} = adaptRuleToFiles(rule, fileColumns);
 
             if (errors.length > 0) {
                 alert(`Cannot load rule: ${errors.join('\n')}`);
@@ -154,8 +250,12 @@ const DeltaRuleSaveLoad = ({
 
         setLoading(true);
         try {
-            await apiService.deleteDeltaRule(ruleId);
-            await loadRules(); // Refresh list
+            const result = await unifiedRulesApiService.deleteRule('delta', ruleId);
+            if (result.success) {
+                await loadRules(); // Refresh list
+            } else {
+                throw new Error(result.error || 'Failed to delete rule');
+            }
         } catch (error) {
             console.error('Error deleting delta rule:', error);
             alert('Failed to delete rule: ' + error.message);
@@ -591,7 +691,7 @@ const DeltaRuleSaveLoad = ({
                                             <div>• Key Rules: {showRuleDetails.rule_config.KeyRules?.length || 0}</div>
                                             <div>• Comparison
                                                 Rules: {showRuleDetails.rule_config.ComparisonRules?.length || 0}</div>
-                                            <div>• Result Columns Selected: {
+                                            <div>• Output Columns Selection Selected: {
                                                 (showRuleDetails.rule_config.selected_columns_file_a?.length || 0) +
                                                 (showRuleDetails.rule_config.selected_columns_file_b?.length || 0)
                                             }</div>

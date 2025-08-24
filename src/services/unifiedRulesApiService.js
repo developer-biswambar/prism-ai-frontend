@@ -13,12 +13,12 @@ const getEnvVar = (key, defaultValue) => {
 
 class UnifiedRulesApiService {
     constructor() {
-        this.BASE_URL = getEnvVar('BASE_URL','localhost:8000');
+        this.BASE_URL = getEnvVar('VITE_BASE_URL','http://localhost:8000');
         
-        // Rule type endpoints mapping
+        // Rule type endpoints mapping - NEW: Unified structure
         this.endpoints = {
-            delta: '/delta-rules',
-            reconciliation: '/rules',
+            delta: '/rules/delta',
+            reconciliation: '/rules/reconciliation', 
             transformation: '/rules/transformation'
         };
         

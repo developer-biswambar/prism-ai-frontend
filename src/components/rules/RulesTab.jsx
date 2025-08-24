@@ -1,6 +1,6 @@
 // src/components/RulesTab.jsx - Rules Tab Component
 import React, {useEffect, useState} from 'react';
-import {AlertCircle, Download, Grid, List, Loader, RefreshCw, Search, Settings2, SortAsc, SortDesc} from 'lucide-react';
+import {AlertCircle, Download, Grid, List, Loader, RefreshCw, Search, SortAsc, SortDesc} from 'lucide-react';
 import RuleCard from './RuleCard';
 import {apiService} from '../../services/defaultApi.js';
 
@@ -298,7 +298,7 @@ const RulesTab = ({result, onClose}) => {
                 </div>
             ) : filteredAndSortedRules.length === 0 ? (
                 <div className="text-center py-12">
-                    <Settings2 className="mx-auto h-12 w-12 text-gray-400"/>
+                    <RefreshCw className="mx-auto h-12 w-12 text-gray-400"/>
                     <h3 className="mt-2 text-sm font-medium text-gray-900">
                         {rulesData.length === 0 ? 'No rules found' : 'No matching rules'}
                     </h3>
@@ -358,7 +358,7 @@ const RulesTab = ({result, onClose}) => {
                                                 <div className="flex items-center space-x-3">
                                                     <div
                                                         className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                                        <Settings2 className="w-4 h-4 text-blue-600"/>
+                                                        <RefreshCw className="w-4 h-4 text-blue-600"/>
                                                     </div>
                                                     <div className="flex-1">
                                                         <div className="flex items-center space-x-2">

@@ -18,8 +18,7 @@ import {
     Shuffle,
     X,
     Zap,
-    BookOpen,
-    Plus
+    BookOpen
 } from 'lucide-react';
 import {useEffect, useState} from "react";
 import UnifiedRulesManager from '../rules/UnifiedRulesManager.jsx';
@@ -417,11 +416,16 @@ const RightSidebar = ({
                             )}
                             {activeTab === 'rules' && (
                                 <button
-                                    onClick={() => setShowRulesManager(true)}
+                                    onClick={() => {
+                                        // Refresh rules data
+                                        if (window.rulesTabRefresh) {
+                                            window.rulesTabRefresh();
+                                        }
+                                    }}
                                     className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
-                                    title="Open rules manager"
+                                    title="Refresh rules"
                                 >
-                                    <Settings size={14} />
+                                    <RefreshCw size={14} />
                                 </button>
                             )}
                         </div>
@@ -746,78 +750,19 @@ const RightSidebar = ({
                                                                 </button>
                                                             </div>
 
-                                                            {/* Download Options */}
-                                                            <div className="space-y-1">
-                                                                <div
-                                                                    className="text-xs text-gray-500 font-medium">Download Options:
-                                                                </div>
-
-                                                                {/* Primary Downloads */}
-                                                                <div className="grid grid-cols-2 gap-1">
-                                                                    {downloadOptions.primary.map((option) => {
-                                                                        const OptionIcon = option.icon;
-                                                                        return (
-                                                                            <button
-                                                                                key={option.key}
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    onDownloadResults(processInfo.id, option.key);
-                                                                                }}
-                                                                                className={`px-2 py-1 text-xs bg-${option.color}-100 text-${option.color}-700 rounded hover:bg-${option.color}-200 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-1`}
-                                                                                title={`Download ${option.label}`}
-                                                                            >
-                                                                                <OptionIcon size={10}/>
-                                                                                <span>{option.label}</span>
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-
-                                                                {/* Secondary Downloads */}
-                                                                {downloadOptions.secondary.length > 0 && (
-                                                                    <div className="grid grid-cols-2 gap-1 mt-1">
-                                                                        {downloadOptions.secondary.map((option) => {
-                                                                            const OptionIcon = option.icon;
-                                                                            return (
-                                                                                <button
-                                                                                    key={option.key}
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        onDownloadResults(processInfo.id, option.key);
-                                                                                    }}
-                                                                                    className={`px-2 py-1 text-xs bg-${option.color}-100 text-${option.color}-700 rounded hover:bg-${option.color}-200 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-1`}
-                                                                                    title={`Download ${option.label}`}
-                                                                                >
-                                                                                    <OptionIcon size={10}/>
-                                                                                    <span>{option.label}</span>
-                                                                                </button>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                )}
-
-                                                                {/* Extra Downloads */}
-                                                                {downloadOptions.extra.length > 0 && (
-                                                                    <div className="grid grid-cols-1 gap-1 mt-1">
-                                                                        {downloadOptions.extra.map((option) => {
-                                                                            const OptionIcon = option.icon;
-                                                                            return (
-                                                                                <button
-                                                                                    key={option.key}
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        onDownloadResults(processInfo.id, option.key);
-                                                                                    }}
-                                                                                    className={`px-2 py-1 text-xs bg-${option.color}-100 text-${option.color}-700 rounded hover:bg-${option.color}-200 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-1`}
-                                                                                    title={`Download ${option.label}`}
-                                                                                >
-                                                                                    <OptionIcon size={10}/>
-                                                                                    <span>{option.label}</span>
-                                                                                </button>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                )}
+                                                            {/* File Library Access */}
+                                                            <div className="mt-2">
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        window.open('/file-library', '_blank');
+                                                                    }}
+                                                                    className="w-full px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-1"
+                                                                    title="Open file library in new tab"
+                                                                >
+                                                                    <ExternalLink size={10}/>
+                                                                    <span>Open File Library</span>
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </>
@@ -936,6 +881,14 @@ const RulesTabContent = ({ onOpenRulesManager }) => {
 
     useEffect(() => {
         loadRecentRules();
+        
+        // Set up global refresh function
+        window.rulesTabRefresh = loadRecentRules;
+        
+        // Cleanup function
+        return () => {
+            delete window.rulesTabRefresh;
+        };
     }, []);
 
     const loadRecentRules = async () => {
@@ -945,10 +898,10 @@ const RulesTabContent = ({ onOpenRulesManager }) => {
             const result = await unifiedRulesApiService.getAllRules({ limit: 10 });
             
             if (result.success) {
-                // Get the 5 most recent rules
+                // Get the 10 most recent rules (more space available now)
                 const recent = result.rules
                     .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
-                    .slice(0, 5);
+                    .slice(0, 10);
                 setRecentRules(recent);
             }
         } catch (error) {
@@ -993,13 +946,6 @@ const RulesTabContent = ({ onOpenRulesManager }) => {
                         <span>Open Rules Library</span>
                     </button>
                     
-                    <button
-                        onClick={onOpenRulesManager}
-                        className="w-full inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-                    >
-                        <Plus className="w-4 h-4 mr-2"/>
-                        <span>Create New Rule</span>
-                    </button>
                 </div>
             </div>
 
@@ -1053,34 +999,6 @@ const RulesTabContent = ({ onOpenRulesManager }) => {
                 </div>
             )}
 
-            {/* Rule Types Overview */}
-            <div>
-                <h3 className="text-sm font-medium text-gray-900 mb-3">Rule Types</h3>
-                <div className="grid grid-cols-1 gap-2">
-                    {[
-                        { type: 'delta', icon: GitCompare, color: 'purple', label: 'Delta Rules', description: 'Compare file versions' },
-                        { type: 'reconciliation', icon: Shuffle, color: 'blue', label: 'Reconciliation', description: 'Match data sources' },
-                        { type: 'transformation', icon: Zap, color: 'green', label: 'Transformation', description: 'Transform data' }
-                    ].map(ruleType => {
-                        const RuleIcon = ruleType.icon;
-                        return (
-                            <div
-                                key={ruleType.type}
-                                className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors cursor-pointer"
-                                onClick={onOpenRulesManager}
-                            >
-                                <div className={`flex-shrink-0 w-8 h-8 bg-${ruleType.color}-100 rounded flex items-center justify-center`}>
-                                    <RuleIcon className={`w-4 h-4 text-${ruleType.color}-600`} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900">{ruleType.label}</p>
-                                    <p className="text-xs text-gray-500">{ruleType.description}</p>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
 
             {/* Help Section */}
             <div className="mt-4 pt-4 border-t border-gray-200">

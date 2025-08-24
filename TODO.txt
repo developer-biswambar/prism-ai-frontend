@@ -1,0 +1,17 @@
+update /Users/biswambarpradhan/UpSkill/prism-ai-frontend/src/components/rules/RuleSaveLoad.jsx to use new rule api service
+
+/Users/biswambarpradhan/UpSkill/prism-ai-frontend/src/services/unifiedRulesApiService.js
+
+remove /Users/biswambarpradhan/UpSkill/prism-ai-frontend/src/services/defaultApi.js usage from RuleSaveLoad
+
+verify if /Users/biswambarpradhan/UpSkill/prism-ai-frontend/src/components/recon,
+/Users/biswambarpradhan/UpSkill/prism-ai-frontend/src/components/delta
+and /Users/biswambarpradhan/UpSkill/prism-ai-frontend/src/components/transformation
+
+are still not using the old rules routes and configuration by using /Users/biswambarpradhan/UpSkill/prism-ai-frontend/src/services/defaultApi.js
+
+do not remove anything from /Users/biswambarpradhan/UpSkill/prism-ai-frontend/src/services/defaultApi.js just migrate their usage
+
+
+
+
