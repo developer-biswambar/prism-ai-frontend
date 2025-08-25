@@ -74,7 +74,6 @@ const DeltaGenerationFlow = ({
         {id: 'key_rules', title: 'Key Fields (Composite)', icon: Key},
         {id: 'comparison_rules', title: 'Optional Fields', icon: GitCompare},
         {id: 'result_columns', title: 'Output Columns Selection', icon: Columns},
-        {id: 'review', title: 'Review & Confirm', icon: Check},
         {id: 'generate_view', title: 'Generate & View', icon: Upload}
     ];
 
@@ -160,11 +159,26 @@ const DeltaGenerationFlow = ({
             setSelectedColumnsFileB(config.selected_columns_file_b);
         }
         
+        // Apply filters if they exist in the AI config
+        if (config.file_filters) {
+            setFileFilters(config.file_filters);
+        } else {
+            // Initialize empty filters if not present
+            setFileFilters({
+                file_0: [],
+                file_1: []
+            });
+        }
+        
         // Update the main config object as well
         setConfig(prev => ({
             ...prev,
             KeyRules: config.KeyRules || prev.KeyRules,
-            ComparisonRules: config.ComparisonRules || prev.ComparisonRules
+            ComparisonRules: config.ComparisonRules || prev.ComparisonRules,
+            Files: prev.Files.map((file, index) => ({
+                ...file,
+                Filter: config.file_filters ? (config.file_filters[`file_${index}`] || []) : []
+            }))
         }));
         
         // Navigate to next step
@@ -280,8 +294,11 @@ const DeltaGenerationFlow = ({
 
     // Rule management handlers
     const handleRuleLoaded = (rule, adaptedConfig, warnings) => {
+        console.log('Loading rule config:', adaptedConfig);
+        
+        // Set the main config with proper file structure
         setConfig({
-            Files: adaptedConfig.Files || [],
+            Files: adaptedConfig.Files || config.Files || [],
             KeyRules: adaptedConfig.KeyRules || [],
             ComparisonRules: adaptedConfig.ComparisonRules || []
         });
@@ -290,16 +307,26 @@ const DeltaGenerationFlow = ({
         setSelectedColumnsFileA(adaptedConfig.selected_columns_file_a || []);
         setSelectedColumnsFileB(adaptedConfig.selected_columns_file_b || []);
         
-        // Load filters from the adapted config
-        if (adaptedConfig.file_filters) {
-            setFileFilters(adaptedConfig.file_filters);
-        } else {
-            // Initialize empty filters if not present
-            setFileFilters({
-                file_0: [],
-                file_1: []
+        // Load filters from the adapted config - check multiple possible locations
+        let loadedFilters = adaptedConfig.file_filters || {};
+        
+        // Also check if filters are embedded in the Files array
+        if (adaptedConfig.Files && adaptedConfig.Files.length >= 2) {
+            adaptedConfig.Files.forEach((file, index) => {
+                if (file.Filter && file.Filter.length > 0) {
+                    loadedFilters[`file_${index}`] = file.Filter;
+                }
             });
         }
+        
+        // Ensure we have the proper structure
+        const normalizedFilters = {
+            file_0: loadedFilters.file_0 || loadedFilters['0'] || [],
+            file_1: loadedFilters.file_1 || loadedFilters['1'] || []
+        };
+        
+        console.log('Setting filters:', normalizedFilters);
+        setFileFilters(normalizedFilters);
         
         setLoadedRuleId(rule.id);
         setHasUnsavedChanges(false);
@@ -1192,171 +1219,6 @@ const DeltaGenerationFlow = ({
                     </div>
                 );
 
-            case 'review':
-                return (
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-800">Review Delta Configuration</h3>
-                            <p className="text-sm text-gray-600">Review your delta generation configuration before
-                                proceeding.</p>
-                        </div>
-
-                        {/* Files Summary */}
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h4 className="font-medium text-blue-800 mb-2">Files Selected</h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                {filesArray.slice(0, 2).map((file, index) => (
-                                    <div key={index}>
-                                        <span
-                                            className="font-medium">{index === 0 ? 'Older File (A)' : 'Newer File (B)'}:</span> {file?.filename}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Filters Summary */}
-                        <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                            <h4 className="font-medium text-purple-800 mb-2">Data Filters</h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                                {['file_0', 'file_1'].map((fileKey, index) => {
-                                    const filters = fileFilters[fileKey] || [];
-                                    const activeFilters = filters.filter(f => f.column && f.values && f.values.length > 0);
-
-                                    return (
-                                        <div key={fileKey}>
-                                            <span className="font-medium text-purple-700">
-                                                {index === 0 ? 'Older File' : 'Newer File'} Filters:
-                                            </span>
-                                            {activeFilters.length > 0 ? (
-                                                <ul className="ml-2 text-xs">
-                                                    {activeFilters.map((filter, filterIndex) => (
-                                                        <li key={filterIndex} className="text-purple-600">
-                                                            • {filter.column}: {filter.values.length} value{filter.values.length !== 1 ? 's' : ''}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : (
-                                                <span className="ml-2 text-xs text-purple-500">No filters applied</span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Key Rules Summary */}
-                        <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                            <h4 className="font-medium text-indigo-800 mb-2">Key Rules (Composite Key)</h4>
-                            <div className="space-y-2 text-sm">
-                                {keyRules.length > 0 ? (
-                                    <ul className="space-y-1">
-                                        {keyRules.map((rule, index) => (
-                                            <li key={index} className="text-xs">
-                                                Key {index + 1}: "{rule.LeftFileColumn}" matches "{rule.RightFileColumn}"
-                                                using {rule.MatchType}
-                                                {rule.MatchType === 'numeric_tolerance' && rule.ToleranceValue && ` (tolerance: ${rule.ToleranceValue}%)`}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <span className="text-xs text-red-500">⚠️ No key rules defined - Required for delta generation</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Comparison Rules Summary */}
-                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                            <h4 className="font-medium text-green-800 mb-2">Comparison Rules (Optional Fields)</h4>
-                            <div className="space-y-2 text-sm">
-                                {comparisonRules.length > 0 ? (
-                                    <ul className="space-y-1">
-                                        {comparisonRules.map((rule, index) => (
-                                            <li key={index} className="text-xs">
-                                                Compare "{rule.LeftFileColumn}" with "{rule.RightFileColumn}"
-                                                using {rule.MatchType}
-                                                {rule.MatchType === 'numeric_tolerance' && rule.ToleranceValue && ` (tolerance: ${rule.ToleranceValue}%)`}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <span className="text-xs text-gray-500">No comparison rules defined - Records with matching keys will be considered "Unchanged"</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Delta Logic Summary */}
-                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <h4 className="font-medium text-yellow-800 mb-2">Delta Generation Logic</h4>
-                            <div className="text-xs space-y-1">
-                                <p><strong>🔑 Key Matching:</strong> Records are matched using composite key
-                                    from {keyRules.length} key rule{keyRules.length !== 1 ? 's' : ''}</p>
-                                <p><strong>🔍 Filtering:</strong> {
-                                    (() => {
-                                        const totalFilters = (fileFilters.file_0?.filter(f => f.column && f.values?.length > 0)?.length || 0) +
-                                            (fileFilters.file_1?.filter(f => f.column && f.values?.length > 0)?.length || 0);
-                                        return totalFilters > 0 ? `${totalFilters} filter${totalFilters !== 1 ? 's' : ''} will be applied during processing` : 'No filters applied';
-                                    })()
-                                }</p>
-                                <p><strong>📊
-                                    Comparison:</strong> {comparisonRules.length > 0 ? `${comparisonRules.length} field${comparisonRules.length !== 1 ? 's' : ''} will be compared for amendments` : 'No field comparison - matching keys = unchanged'}
-                                </p>
-                                <p><strong>📈 Output Categories:</strong></p>
-                                <ul className="ml-4 list-disc">
-                                    <li><strong>UNCHANGED:</strong> Same keys + same optional fields</li>
-                                    <li><strong>AMENDED:</strong> Same keys + different optional fields</li>
-                                    <li><strong>DELETED:</strong> Present in older file only</li>
-                                    <li><strong>NEWLY_ADDED:</strong> Present in newer file only</li>
-                                </ul>
-                            </div>
-                        </div>
-
-                        {/* Validation */}
-                        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                            <h4 className="font-medium text-gray-800 mb-2">Configuration Status</h4>
-                            <div className="space-y-1 text-sm">
-                                <div className="flex items-center space-x-2">
-                                    <Check size={16} className="text-green-500"/>
-                                    <span>Files selected</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Check size={16} className="text-green-500"/>
-                                    <span>Filters configured</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    {keyRules.length > 0 ? (
-                                        <Check size={16} className="text-green-500"/>
-                                    ) : (
-                                        <AlertCircle size={16} className="text-red-500"/>
-                                    )}
-                                    <span>Key rules {keyRules.length > 0 ? 'configured' : 'required'}</span>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <Check size={16} className="text-green-500"/>
-                                    <span>Result column selection configured</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Save Rule Option */}
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-medium text-blue-800">Save This Configuration</h4>
-                                <button
-                                    onClick={() => openRuleModalForSaving()}
-                                    disabled={keyRules.length === 0}
-                                    className="flex items-center space-x-1 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
-                                >
-                                    <Save size={14}/>
-                                    <span>{loadedRuleId && hasUnsavedChanges ? 'Update Rule' : 'Save as New Rule'}</span>
-                                </button>
-                            </div>
-                            <p className="text-sm text-blue-700">
-                                Save this configuration as a reusable delta rule template for future use.
-                                {loadedRuleId && hasUnsavedChanges && ' You have unsaved changes to the loaded rule.'}
-                            </p>
-                        </div>
-                    </div>
-                );
 
             case 'generate_view':
                 return (
@@ -1382,7 +1244,6 @@ const DeltaGenerationFlow = ({
                         }}
                         onSaveResults={() => console.log('Save results feature to be implemented')}
                         onRetry={generateDeltaResults}
-                        onUpdateConfig={() => setCurrentStep('review')}
                         onClose={() => onCancel && onCancel()}
                         loadedRuleId={loadedRuleId}
                         hasUnsavedChanges={hasUnsavedChanges}
@@ -1464,10 +1325,13 @@ const DeltaGenerationFlow = ({
                         {getCurrentStepIndex() < steps.length - 1 ? (
                             <button
                                 onClick={nextStep}
-                                disabled={currentStep === 'review' && keyRules.length === 0}
+                                disabled={
+                                    // Only disable if we're on or past key_rules and have no key rules
+                                    (currentStep === 'key_rules' || currentStep === 'comparison_rules' || currentStep === 'result_columns') && keyRules.length === 0
+                                }
                                 className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                <span>{currentStep === 'review' ? 'Generate Results' : 'Next'}</span>
+                                <span>Next</span>
                                 <ChevronRight size={16}/>
                             </button>
                         ) : (

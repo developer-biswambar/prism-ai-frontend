@@ -274,7 +274,7 @@ const AIRequirementsStep = ({
                     ) : (
                         <>
                             <Wand2 size={16} />
-                            <span>Generate Configuration</span>
+                            <span>Generate Rules with AI</span>
                         </>
                     )}
                 </button>

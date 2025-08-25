@@ -290,7 +290,7 @@ Example: 'Match bank statements with general ledger using transaction reference 
                         ) : (
                             <Sparkles size={16} />
                         )}
-                        <span>{isGenerating ? 'Generating...' : 'Generate Configuration'}</span>
+                        <span>{isGenerating ? 'Generating...' : 'Generate Rules with AI'}</span>
                     </button>
                 </div>
 
