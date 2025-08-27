@@ -205,7 +205,7 @@ const AIRequirementsStep = ({
                         className="flex items-center space-x-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
                     >
                         <Target size={14} />
-                        <span>Use This Configuration</span>
+                        <span>Use This Rules</span>
                     </button>
                     <button
                         onClick={() => setGeneratedConfig(null)}
@@ -269,7 +269,7 @@ const AIRequirementsStep = ({
                     {isGenerating ? (
                         <>
                             <Loader2 size={16} className="animate-spin" />
-                            <span>Generating Configuration...</span>
+                            <span>Generating Rules...</span>
                         </>
                     ) : (
                         <>

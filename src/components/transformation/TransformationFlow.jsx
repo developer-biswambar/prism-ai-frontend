@@ -14,13 +14,15 @@ import {
     AlertCircle,
     Download,
     Copy,
-    Layers
+    Layers,
+    Filter
 } from 'lucide-react';
 import RowGenerationStep from './RowGenerationStep';
 import ColumnMappingStep from './ColumnMappingStep';
 import PreviewStep from './PreviewStep';
 import AIRequirementsStep from './AIRequirementsStep';
 import TransformationRuleSaveLoad from './TransformationRuleSaveLoad';
+import TransformationFilterDataStep from './TransformationFilterDataStep';
 import {deltaApiService} from '../../services/deltaApiService';
 import {transformationApiService} from '../../services/transformationApiService';
 
@@ -48,17 +50,20 @@ const TransformationFlow = ({
     const [isProcessing, setIsProcessing] = useState(false);
     const [validationErrors, setValidationErrors] = useState([]);
     const [savedRequirements, setSavedRequirements] = useState('');
+    const [fileColumns, setFileColumns] = useState({});
+    const [hasIncompleteFilters, setHasIncompleteFilters] = useState(false);
 
     // Rule management state
     const [loadedRuleId, setLoadedRuleId] = useState(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [showRuleModal, setShowRuleModal] = useState(false);
 
-    // Updated step definitions with rule management as first step
+    // Updated step definitions with rule management as first step and filter step
     const steps = [
         {id: 'rule_management', title: 'Load Rules', icon: Save},
         {id: 'ai_requirements', title: 'AI Setup', icon: Wand2},
         {id: 'file_selection', title: 'Select Files', icon: FileText},
+        {id: 'filter_data', title: 'Filter Data', icon: Filter},
         {id: 'row_generation', title: 'Configure Rules', icon: Copy},
         {id: 'preview', title: 'Generate & View', icon: Eye}
     ];
@@ -78,8 +83,29 @@ const TransformationFlow = ({
                 ...prev,
                 source_files: sourceFiles
             }));
+
+            // Initialize file columns
+            const newFileColumns = {};
+            Object.values(selectedFiles)
+                .filter(file => file)
+                .forEach(file => {
+                    newFileColumns[file.file_id] = file.columns || [];
+                });
+            setFileColumns(newFileColumns);
         }
     }, [selectedFiles]);
+
+    // Helper function to get file by index  
+    const getFileByIndex = (index) => {
+        const fileEntries = Object.entries(selectedFiles || {}).filter(([key, file]) => file);
+        const [key, file] = fileEntries[index] || [];
+        return file;
+    };
+
+    // Handler for filter validation
+    const handleFilterValidation = (hasIncomplete) => {
+        setHasIncompleteFilters(hasIncomplete);
+    };
 
     // Navigation
     const getCurrentStepIndex = () => steps.findIndex(step => step.id === currentStep);
@@ -129,9 +155,19 @@ const TransformationFlow = ({
                 ...generatedConfig
             }));
             
-            // Skip file selection and go directly to rule configuration
-            setCurrentStep('row_generation');
-            onSendMessage('system', '✅ AI configuration applied successfully! You can now review and modify the rules.');
+            // Always go to filter_data step after AI configuration
+            // This allows users to review generated filters or add their own
+            setCurrentStep('filter_data');
+            
+            const hasFilters = generatedConfig.file_filters && 
+                Object.keys(generatedConfig.file_filters).length > 0 &&
+                Object.values(generatedConfig.file_filters).some(filters => filters && filters.length > 0);
+            
+            if (hasFilters) {
+                onSendMessage('system', '✅ AI configuration applied successfully! Generated filters are ready for review - modify them as needed or proceed to rules.');
+            } else {
+                onSendMessage('system', '✅ AI configuration applied successfully! You can add data filters if needed, or proceed directly to rules configuration.');
+            }
         }
     };
 
@@ -199,6 +235,11 @@ const TransformationFlow = ({
             case 'file_selection':
                 if (config.source_files.length === 0) {
                     errors.push('Please select at least one source file');
+                }
+                break;
+            case 'filter_data':
+                if (hasIncompleteFilters) {
+                    errors.push('Please complete or remove incomplete filters');
                 }
                 break;
 
@@ -460,6 +501,18 @@ const TransformationFlow = ({
 
 
                     </div>
+                );
+
+            case 'filter_data':
+                return (
+                    <TransformationFilterDataStep
+                        config={config}
+                        setConfig={setConfig}
+                        getFileByIndex={getFileByIndex}
+                        fileColumns={fileColumns}
+                        onSendMessage={onSendMessage}
+                        onValidationChange={handleFilterValidation}
+                    />
                 );
 
             case 'row_generation':
