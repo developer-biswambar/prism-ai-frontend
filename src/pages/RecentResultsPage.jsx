@@ -131,7 +131,7 @@ const RecentResultsPage = () => {
             return {
                 icon: Zap,
                 color: 'green',
-                label: 'AI File Generation',
+                label: 'Transformation',
                 id: result.id,
                 type: 'file_generation'
             };
@@ -397,7 +397,7 @@ const RecentResultsPage = () => {
                                     <option value="all">All Types</option>
                                     <option value="delta">Delta Generation</option>
                                     <option value="reconciliation">Reconciliation</option>
-                                    <option value="file_generation">AI File Generation</option>
+                                    <option value="file_generation">Transformation</option>
                                 </select>
                             </div>
 
@@ -845,7 +845,7 @@ const ResultDetailModal = ({result, onClose, onDownload, onSaveToServer}) => {
                                 </div>
                             ) : processInfo.type === 'file_generation' ? (
                                 <div>
-                                    <h4 className="text-lg font-medium text-gray-900 mb-4">AI File Generation
+                                    <h4 className="text-lg font-medium text-gray-900 mb-4">Transformation
                                         Summary</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

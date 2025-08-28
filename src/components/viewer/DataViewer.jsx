@@ -318,13 +318,22 @@ const DataViewer = ({fileId, onClose}) => {
     // Download file
     const downloadFile = async (format = 'csv') => {
         try {
+            // Remove extension from filename to avoid double extensions
+            const getBaseFilename = (filename) => {
+                if (!filename) return 'modified_file';
+                const lastDotIndex = filename.lastIndexOf('.');
+                return lastDotIndex > 0 ? filename.substring(0, lastDotIndex) : filename;
+            };
+            
+            const baseFileName = getBaseFilename(fileName);
+            
             try {
                 const response = await apiService.downloadModifiedFile(fileId, format);
                 const blob = new Blob([response.data]);
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${fileName || 'modified_file'}.${format}`;
+                a.download = `${baseFileName}_modified.${format}`;
                 a.click();
                 window.URL.revokeObjectURL(url);
             } catch (apiError) {
@@ -338,7 +347,7 @@ const DataViewer = ({fileId, onClose}) => {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `${fileName || 'modified_file'}.csv`;
+                    a.download = `${baseFileName}_modified.csv`;
                     a.click();
                     window.URL.revokeObjectURL(url);
                 }

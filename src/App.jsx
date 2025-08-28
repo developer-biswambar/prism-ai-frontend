@@ -1,4 +1,4 @@
-// src/App.jsx - Updated with AI File Generation Processing Support
+// src/App.jsx - Updated with Transformation Processing Support
 import React from 'react';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import {messageService} from './services/messageService';

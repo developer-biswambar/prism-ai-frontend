@@ -227,7 +227,7 @@ const RightSidebar = ({
             return {
                 icon: Zap,
                 color: 'green',
-                label: 'AI File Generation',
+                label: 'Transformation',
                 id: processedFile.generation_id,
                 type: 'file_generation'
             };

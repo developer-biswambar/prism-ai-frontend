@@ -457,7 +457,7 @@ Data Quality Metrics:
      * @param {Object} generationRecord - File generation record information
      */
     downloadFileGenerationSummaryReport(summary, generationRecord) {
-        const reportContent = `AI File Generation Summary Report
+        const reportContent = `Transformation Summary Report
 Generated: ${new Date().toLocaleString()}
 
 Source Information:
