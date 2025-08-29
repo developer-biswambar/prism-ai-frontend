@@ -352,8 +352,14 @@ const RightSidebar = ({
     return (
         <>
             <div
-                className="bg-white border-l border-gray-200 flex flex-col"
-                style={{width: `${width}px`}}
+                className="bg-white border-l border-gray-200 flex flex-col overflow-hidden"
+                style={{
+                    width: `${width}px`,
+                    maxWidth: `${width}px`,
+                    marginRight: '16px', // Move sidebar 16px to the left
+                    borderRadius: '8px 0 0 8px', // Rounded left corners
+                    boxShadow: '-4px 0 6px -1px rgba(0, 0, 0, 0.1)' // Subtle left shadow
+                }}
             >
                 {/* Header */}
                 <div className="p-4 border-b border-gray-200">
@@ -552,7 +558,7 @@ const RightSidebar = ({
                 </div>
 
                 {/* Tab Content */}
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
                     {activeTab === 'results' ? (
                         <>
                             {/* Results Content */}
@@ -575,7 +581,7 @@ const RightSidebar = ({
                             </button>
                         </div>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-3 overflow-x-hidden">
                             {localProcessedFiles.map((processedFile) => {
 
                                 if (processedFile.status === 'processing') {
@@ -591,7 +597,7 @@ const RightSidebar = ({
                                 return (
                                     <div
                                         key={processInfo.id}
-                                        className="border border-gray-200 rounded-lg hover:border-gray-300 transition-all duration-200 hover:shadow-md"
+                                        className="border border-gray-200 rounded-lg hover:border-gray-300 transition-all duration-200 hover:shadow-md overflow-hidden"
                                     >
                                         {/* Collapsible Header */}
                                         <div
@@ -666,11 +672,11 @@ const RightSidebar = ({
 
                                         {/* Expanded Content */}
                                         {isExpanded && (
-                                            <div className="px-3 pb-3 border-t border-gray-100 pt-3">
+                                            <div className="px-3 pb-3 border-t border-gray-100 pt-3 overflow-x-hidden break-words">
                                                 {/* Full File Names */}
                                                 <div className="text-xs text-gray-600 mb-3">
                                                     <div
-                                                        className="truncate"
+                                                        className="break-all text-wrap"
                                                         title={
                                                             processInfo.type === 'file_generation'
                                                                 ? processedFile?.summary?.configuration?.source_files?.[0]?.file_id
@@ -689,14 +695,14 @@ const RightSidebar = ({
                                                     </div>
 
                                                     {processedFile.file_b && (
-                                                        <div className="truncate" title={processedFile.file_b}>
+                                                        <div className="break-all text-wrap" title={processedFile.file_b}>
                                                             📄 {processInfo.type === 'delta' ? 'Newer' : ''}: {processedFile.file_b}
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 {/* Process ID */}
-                                                <div className="text-xs text-gray-400 mb-3">
+                                                <div className="text-xs text-gray-400 mb-3 break-all">
                                                     ID: {processInfo.id}
                                                 </div>
 
@@ -933,7 +939,7 @@ const RulesTabContent = ({ onOpenRulesManager }) => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-x-hidden break-words">
             {/* Quick Access Section */}
             <div>
                 <h3 className="text-sm font-medium text-gray-900 mb-3">Quick Access</h3>
