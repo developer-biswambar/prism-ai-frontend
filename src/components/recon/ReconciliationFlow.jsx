@@ -1,6 +1,5 @@
 import React, {useEffect, useState} from 'react';
 import {
-    AlertCircle,
     Check,
     ChevronLeft,
     ChevronRight,
@@ -21,8 +20,8 @@ import RuleSaveLoad from '../rules/RuleSaveLoad.jsx';
 import IntegratedFilterDataStep from "./IntegratedFilterDataStep.jsx";
 import AIRequirementsStep from '../reconciliation/AIRequirementsStep.jsx';
 import ReconciliationPreviewStep from './ReconciliationPreviewStep.jsx';
-import { aiAssistanceService } from '../../services/aiAssistanceService.js';
-import { processManagementService } from '../../services/processManagementService.js';
+import {aiAssistanceService} from '../../services/aiAssistanceService.js';
+import {processManagementService} from '../../services/processManagementService.js';
 
 const ReconciliationFlow = ({
                                 files,
@@ -65,7 +64,7 @@ const ReconciliationFlow = ({
     // Preview Step State
     const [generatedResults, setGeneratedResults] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    
+
     // Closest match functionality state
     const [findClosestMatches, setFindClosestMatches] = useState(false);
     const [closestMatchConfig, setClosestMatchConfig] = useState({
@@ -80,12 +79,12 @@ const ReconciliationFlow = ({
     // Handler to sync both closest match states
     const handleClosestMatchToggle = (enabled) => {
         setFindClosestMatches(enabled);
-        setClosestMatchConfig(prev => ({ ...prev, enabled }));
+        setClosestMatchConfig(prev => ({...prev, enabled}));
     };
 
     // Handler to update closest match config
     const handleClosestMatchConfigChange = (updates) => {
-        setClosestMatchConfig(prev => ({ ...prev, ...updates }));
+        setClosestMatchConfig(prev => ({...prev, ...updates}));
     };
 
     // State to track filter validation
@@ -100,7 +99,7 @@ const ReconciliationFlow = ({
     const steps = [
         {id: 'rule_management', title: 'Load Rules', icon: Save},
         {id: 'ai_requirements', title: 'AI Configuration', icon: Wand2},
-        {id: 'extraction_rules', title: 'Data Parsing', icon: Target},  
+        {id: 'extraction_rules', title: 'Data Parsing', icon: Target},
         {id: 'filter_rules', title: 'Data Filtering', icon: Filter},
         {id: 'reconciliation_rules', title: 'Matching Rules', icon: Settings},
         {id: 'result_columns', title: 'Output Columns Selection', icon: Columns},
@@ -215,9 +214,9 @@ const ReconciliationFlow = ({
                 );
                 return isValidMandatory || isOriginalColumn || !isPartialName;
             });
-            
+
             // Only add mandatory columns to File A by default (fileIndex === 0)
-            const updatedSelection = fileIndex === 0 
+            const updatedSelection = fileIndex === 0
                 ? [...new Set([...cleanedCurrentSelection, ...validMandatoryColumns])]
                 : cleanedCurrentSelection;
 
@@ -282,7 +281,7 @@ const ReconciliationFlow = ({
         if (currentIndex < steps.length - 1) {
             const nextStepId = steps[currentIndex + 1].id;
             setCurrentStep(nextStepId);
-            
+
             // Don't auto-generate results - let user click Generate Results button in preview step
         }
     };
@@ -324,14 +323,14 @@ const ReconciliationFlow = ({
             };
 
             onSendMessage('system', '🎉 Starting reconciliation process...');
-            
+
             const response = await processManagementService.startReconciliation(finalConfig);
-            
+
             if (response.success) {
                 // Check if response has direct data or is wrapped in process format
                 const resultData = response.data || response;
                 const summary = resultData.summary || {};
-                
+
                 setGeneratedResults({
                     reconciliation_id: resultData.reconciliation_id || response.processId,
                     matched_count: summary.matched_records || 0,
@@ -520,7 +519,7 @@ const ReconciliationFlow = ({
                 requirements,
                 sourceFiles: normalizedSourceFiles
             });
-            
+
             if (response.success) {
                 setGeneratedConfig(response.data);
                 onSendMessage('system', '✨ AI configuration generated successfully! Review and apply it to continue.');
@@ -542,7 +541,7 @@ const ReconciliationFlow = ({
             ReconciliationRules: []
         });
         setReconciliationRules(aiConfig.ReconciliationRules || []);
-        
+
         // Update selected columns
         if (aiConfig.selected_columns_file_a) {
             setSelectedColumnsFileA(aiConfig.selected_columns_file_a);
@@ -550,11 +549,11 @@ const ReconciliationFlow = ({
         if (aiConfig.selected_columns_file_b) {
             setSelectedColumnsFileB(aiConfig.selected_columns_file_b);
         }
-        
+
         setHasUnsavedChanges(true);
         setGeneratedConfig(null);
         onSendMessage('system', '✅ AI configuration applied! You can now review and modify it in the following steps.');
-        
+
         // Navigate to extraction rules step
         setCurrentStep('extraction_rules');
     };
@@ -648,7 +647,7 @@ const ReconciliationFlow = ({
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-gray-800">Choose Method</h3>
                         <p className="text-sm text-gray-600">
-                            You can use AI to generate configuration from requirements, load a previously saved rule, 
+                            You can use AI to generate configuration from requirements, load a previously saved rule,
                             or start fresh with manual configuration.
                         </p>
 
@@ -1262,7 +1261,7 @@ const ReconciliationFlow = ({
                                     (currentStep === 'result_columns' && reconciliationRules.length === 0) ||
                                     (currentStep === 'reconciliation_rules' && (
                                         reconciliationRules.length === 0 ||
-                                        reconciliationRules.some(rule => 
+                                        reconciliationRules.some(rule =>
                                             !rule.LeftFileColumn || rule.LeftFileColumn.trim() === '' ||
                                             !rule.RightFileColumn || rule.RightFileColumn.trim() === ''
                                         )
