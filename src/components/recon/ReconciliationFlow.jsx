@@ -215,7 +215,11 @@ const ReconciliationFlow = ({
                 );
                 return isValidMandatory || isOriginalColumn || !isPartialName;
             });
-            const updatedSelection = [...new Set([...cleanedCurrentSelection, ...validMandatoryColumns])];
+            
+            // Only add mandatory columns to File A by default (fileIndex === 0)
+            const updatedSelection = fileIndex === 0 
+                ? [...new Set([...cleanedCurrentSelection, ...validMandatoryColumns])]
+                : cleanedCurrentSelection;
 
             if (fileIndex === 0) {
                 setSelectedColumnsFileA(updatedSelection);
@@ -390,6 +394,23 @@ const ReconciliationFlow = ({
         }
     };
 
+    // Handler for required column selection - now allows any combination
+    const toggleRequiredColumnSelection = (fileIndex, columnName) => {
+        if (fileIndex === 0) {
+            setSelectedColumnsFileA(prev =>
+                prev.includes(columnName)
+                    ? prev.filter(col => col !== columnName)
+                    : [...prev, columnName]
+            );
+        } else {
+            setSelectedColumnsFileB(prev =>
+                prev.includes(columnName)
+                    ? prev.filter(col => col !== columnName)
+                    : [...prev, columnName]
+            );
+        }
+    };
+
     const selectAllColumns = (fileIndex) => {
         const allColumns = getAllAvailableColumns(fileIndex);
         if (fileIndex === 0) {
@@ -404,7 +425,8 @@ const ReconciliationFlow = ({
         if (fileIndex === 0) {
             setSelectedColumnsFileA(mandatoryColumns);
         } else {
-            setSelectedColumnsFileB(mandatoryColumns);
+            // For File B, only keep mandatory columns if they were manually selected
+            setSelectedColumnsFileB([]);
         }
     };
 
@@ -1021,11 +1043,11 @@ const ReconciliationFlow = ({
                                             </div>
                                             {getMandatoryColumns(0).map(column => (
                                                 <label key={column}
-                                                       className="flex items-center space-x-2 text-sm opacity-75">
+                                                       className="flex items-center space-x-2 text-sm">
                                                     <input
                                                         type="checkbox"
-                                                        checked={true}
-                                                        disabled={true}
+                                                        checked={selectedColumnsFileA.includes(column)}
+                                                        onChange={() => toggleRequiredColumnSelection(0, column)}
                                                         className="rounded border-gray-300 text-green-600 focus:ring-green-500"
                                                     />
                                                     <span className="text-green-700">{column}</span>
@@ -1091,11 +1113,11 @@ const ReconciliationFlow = ({
                                             </div>
                                             {getMandatoryColumns(1).map(column => (
                                                 <label key={column}
-                                                       className="flex items-center space-x-2 text-sm opacity-75">
+                                                       className="flex items-center space-x-2 text-sm">
                                                     <input
                                                         type="checkbox"
-                                                        checked={true}
-                                                        disabled={true}
+                                                        checked={selectedColumnsFileB.includes(column)}
+                                                        onChange={() => toggleRequiredColumnSelection(1, column)}
                                                         className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                                                     />
                                                     <span className="text-purple-700">{column}</span>
