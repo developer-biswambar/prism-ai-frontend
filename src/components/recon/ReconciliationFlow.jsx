@@ -202,23 +202,11 @@ const ReconciliationFlow = ({
 
     useEffect(() => {
         const updateSelectedColumns = (fileIndex) => {
-            const mandatoryColumns = getMandatoryColumns(fileIndex);
+            const allColumns = getAllAvailableColumns(fileIndex);
             const currentSelected = fileIndex === 0 ? selectedColumnsFileA : selectedColumnsFileB;
-            const validMandatoryColumns = mandatoryColumns.filter(col => col && col.trim().length >= 3);
-            const cleanedCurrentSelection = currentSelected.filter(col => {
-                const originalColumns = fileColumns[getFileByIndex(fileIndex)?.file_id] || [];
-                const isOriginalColumn = originalColumns.includes(col);
-                const isValidMandatory = validMandatoryColumns.includes(col);
-                const isPartialName = validMandatoryColumns.some(validCol =>
-                    validCol !== col && validCol.startsWith(col) && col.length < validCol.length
-                );
-                return isValidMandatory || isOriginalColumn || !isPartialName;
-            });
-
-            // Only add mandatory columns to File A by default (fileIndex === 0)
-            const updatedSelection = fileIndex === 0
-                ? [...new Set([...cleanedCurrentSelection, ...validMandatoryColumns])]
-                : cleanedCurrentSelection;
+            
+            // Only auto-select all columns for File A (fileIndex === 0)
+            const updatedSelection = fileIndex === 0 ? allColumns : [];
 
             if (fileIndex === 0) {
                 setSelectedColumnsFileA(updatedSelection);
@@ -371,30 +359,8 @@ const ReconciliationFlow = ({
         }
     };
 
-    // Column selection handlers
+    // Column selection handler - unified for all columns
     const toggleColumnSelection = (fileIndex, columnName) => {
-        const mandatoryColumns = getMandatoryColumns(fileIndex);
-        if (mandatoryColumns.includes(columnName)) {
-            return;
-        }
-
-        if (fileIndex === 0) {
-            setSelectedColumnsFileA(prev =>
-                prev.includes(columnName)
-                    ? prev.filter(col => col !== columnName)
-                    : [...prev, columnName]
-            );
-        } else {
-            setSelectedColumnsFileB(prev =>
-                prev.includes(columnName)
-                    ? prev.filter(col => col !== columnName)
-                    : [...prev, columnName]
-            );
-        }
-    };
-
-    // Handler for required column selection - now allows any combination
-    const toggleRequiredColumnSelection = (fileIndex, columnName) => {
         if (fileIndex === 0) {
             setSelectedColumnsFileA(prev =>
                 prev.includes(columnName)
@@ -420,13 +386,16 @@ const ReconciliationFlow = ({
     };
 
     const deselectAllColumns = (fileIndex) => {
-        const mandatoryColumns = getMandatoryColumns(fileIndex);
         if (fileIndex === 0) {
-            setSelectedColumnsFileA(mandatoryColumns);
+            setSelectedColumnsFileA([]);
         } else {
-            // For File B, only keep mandatory columns if they were manually selected
             setSelectedColumnsFileB([]);
         }
+    };
+
+    // Validation function to check if at least one column is selected
+    const hasAtLeastOneColumnSelected = () => {
+        return selectedColumnsFileA.length > 0 || selectedColumnsFileB.length > 0;
     };
 
     // Extraction rule handlers
@@ -1031,48 +1000,23 @@ const ReconciliationFlow = ({
                                             onClick={() => deselectAllColumns(0)}
                                             className="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
                                         >
-                                            Clear Optional
+                                            Clear All
                                         </button>
                                     </div>
                                 </div>
                                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                                    {getMandatoryColumns(0).length > 0 && (
-                                        <>
-                                            <div className="text-xs font-medium text-green-700 mb-2">Required Columns:
-                                            </div>
-                                            {getMandatoryColumns(0).map(column => (
-                                                <label key={column}
-                                                       className="flex items-center space-x-2 text-sm">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedColumnsFileA.includes(column)}
-                                                        onChange={() => toggleRequiredColumnSelection(0, column)}
-                                                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                                                    />
-                                                    <span className="text-green-700">{column}</span>
-                                                    <span className="text-xs text-green-500">(required)</span>
-                                                </label>
-                                            ))}
-                                        </>
-                                    )}
-                                    {getOptionalColumns(0).length > 0 && (
-                                        <>
-                                            <div className="text-xs font-medium text-green-700 mb-2 mt-4">Optional
-                                                Columns:
-                                            </div>
-                                            {getOptionalColumns(0).map(column => (
-                                                <label key={column} className="flex items-center space-x-2 text-sm">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedColumnsFileA.includes(column)}
-                                                        onChange={() => toggleColumnSelection(0, column)}
-                                                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                                                    />
-                                                    <span className="text-green-700">{column}</span>
-                                                </label>
-                                            ))}
-                                        </>
-                                    )}
+                                    <div className="text-xs font-medium text-green-700 mb-2">Available Columns:</div>
+                                    {getAllAvailableColumns(0).map(column => (
+                                        <label key={column} className="flex items-center space-x-2 text-sm">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedColumnsFileA.includes(column)}
+                                                onChange={() => toggleColumnSelection(0, column)}
+                                                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                                            />
+                                            <span className="text-green-700">{column}</span>
+                                        </label>
+                                    ))}
                                 </div>
                                 <div className="mt-3 text-xs text-green-600">
                                     Selected: {selectedColumnsFileA.length} columns
@@ -1100,54 +1044,42 @@ const ReconciliationFlow = ({
                                             onClick={() => deselectAllColumns(1)}
                                             className="text-xs px-2 py-1 bg-gray-500 text-white rounded hover:bg-gray-600"
                                         >
-                                            Clear Optional
+                                            Clear All
                                         </button>
                                     </div>
                                 </div>
                                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                                    {getMandatoryColumns(1).length > 0 && (
-                                        <>
-                                            <div className="text-xs font-medium text-purple-700 mb-2">Required
-                                                Columns:
-                                            </div>
-                                            {getMandatoryColumns(1).map(column => (
-                                                <label key={column}
-                                                       className="flex items-center space-x-2 text-sm">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedColumnsFileB.includes(column)}
-                                                        onChange={() => toggleRequiredColumnSelection(1, column)}
-                                                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                                                    />
-                                                    <span className="text-purple-700">{column}</span>
-                                                    <span className="text-xs text-purple-500">(required)</span>
-                                                </label>
-                                            ))}
-                                        </>
-                                    )}
-                                    {getOptionalColumns(1).length > 0 && (
-                                        <>
-                                            <div className="text-xs font-medium text-purple-700 mb-2 mt-4">Optional
-                                                Columns:
-                                            </div>
-                                            {getOptionalColumns(1).map(column => (
-                                                <label key={column} className="flex items-center space-x-2 text-sm">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedColumnsFileB.includes(column)}
-                                                        onChange={() => toggleColumnSelection(1, column)}
-                                                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                                                    />
-                                                    <span className="text-purple-700">{column}</span>
-                                                </label>
-                                            ))}
-                                        </>
-                                    )}
+                                    <div className="text-xs font-medium text-purple-700 mb-2">Available Columns:</div>
+                                    {getAllAvailableColumns(1).map(column => (
+                                        <label key={column} className="flex items-center space-x-2 text-sm">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedColumnsFileB.includes(column)}
+                                                onChange={() => toggleColumnSelection(1, column)}
+                                                className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                            />
+                                            <span className="text-purple-700">{column}</span>
+                                        </label>
+                                    ))}
                                 </div>
                                 <div className="mt-3 text-xs text-purple-600">
                                     Selected: {selectedColumnsFileB.length} columns
                                 </div>
                             </div>
+                        </div>
+                        
+                        {!hasAtLeastOneColumnSelected() && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                                <p className="text-sm text-red-800">
+                                    ⚠️ Please select at least one column from either File A or File B to proceed.
+                                </p>
+                            </div>
+                        )}
+                        
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                            <p className="text-sm text-blue-800">
+                                All columns are optional. Select any combination you need for your reconciliation results.
+                            </p>
                         </div>
                     </div>
                 );
@@ -1258,7 +1190,7 @@ const ReconciliationFlow = ({
                             <button
                                 onClick={nextStep}
                                 disabled={
-                                    (currentStep === 'result_columns' && reconciliationRules.length === 0) ||
+                                    (currentStep === 'result_columns' && (!hasAtLeastOneColumnSelected() || reconciliationRules.length === 0)) ||
                                     (currentStep === 'reconciliation_rules' && (
                                         reconciliationRules.length === 0 ||
                                         reconciliationRules.some(rule =>
