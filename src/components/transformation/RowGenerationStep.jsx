@@ -42,9 +42,10 @@ const RowGenerationStep = ({
     ];
 
     const addRule = () => {
+        const ruleNumber = rules.length + 1;
         const newRule = {
             id: `rule_${Date.now()}`,
-            name: 'New Transformation Rule',
+            name: `New Transformation Rule ${ruleNumber}`,
             enabled: true,
             output_columns: [],
             priority: rules.length
@@ -109,6 +110,33 @@ const RowGenerationStep = ({
             newColumn
         ];
         onUpdate(updatedRules);
+    };
+
+    const addAllColumns = (ruleIndex) => {
+        const allColumns = getAllSourceColumns();
+        const updatedRules = [...rules];
+        const existingColumnNames = new Set(
+            (updatedRules[ruleIndex].output_columns || []).map(col => col.name)
+        );
+
+        const newColumns = allColumns
+            .filter(col => !existingColumnNames.has(col.column))
+            .map(col => ({
+                id: `col_${Date.now()}_${Math.random()}`,
+                name: col.column,
+                mapping_type: 'direct',
+                source_column: col.value,
+                static_value: '',
+                dynamic_conditions: []
+            }));
+
+        if (newColumns.length > 0) {
+            updatedRules[ruleIndex].output_columns = [
+                ...(updatedRules[ruleIndex].output_columns || []),
+                ...newColumns
+            ];
+            onUpdate(updatedRules);
+        }
     };
 
     const updateOutputColumn = (ruleIndex, columnIndex, updates) => {
@@ -695,13 +723,23 @@ const RowGenerationStep = ({
                                                 <label className="block text-sm font-medium text-gray-700">
                                                     Output Columns
                                                 </label>
-                                                <button
-                                                    onClick={() => addOutputColumn(index)}
-                                                    className="flex items-center space-x-1 px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
-                                                >
-                                                    <Plus size={14}/>
-                                                    <span>Add Column</span>
-                                                </button>
+                                                <div className="flex items-center space-x-2">
+                                                    <button
+                                                        onClick={() => addOutputColumn(index)}
+                                                        className="flex items-center space-x-1 px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
+                                                    >
+                                                        <Plus size={14}/>
+                                                        <span>Add Column</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => addAllColumns(index)}
+                                                        className="flex items-center space-x-1 px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                                                        title="Add all available source columns that haven't been added yet"
+                                                    >
+                                                        <Layers size={14}/>
+                                                        <span>Add All Columns</span>
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             {rule.output_columns && rule.output_columns.length > 0 ? (
@@ -717,12 +755,22 @@ const RowGenerationStep = ({
                                                     className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                                                     <Target size={32} className="mx-auto mb-2 text-gray-400"/>
                                                     <p className="text-gray-600 mb-2">No output columns defined</p>
-                                                    <button
-                                                        onClick={() => addOutputColumn(index)}
-                                                        className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                                                    >
-                                                        Add First Column
-                                                    </button>
+                                                    <div className="flex items-center justify-center space-x-3">
+                                                        <button
+                                                            onClick={() => addOutputColumn(index)}
+                                                            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                                                        >
+                                                            Add First Column
+                                                        </button>
+                                                        <button
+                                                            onClick={() => addAllColumns(index)}
+                                                            className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                                            title="Add all available source columns at once"
+                                                        >
+                                                            <Layers size={16}/>
+                                                            <span>Add All Columns</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
