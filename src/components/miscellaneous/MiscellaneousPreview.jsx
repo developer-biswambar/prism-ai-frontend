@@ -181,7 +181,7 @@ const MiscellaneousPreview = ({
                     
                     <div>
                         <span className="text-xs font-medium text-blue-700">Your Query:</span>
-                        <p className="text-sm text-blue-800 bg-white p-2 rounded border italic">
+                        <p className="text-sm text-blue-800 bg-white p-2 rounded border italic whitespace-pre-wrap">
                             "{userPrompt}"
                         </p>
                     </div>
@@ -196,7 +196,7 @@ const MiscellaneousPreview = ({
                         <span className="text-sm font-medium text-yellow-800">Processing your request...</span>
                     </div>
                     <div className="text-xs text-yellow-700 mt-2">
-                        AI is analyzing your files and generating optimized SQL queries. This may take a few moments.
+                        AI is analyzing your files and generating queries. This may take a few moments.
                     </div>
                 </div>
             )}
@@ -326,13 +326,19 @@ const MiscellaneousPreview = ({
                                             // Editable view
                                             <>
                                                 <textarea
+                                                    ref={(ref) => {
+                                                        if (ref && isEditingSQL) {
+                                                            // Ensure textarea is focused when edit mode starts
+                                                            setTimeout(() => ref.focus(), 100);
+                                                        }
+                                                    }}
                                                     value={editableSQL}
                                                     onChange={(e) => setEditableSQL(e.target.value)}
                                                     className="w-full h-64 bg-gray-900 text-green-400 p-4 rounded text-sm font-mono leading-relaxed border border-gray-700 resize-none focus:outline-none focus:border-blue-500"
-                                                    placeholder="Edit your SQL query here..."
-                                                    autoFocus
+                                                    placeholder="Edit your query here..."
+                                                    spellCheck={false}
                                                     onKeyDown={(e) => {
-                                                        // Allow standard text editing shortcuts
+                                                        // Don't prevent default for standard editing keys
                                                         if (e.key === 'Tab') {
                                                             e.preventDefault();
                                                             const start = e.target.selectionStart;
@@ -344,6 +350,13 @@ const MiscellaneousPreview = ({
                                                                 e.target.selectionStart = e.target.selectionEnd = start + 4;
                                                             }, 0);
                                                         }
+                                                        // Let all other keys work normally (including Ctrl+A, Delete, Backspace)
+                                                    }}
+                                                    onFocus={(e) => {
+                                                        // Ensure the textarea is properly focused and cursor is positioned
+                                                        setTimeout(() => {
+                                                            e.target.setSelectionRange(0, 0);
+                                                        }, 0);
                                                     }}
                                                 />
                                                 <div className="flex justify-between items-center mt-3">

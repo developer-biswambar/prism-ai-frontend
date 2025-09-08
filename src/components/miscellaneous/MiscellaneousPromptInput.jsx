@@ -115,7 +115,7 @@ const MiscellaneousPromptInput = ({
                     onChange={(e) => onProcessNameChange(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Give your analysis a descriptive name..."
-                    maxLength={100}
+                    maxLength={1000}
                 />
                 <div className="text-xs text-gray-500 mt-1">
                     This will help you identify your results later
