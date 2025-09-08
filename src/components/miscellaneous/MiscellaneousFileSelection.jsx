@@ -68,6 +68,62 @@ const MiscellaneousFileSelection = ({
 
     const selectedCount = Object.keys(selectedFiles).length;
 
+    // Sort files by date with proper error handling
+    const sortedFiles = React.useMemo(() => {
+        if (!files || !Array.isArray(files) || files.length === 0) {
+            return [];
+        }
+        
+        const getFileDate = (file) => {
+            const dateStr = file.last_modified || 
+                           file.upload_time || 
+                           file.uploadTime || 
+                           file._storage_metadata?.created_at;
+            
+            if (!dateStr) return new Date(0); // Fallback to epoch
+            
+            const date = new Date(dateStr);
+            return isNaN(date.getTime()) ? new Date(0) : date;
+        };
+        
+        // Create a new array and sort by date (newest first)
+        const sorted = [...files].sort((a, b) => {
+            const dateA = getFileDate(a);
+            const dateB = getFileDate(b);
+            return dateB.getTime() - dateA.getTime();
+        });
+        
+        // Debug: Log the sorting result
+        console.log('📁 File Sorting Debug:');
+        console.log(`Total files: ${files.length}`);
+        sorted.forEach((file, index) => {
+            const date = file.last_modified || file.upload_time || file.uploadTime || file._storage_metadata?.created_at;
+            console.log(`${index + 1}. ${file.filename} - ${date}`);
+        });
+        
+        return sorted;
+    }, [files]);
+
+    // Format date for display
+    const formatDate = (file) => {
+        const date = file.last_modified || 
+                    file.upload_time || 
+                    file.uploadTime || 
+                    file._storage_metadata?.created_at;
+        if (!date) return 'Unknown';
+        
+        const dateObj = new Date(date);
+        const now = new Date();
+        const diffTime = now - dateObj;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+        return dateObj.toLocaleDateString();
+    };
+
     return (
         <div className="space-y-6">
             <div>
@@ -132,45 +188,54 @@ const MiscellaneousFileSelection = ({
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {files.map((file) => {
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {sortedFiles.map((file, index) => {
                             const isSelected = isFileSelected(file);
                             const canSelect = selectedCount < maxFiles || isSelected;
                             
                             return (
                                 <div
-                                    key={file.file_id}
+                                    key={`${file.file_id}_${index}`}
                                     className={`
-                                        relative p-4 rounded-lg border-2 cursor-pointer transition-all
+                                        relative p-3 rounded-lg border cursor-pointer transition-all min-h-[120px]
                                         ${isSelected 
-                                            ? 'border-blue-500 bg-blue-50' 
+                                            ? 'border-blue-500 bg-blue-50 shadow-md' 
                                             : canSelect 
-                                                ? 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
+                                                ? 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 hover:shadow-sm'
                                                 : 'border-gray-200 bg-gray-100 cursor-not-allowed'
                                         }
                                     `}
                                     onClick={() => canSelect && handleFileToggle(file)}
+                                    title={file.filename}
                                 >
                                     {/* Selection indicator */}
                                     <div className="absolute top-2 right-2">
                                         {isSelected ? (
-                                            <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                                <Check className="text-white" size={14} />
+                                            <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                                <Check className="text-white" size={12} />
                                             </div>
                                         ) : canSelect ? (
-                                            <div className="w-6 h-6 border-2 border-gray-300 rounded-full bg-white"></div>
+                                            <div className="w-5 h-5 border border-gray-300 rounded-full bg-white"></div>
                                         ) : (
-                                            <div className="w-6 h-6 border-2 border-gray-300 rounded-full bg-gray-200">
-                                                <X className="text-gray-400" size={14} />
+                                            <div className="w-5 h-5 border border-gray-300 rounded-full bg-gray-200">
+                                                <X className="text-gray-400" size={10} />
                                             </div>
                                         )}
                                     </div>
 
                                     {/* File info */}
-                                    <div className="pr-8">
-                                        <div className="flex items-center space-x-2 mb-2">
-                                            {getFileIcon(file.filename)}
-                                            <span className={`text-sm font-medium ${
+                                    <div className="pr-6">
+                                        {/* Debug: Show position in sorted array */}
+                                        <div className="absolute top-1 left-1 bg-red-500 text-white text-xs px-1 rounded">
+                                            #{index + 1}
+                                        </div>
+                                        
+                                        {/* File icon and name */}
+                                        <div className="flex items-start space-x-2 mb-2">
+                                            <div className="flex-shrink-0 mt-0.5">
+                                                {getFileIcon(file.filename)}
+                                            </div>
+                                            <span className={`text-xs font-medium leading-tight truncate ${
                                                 isSelected ? 'text-blue-800' : 
                                                 canSelect ? 'text-gray-800' : 'text-gray-500'
                                             }`}>
@@ -178,27 +243,30 @@ const MiscellaneousFileSelection = ({
                                             </span>
                                         </div>
                                         
+                                        {/* Stats */}
                                         <div className={`text-xs space-y-1 ${
                                             isSelected ? 'text-blue-600' : 
                                             canSelect ? 'text-gray-600' : 'text-gray-400'
                                         }`}>
-                                            <div>Rows: {(file.totalRows || file.total_rows || 0).toLocaleString()}</div>
-                                            <div>Columns: {file.columns?.length || 0}</div>
-                                            <div className="truncate">
-                                                Size: {file.fileSize ? `${(file.fileSize / 1024).toFixed(1)} KB` : 'Unknown'}
+                                            <div>{(file.totalRows || file.total_rows || 0).toLocaleString()} rows</div>
+                                            <div>{file.columns?.length || 0} columns</div>
+                                            <div className="truncate text-xs opacity-75">
+                                                {formatDate(file)}
                                             </div>
                                         </div>
 
-                                        {/* Column preview */}
-                                        <div className="mt-2">
-                                            <div className={`text-xs ${
-                                                isSelected ? 'text-blue-600' : 
-                                                canSelect ? 'text-gray-500' : 'text-gray-400'
-                                            }`}>
-                                                Columns: {file.columns ? file.columns.slice(0, 3).join(', ') : 'None'}
-                                                {file.columns && file.columns.length > 3 && `, +${file.columns.length - 3} more`}
+                                        {/* Column preview - condensed */}
+                                        {file.columns && file.columns.length > 0 && (
+                                            <div className="mt-2">
+                                                <div className={`text-xs leading-tight opacity-75 ${
+                                                    isSelected ? 'text-blue-600' : 
+                                                    canSelect ? 'text-gray-500' : 'text-gray-400'
+                                                }`}>
+                                                    {file.columns.slice(0, 2).join(', ')}
+                                                    {file.columns.length > 2 && `, +${file.columns.length - 2}`}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                             );
