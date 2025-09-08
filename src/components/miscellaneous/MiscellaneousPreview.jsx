@@ -3,6 +3,7 @@ import {
     AlertCircle,
     CheckCircle,
     Code,
+    Copy,
     Database,
     Download,
     Eye,
@@ -16,6 +17,7 @@ import {
     Trash2,
     XCircle
 } from 'lucide-react';
+import { formatSQL } from '../../utils/sqlFormatter';
 
 const MiscellaneousPreview = ({
     userPrompt,
@@ -33,6 +35,18 @@ const MiscellaneousPreview = ({
 
     const [showSQL, setShowSQL] = useState(false);
     const [showAllRows, setShowAllRows] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    // Copy SQL to clipboard
+    const copySQL = async () => {
+        try {
+            await navigator.clipboard.writeText(formatSQL(generatedSQL));
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy SQL:', err);
+        }
+    };
 
     // Function to open results in viewer tab
     const openResultsInViewer = () => {
@@ -205,9 +219,24 @@ const MiscellaneousPreview = ({
                             
                             {showSQL && (
                                 <div className="px-3 pb-3">
-                                    <pre className="bg-gray-800 text-green-400 p-3 rounded text-xs overflow-x-auto">
-                                        <code>{generatedSQL}</code>
-                                    </pre>
+                                    <div className="relative">
+                                        <pre className="bg-gray-900 text-green-400 p-4 pr-20 rounded text-sm overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed border border-gray-700">
+                                            <code>{formatSQL(generatedSQL)}</code>
+                                        </pre>
+                                        <div className="absolute top-2 right-2 flex items-center space-x-2">
+                                            <button
+                                                onClick={copySQL}
+                                                className="text-xs text-gray-400 hover:text-green-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors"
+                                                title="Copy SQL"
+                                            >
+                                                <Copy size={12} />
+                                                <span>{copied ? 'Copied!' : 'Copy'}</span>
+                                            </button>
+                                            <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                                                SQL
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
