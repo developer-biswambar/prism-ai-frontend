@@ -330,6 +330,21 @@ const MiscellaneousPreview = ({
                                                     onChange={(e) => setEditableSQL(e.target.value)}
                                                     className="w-full h-64 bg-gray-900 text-green-400 p-4 rounded text-sm font-mono leading-relaxed border border-gray-700 resize-none focus:outline-none focus:border-blue-500"
                                                     placeholder="Edit your SQL query here..."
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                        // Allow standard text editing shortcuts
+                                                        if (e.key === 'Tab') {
+                                                            e.preventDefault();
+                                                            const start = e.target.selectionStart;
+                                                            const end = e.target.selectionEnd;
+                                                            const value = e.target.value;
+                                                            setEditableSQL(value.substring(0, start) + '    ' + value.substring(end));
+                                                            // Set cursor position after the tab
+                                                            setTimeout(() => {
+                                                                e.target.selectionStart = e.target.selectionEnd = start + 4;
+                                                            }, 0);
+                                                        }
+                                                    }}
                                                 />
                                                 <div className="flex justify-between items-center mt-3">
                                                     <div className="flex items-center space-x-2">
