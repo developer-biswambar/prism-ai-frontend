@@ -6,6 +6,7 @@ import {
     Copy,
     Database,
     Download,
+    Edit,
     Eye,
     EyeOff,
     ExternalLink,
@@ -18,6 +19,7 @@ import {
     XCircle
 } from 'lucide-react';
 import { formatSQL } from '../../utils/sqlFormatter';
+import { API_ENDPOINTS } from '../../config/environment';
 
 const MiscellaneousPreview = ({
     userPrompt,
@@ -36,15 +38,66 @@ const MiscellaneousPreview = ({
     const [showSQL, setShowSQL] = useState(false);
     const [showAllRows, setShowAllRows] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [editableSQL, setEditableSQL] = useState('');
+    const [isEditingSQL, setIsEditingSQL] = useState(false);
+    const [executingSQL, setExecutingSQL] = useState(false);
+    const [executeResults, setExecuteResults] = useState(null);
+    const [executeError, setExecuteError] = useState(null);
+
+    // Initialize editable SQL when generatedSQL changes
+    React.useEffect(() => {
+        if (generatedSQL && !editableSQL) {
+            setEditableSQL(formatSQL(generatedSQL));
+        }
+    }, [generatedSQL, editableSQL]);
 
     // Copy SQL to clipboard
     const copySQL = async () => {
         try {
-            await navigator.clipboard.writeText(formatSQL(generatedSQL));
+            const sqlToCopy = isEditingSQL ? editableSQL : formatSQL(generatedSQL);
+            await navigator.clipboard.writeText(sqlToCopy);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {
             console.error('Failed to copy SQL:', err);
+        }
+    };
+
+    // Execute custom SQL query
+    const executeSQL = async () => {
+        if (!editableSQL.trim()) return;
+
+        setExecutingSQL(true);
+        setExecuteError(null);
+        setExecuteResults(null);
+
+        try {
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/execute-query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sql_query: editableSQL,
+                    process_id: processId, // Use the same process ID to access same data
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                setExecuteResults(data);
+                setExecuteError(null);
+            } else {
+                setExecuteError(data.error || 'Query execution failed');
+                setExecuteResults(null);
+            }
+        } catch (error) {
+            console.error('Error executing SQL:', error);
+            setExecuteError('Failed to execute query: ' + error.message);
+            setExecuteResults(null);
+        } finally {
+            setExecutingSQL(false);
         }
     };
 
@@ -210,6 +263,11 @@ const MiscellaneousPreview = ({
                                 <div className="flex items-center space-x-2">
                                     <Code className="text-gray-600" size={16} />
                                     <span className="text-sm font-medium text-gray-700">Generated Query</span>
+                                    {isEditingSQL && (
+                                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                            Modified
+                                        </span>
+                                    )}
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <span className="text-xs text-gray-500">Click to {showSQL ? 'hide' : 'view'}</span>
@@ -220,25 +278,190 @@ const MiscellaneousPreview = ({
                             {showSQL && (
                                 <div className="px-3 pb-3">
                                     <div className="relative">
-                                        <pre className="bg-gray-900 text-green-400 p-4 pr-20 rounded text-sm overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed border border-gray-700">
-                                            <code>{formatSQL(generatedSQL)}</code>
-                                        </pre>
-                                        <div className="absolute top-2 right-2 flex items-center space-x-2">
-                                            <button
-                                                onClick={copySQL}
-                                                className="text-xs text-gray-400 hover:text-green-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors"
-                                                title="Copy SQL"
-                                            >
-                                                <Copy size={12} />
-                                                <span>{copied ? 'Copied!' : 'Copy'}</span>
-                                            </button>
-                                            <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
-                                                SQL
-                                            </div>
-                                        </div>
+                                        {!isEditingSQL ? (
+                                            // Read-only view
+                                            <>
+                                                <pre className="bg-gray-900 text-green-400 p-4 pr-20 rounded text-sm overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed border border-gray-700">
+                                                    <code>{formatSQL(generatedSQL)}</code>
+                                                </pre>
+                                                <div className="absolute top-2 right-2 flex items-center space-x-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditableSQL(formatSQL(generatedSQL));
+                                                            executeSQL();
+                                                        }}
+                                                        disabled={executingSQL}
+                                                        className="text-xs text-gray-400 hover:text-green-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors disabled:opacity-50"
+                                                        title="Execute SQL"
+                                                    >
+                                                        {executingSQL ? (
+                                                            <RefreshCw className="animate-spin" size={12} />
+                                                        ) : (
+                                                            <Play size={12} />
+                                                        )}
+                                                        <span>{executingSQL ? 'Running...' : 'Execute'}</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsEditingSQL(true)}
+                                                        className="text-xs text-gray-400 hover:text-blue-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors"
+                                                        title="Edit SQL"
+                                                    >
+                                                        <Edit size={12} />
+                                                        <span>Edit</span>
+                                                    </button>
+                                                    <button
+                                                        onClick={copySQL}
+                                                        className="text-xs text-gray-400 hover:text-blue-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors"
+                                                        title="Copy SQL"
+                                                    >
+                                                        <Copy size={12} />
+                                                        <span>{copied ? 'Copied!' : 'Copy'}</span>
+                                                    </button>
+                                                    <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                                                        SQL
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            // Editable view
+                                            <>
+                                                <textarea
+                                                    value={editableSQL}
+                                                    onChange={(e) => setEditableSQL(e.target.value)}
+                                                    className="w-full h-64 bg-gray-900 text-green-400 p-4 rounded text-sm font-mono leading-relaxed border border-gray-700 resize-none focus:outline-none focus:border-blue-500"
+                                                    placeholder="Edit your SQL query here..."
+                                                />
+                                                <div className="flex justify-between items-center mt-3">
+                                                    <div className="flex items-center space-x-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                setIsEditingSQL(false);
+                                                                setEditableSQL(formatSQL(generatedSQL)); // Reset to original
+                                                            }}
+                                                            className="text-xs text-gray-600 hover:text-gray-800 px-3 py-1 rounded border"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={copySQL}
+                                                            className="text-xs text-gray-600 hover:text-blue-600 px-3 py-1 rounded border flex items-center space-x-1"
+                                                        >
+                                                            <Copy size={12} />
+                                                            <span>{copied ? 'Copied!' : 'Copy'}</span>
+                                                        </button>
+                                                    </div>
+                                                    <button
+                                                        onClick={executeSQL}
+                                                        disabled={executingSQL || !editableSQL.trim()}
+                                                        className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded text-sm flex items-center space-x-2 disabled:cursor-not-allowed"
+                                                    >
+                                                        {executingSQL ? (
+                                                            <>
+                                                                <RefreshCw className="animate-spin" size={14} />
+                                                                <span>Executing...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Play size={14} />
+                                                                <span>Execute Query</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
+                            
+                            {/* Quick Execute Button below SQL */}
+                            {showSQL && !isEditingSQL && (
+                                <div className="px-3 pb-3 pt-0">
+                                    <button
+                                        onClick={() => {
+                                            setEditableSQL(formatSQL(generatedSQL));
+                                            executeSQL();
+                                        }}
+                                        disabled={executingSQL}
+                                        className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded text-sm flex items-center justify-center space-x-2 font-medium disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        {executingSQL ? (
+                                            <>
+                                                <RefreshCw className="animate-spin" size={16} />
+                                                <span>Executing Query...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Play size={16} />
+                                                <span>Execute This SQL Query</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Execute Results Section */}
+                    {executeResults && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-2">
+                                    <CheckCircle className="text-blue-600" size={16} />
+                                    <span className="text-sm font-medium text-blue-800">Query Executed Successfully</span>
+                                </div>
+                                <span className="text-sm text-blue-700">
+                                    {executeResults.data?.length || 0} rows returned
+                                </span>
+                            </div>
+                            
+                            {executeResults.data && executeResults.data.length > 0 && (
+                                <div className="bg-white border border-blue-200 rounded overflow-hidden">
+                                    <div className="overflow-x-auto max-h-64">
+                                        <table className="w-full text-xs">
+                                            <thead className="bg-blue-50 sticky top-0">
+                                                <tr>
+                                                    {Object.keys(executeResults.data[0]).map((column) => (
+                                                        <th key={column} className="px-3 py-2 text-left font-medium text-blue-800 border-b border-blue-200">
+                                                            {column}
+                                                        </th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {executeResults.data.slice(0, 10).map((row, rowIndex) => (
+                                                    <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-blue-25'}>
+                                                        {Object.keys(executeResults.data[0]).map((column) => (
+                                                            <td key={column} className="px-3 py-2 text-gray-700 border-b border-blue-100">
+                                                                {formatCellValue(row[column])}
+                                                            </td>
+                                                        ))}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    {executeResults.data.length > 10 && (
+                                        <div className="bg-blue-50 px-4 py-2 text-center text-xs text-blue-700 border-t border-blue-200">
+                                            Showing first 10 of {executeResults.data.length} rows from custom query execution.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Execute Error Display */}
+                    {executeError && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-start space-x-2">
+                                <XCircle className="text-red-600 mt-0.5" size={16} />
+                                <div>
+                                    <span className="text-sm font-medium text-red-800">Query Execution Failed</span>
+                                    <p className="text-sm text-red-700 mt-1">{executeError}</p>
+                                </div>
+                            </div>
                         </div>
                     )}
 

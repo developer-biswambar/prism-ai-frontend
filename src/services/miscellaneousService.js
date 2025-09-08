@@ -3,7 +3,7 @@ import { ENV_CONFIG } from '../config/environment.js';
 
 class MiscellaneousService {
     constructor() {
-        this.baseURL = `${ENV_CONFIG.API_BASE_URL}/miscellaneous`;
+        this.baseURL = `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous`;
     }
 
     /**

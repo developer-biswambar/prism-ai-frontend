@@ -14,35 +14,46 @@ export const formatSQL = (sql) => {
     // Keywords that should start on new lines
     const newLineKeywords = [
         'SELECT', 'FROM', 'WHERE', 'JOIN', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL OUTER JOIN',
-        'GROUP BY', 'ORDER BY', 'HAVING', 'UNION', 'UNION ALL', 'WITH', 'AND', 'OR'
+        'GROUP BY', 'ORDER BY', 'HAVING', 'UNION', 'UNION ALL', 'WITH', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END'
     ];
 
-    // Keywords that should be indented
-    const indentKeywords = [
-        'WHERE', 'AND', 'OR', 'GROUP BY', 'ORDER BY', 'HAVING'
-    ];
+    // Handle complex patterns first
+    
+    // Handle WITH clauses (CTEs) - preserve structure
+    formatted = formatted.replace(/\bWITH\b/gi, '\nWITH');
+    formatted = formatted.replace(/,\s*(\w+)\s+AS\s*\(/gi, ',\n$1 AS (');
+    
+    // Handle CASE statements properly
+    formatted = formatted.replace(/\bCASE\s+WHEN\b/gi, '\nCASE\n    WHEN');
+    formatted = formatted.replace(/\bWHEN\b/gi, '\n    WHEN');
+    formatted = formatted.replace(/\bTHEN\b/gi, ' THEN');
+    formatted = formatted.replace(/\bELSE\b/gi, '\n    ELSE');
+    formatted = formatted.replace(/\bEND\b/gi, '\nEND');
+    
+    // Handle subqueries and nested structures
+    formatted = formatted.replace(/\(\s*SELECT\b/gi, '(\n    SELECT');
+    formatted = formatted.replace(/\)\s+(FROM|WHERE|GROUP BY|ORDER BY|UNION|,)/gi, '\n) $1');
+    
+    // Better JOIN handling
+    formatted = formatted.replace(/\b(INNER|LEFT|RIGHT|FULL OUTER)\s+JOIN\b/gi, '\n$1 JOIN');
+    formatted = formatted.replace(/\bJOIN\b/gi, '\nJOIN');
+    formatted = formatted.replace(/\bON\b/gi, '\n    ON');
+    
+    // Handle AND/OR in WHERE clauses with proper indentation
+    formatted = formatted.replace(/\s+(AND|OR)\s+/gi, '\n    $1 ');
 
-    // Replace keywords with newline + keyword
-    newLineKeywords.forEach(keyword => {
+    // Replace other keywords with newlines
+    const simpleKeywords = ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'UNION', 'UNION ALL'];
+    simpleKeywords.forEach(keyword => {
         const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
         formatted = formatted.replace(regex, `\n${keyword}`);
     });
-
-    // Handle WITH clauses specially (CTEs)
-    formatted = formatted.replace(/\bWITH\b/gi, '\nWITH');
-    formatted = formatted.replace(/\bAS\s*\(/gi, ' AS (\n    ');
-
-    // Handle subqueries in parentheses
-    formatted = formatted.replace(/\(\s*(SELECT)/gi, '(\n    $1');
-    formatted = formatted.replace(/\)\s*(FROM|WHERE|GROUP|ORDER|UNION)/gi, '\n) $1');
     
-    // Better comma handling for SELECT columns (split long column lists)
-    formatted = formatted.replace(/SELECT\s+([^FROM]+)/gi, (match, columns) => {
-        if (columns.length > 80) { // Only split if line is long
-            const columnList = columns.split(',').map(col => col.trim());
-            if (columnList.length > 3) {
-                return 'SELECT\n    ' + columnList.join(',\n    ');
-            }
+    // Better comma handling for SELECT columns
+    formatted = formatted.replace(/\nSELECT\s+([^\n]+)/gi, (match, columns) => {
+        const columnList = columns.split(',').map(col => col.trim());
+        if (columnList.length > 1) {
+            return '\nSELECT\n    ' + columnList.join(',\n    ');
         }
         return match;
     });
@@ -51,6 +62,7 @@ export const formatSQL = (sql) => {
     let lines = formatted.split('\n');
     let indentLevel = 0;
     const indentSize = '    '; // 4 spaces
+    const indentKeywords = ['ON', 'AND', 'OR', 'WHEN', 'THEN', 'ELSE'];
 
     lines = lines.map((line, index) => {
         line = line.trim();

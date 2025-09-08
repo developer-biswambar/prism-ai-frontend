@@ -59,6 +59,9 @@ export const API_ENDPOINTS = {
     // Transformation
     TRANSFORMATION: `${ENV_CONFIG.API_BASE_URL}/transformation`,
     
+    // Miscellaneous Data Processing
+    MISCELLANEOUS: `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous`,
+    
     // Delta Generation
     DELTA: `${ENV_CONFIG.API_BASE_URL}/delta`,
     
