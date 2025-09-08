@@ -225,11 +225,6 @@ const MiscellaneousFileSelection = ({
 
                                     {/* File info */}
                                     <div className="pr-6">
-                                        {/* Debug: Show position in sorted array */}
-                                        <div className="absolute top-1 left-1 bg-red-500 text-white text-xs px-1 rounded">
-                                            #{index + 1}
-                                        </div>
-                                        
                                         {/* File icon and name */}
                                         <div className="flex items-start space-x-2 mb-2">
                                             <div className="flex-shrink-0 mt-0.5">
