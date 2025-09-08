@@ -4,6 +4,7 @@ import {AlertCircle, CheckCircle, Eye, Send, Settings} from 'lucide-react';
 import ReconciliationFlow from '../recon/ReconciliationFlow.jsx';
 import DeltaGenerationFlow from '../delta/DeltaGenerationFlow.jsx';
 import TransformationFlow from "../transformation/TransformationFlow.jsx";
+import MiscellaneousFlow from "../miscellaneous/MiscellaneousFlow.jsx";
 
 const TypingIndicator = ({message}) => {
     return (
@@ -205,11 +206,20 @@ const ChatInterface = ({
     const messagesContainerRef = useRef(null);
     const [currentFlow, setCurrentFlow] = useState(null);
     const [flowData, setFlowData] = useState({});
+
     const [setMessages] = useState(); // Added setMessages for table message functionality
 
-    // Helper function to check if all files are selected
+    // Helper function to check if all required files are selected
     const areAllFilesSelected = () => {
-        if (!selectedTemplate || !requiredFiles) return false;
+        if (!selectedTemplate) return false;
+        
+        // For miscellaneous templates, files are selected in the modal, so always return true
+        if (selectedTemplate.category === 'miscellaneous' || selectedTemplate.category === 'data-analysis') {
+            return true;
+        }
+        
+        // For other templates, check all files are selected in left sidebar
+        if (!requiredFiles) return false;
         return requiredFiles.every(rf => selectedFiles[rf.key]);
     };
 
@@ -300,6 +310,13 @@ const ChatInterface = ({
                     selectedTemplate,
                     step: 'file_selection'
                 });
+            } else if (selectedTemplate.category.includes('miscellaneous') || selectedTemplate.category.includes('data-analysis')) {
+                setCurrentFlow('miscellaneous');
+                setFlowData({
+                    selectedFiles,
+                    selectedTemplate,
+                    step: 'file_selection'
+                });
             } else {
                 setCurrentFlow('single_process');
                 setFlowData({
@@ -327,8 +344,8 @@ const ChatInterface = ({
             userInput.toLowerCase().includes('process') ||
             userInput.toLowerCase().includes('reconcil') ||
             userInput.toLowerCase().includes('generate') ||
-            userInput.toLowerCase().includes('delta');
-        userInput.toLowerCase().includes('Describe');
+            userInput.toLowerCase().includes('delta') ||
+            userInput.toLowerCase().includes('describe');
 
         if (isStartCommand) {
             if (selectedTemplate && areAllFilesSelected()) {
@@ -338,7 +355,8 @@ const ChatInterface = ({
                 // Start the appropriate flow
                 if (selectedTemplate.category.includes('reconciliation') ||
                     selectedTemplate.category.includes('ai-generation') ||
-                    selectedTemplate.category.includes('delta-generation')) {
+                    selectedTemplate.category.includes('delta-generation') ||
+                    selectedTemplate.category.includes('miscellaneous')) {
                     configureDetailsBeforeProcessStarts();
                 } else {
                     // For single file processes, start directly
@@ -362,13 +380,23 @@ const ChatInterface = ({
             }
         }
 
-        setCurrentInput('');
+        // Only clear input if it was a start command, otherwise keep it for editing
+        if (isStartCommand) {
+            setCurrentInput('');
+        }
     };
 
     const getReadyStatus = () => {
         if (!selectedTemplate) {
             return {ready: false, message: "No process selected"};
         }
+        
+        // For miscellaneous templates, always ready since files are selected in modal
+        if (selectedTemplate.category === 'miscellaneous' || selectedTemplate.category === 'data-analysis') {
+            return {ready: true, message: "Ready to start"};
+        }
+        
+        // For other templates, check file selection
         if (!areAllFilesSelected()) {
             const selected = Object.keys(selectedFiles).length;
             const required = selectedTemplate.filesRequired;
@@ -498,6 +526,19 @@ const ChatInterface = ({
                             files={files}
                             selectedFiles={selectedFiles}
                             selectedTemplate={selectedTemplate}
+                            flowData={flowData}
+                            onComplete={triggerFlowBasedOnProcessType}
+                            onCancel={handleFlowCancel}
+                            onSendMessage={onSendMessage}
+                        />
+                    </div>
+                )}
+
+                {currentFlow === 'miscellaneous' && (
+                    <div className="mb-4">
+                        <MiscellaneousFlow
+                            files={files}
+                            selectedFiles={selectedFiles}
                             flowData={flowData}
                             onComplete={triggerFlowBasedOnProcessType}
                             onCancel={handleFlowCancel}

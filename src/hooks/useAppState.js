@@ -276,9 +276,15 @@ export const useFileSelection = () => {
     const [requiredFiles, setRequiredFiles] = useState([]);
     const [currentInput, setCurrentInput] = useState('');
 
+
     const handleTemplateSelect = useCallback((template) => {
-        setSelectedTemplate(template);
-        setCurrentInput(template?.user_requirements || '');
+        setSelectedTemplate(prevTemplate => {
+            // Only update input if template actually changed or is being cleared
+            if (prevTemplate?.name !== template?.name) {
+                setCurrentInput(template?.user_requirements || '');
+            }
+            return template;
+        });
         setSelectedFiles({}); // Reset selected files when template changes
 
         if (template) {

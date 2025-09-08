@@ -488,7 +488,7 @@ const LeftSidebar = ({
                     </div>
 
                     {/* Step 4: File Assignment */}
-                    {selectedTemplate && (
+                    {selectedTemplate && selectedTemplate.category !== 'miscellaneous' && selectedTemplate.category !== 'data-analysis' && (
                         <div
                             className="border-t border-slate-200 bg-white/50 flex-shrink-0 max-h-52 overflow-hidden flex flex-col">
                             <div className="p-3 pb-2 flex-shrink-0">

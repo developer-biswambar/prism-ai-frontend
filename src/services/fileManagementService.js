@@ -119,13 +119,30 @@ class FileManagementService {
         if (!template) return [];
 
         const fileRequirements = [];
-        for (let i = 0; i < template.filesRequired; i++) {
-            fileRequirements.push({
-                key: `file_${i}`,
-                label: template.fileLabels[i] || `File ${i + 1}`,
-                selected: null
-            });
+        
+        // For miscellaneous/data-analysis, allow up to maxFiles selection
+        if (template.category === 'miscellaneous' || template.category === 'data-analysis') {
+            const maxFiles = template.maxFiles || 5;
+            for (let i = 0; i < maxFiles; i++) {
+                fileRequirements.push({
+                    key: `file_${i}`,
+                    label: i < template.fileLabels.length ? template.fileLabels[i] : `Data File ${i + 1}`,
+                    selected: null,
+                    required: i < template.filesRequired // Only first file is required
+                });
+            }
+        } else {
+            // For other templates, use the original logic
+            for (let i = 0; i < template.filesRequired; i++) {
+                fileRequirements.push({
+                    key: `file_${i}`,
+                    label: template.fileLabels[i] || `File ${i + 1}`,
+                    selected: null,
+                    required: true
+                });
+            }
         }
+        
         return fileRequirements;
     }
 }
