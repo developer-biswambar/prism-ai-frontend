@@ -33,6 +33,7 @@ const MiscellaneousFileSelection = ({
     const [uploadError, setUploadError] = useState('');
     const [uploadSuccess, setUploadSuccess] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     
     const fileInputRef = useRef(null);
     
@@ -236,6 +237,19 @@ const MiscellaneousFileSelection = ({
 
     const isFileSelected = (file) => {
         return Object.values(selectedFiles).some(selectedFile => selectedFile?.file_id === file.file_id);
+    };
+
+    const handleRefresh = async () => {
+        if (isRefreshing || !onFilesRefresh) return;
+        
+        setIsRefreshing(true);
+        try {
+            await onFilesRefresh();
+        } catch (error) {
+            console.error('Error refreshing files:', error);
+        } finally {
+            setIsRefreshing(false);
+        }
     };
 
     const getFileIcon = (filename) => {
@@ -473,12 +487,17 @@ const MiscellaneousFileSelection = ({
                 <div className="flex items-center justify-between">
                     <h4 className="text-md font-medium text-gray-700">Available Files:</h4>
                     <button
-                        onClick={onFilesRefresh}
-                        className="flex items-center space-x-1 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
-                        title="Refresh file list"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors shadow-sm ${
+                            isRefreshing 
+                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                                : 'bg-blue-500 text-white hover:bg-blue-600'
+                        }`}
+                        title={isRefreshing ? "Refreshing..." : "Refresh file list"}
                     >
-                        <RefreshCw size={14} />
-                        <span>Refresh</span>
+                        <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                        <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
                     </button>
                 </div>
                 
