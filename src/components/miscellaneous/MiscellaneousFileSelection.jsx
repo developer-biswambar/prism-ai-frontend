@@ -7,7 +7,8 @@ import {
     FileText,
     X,
     Upload,
-    HelpCircle
+    HelpCircle,
+    RefreshCw
 } from 'lucide-react';
 import { apiService } from '../../services/defaultApi.js';
 import FileUploadModal from '../../fileManagement/FileUploadModal.jsx';
@@ -469,7 +470,17 @@ const MiscellaneousFileSelection = ({
 
             {/* File List */}
             <div className="space-y-3">
-                <h4 className="text-md font-medium text-gray-700">Available Files:</h4>
+                <div className="flex items-center justify-between">
+                    <h4 className="text-md font-medium text-gray-700">Available Files:</h4>
+                    <button
+                        onClick={onFilesRefresh}
+                        className="flex items-center space-x-1 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors"
+                        title="Refresh file list"
+                    >
+                        <RefreshCw size={14} />
+                        <span>Refresh</span>
+                    </button>
+                </div>
                 
                 {files.length === 0 ? (
                     <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
