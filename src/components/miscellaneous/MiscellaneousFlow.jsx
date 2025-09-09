@@ -42,6 +42,7 @@ const MiscellaneousFlow = ({
     const [processId, setProcessId] = useState(null);
     const [generatedSQL, setGeneratedSQL] = useState('');
     const [processingError, setProcessingError] = useState(null);
+    const [processingTimeSeconds, setProcessingTimeSeconds] = useState(null);
     
     // Track if prompt changed after results were generated
     const [originalPrompt, setOriginalPrompt] = useState('');
@@ -106,6 +107,7 @@ const MiscellaneousFlow = ({
                 setProcessId(null);
                 setGeneratedSQL('');
                 setProcessingError(null);
+                setProcessingTimeSeconds(null);
                 setHasPromptChanged(false);
             }
             
@@ -148,6 +150,7 @@ const MiscellaneousFlow = ({
             if (response.success) {
                 setProcessId(response.process_id);
                 setGeneratedSQL(response.generated_sql);
+                setProcessingTimeSeconds(response.processing_time_seconds);
                 
                 // Get the results
                 const resultsResponse = await miscellaneousService.getResults(response.process_id);
@@ -157,7 +160,7 @@ const MiscellaneousFlow = ({
                 setOriginalPrompt(userPrompt);
                 setHasPromptChanged(false);
                 
-                onSendMessage('system', `✅ Processing completed! Generated ${response.row_count} result rows using AI-generated SQL.`);
+                onSendMessage('system', `✅ Processing completed! Generated ${response.row_count} result rows using AI-generated SQL in ${response.processing_time_seconds}s.`);
             } else {
                 throw new Error(response.message || 'Processing failed');
             }
@@ -191,6 +194,7 @@ const MiscellaneousFlow = ({
         setProcessId(null);
         setGeneratedSQL('');
         setProcessingError(null);
+        setProcessingTimeSeconds(null);
         setHasPromptChanged(false);
         
         // Move to preview step and process
@@ -209,6 +213,7 @@ const MiscellaneousFlow = ({
         setProcessId(null);
         setGeneratedSQL('');
         setProcessingError(null);
+        setProcessingTimeSeconds(null);
         setHasPromptChanged(false);
         
         // Move to preview step first
@@ -224,6 +229,7 @@ const MiscellaneousFlow = ({
         setProcessId(null);
         setGeneratedSQL('');
         setProcessingError(null);
+        setProcessingTimeSeconds(null);
         setOriginalPrompt('');
         setHasPromptChanged(false);
         setCurrentStep('file_selection');
@@ -290,6 +296,7 @@ const MiscellaneousFlow = ({
                         generatedSQL={generatedSQL}
                         processingError={processingError}
                         processId={processId}
+                        processingTimeSeconds={processingTimeSeconds}
                         onProcess={processData}
                         onDownload={downloadResults}
                         onClear={clearResults}
@@ -303,10 +310,10 @@ const MiscellaneousFlow = ({
 
     return (
         <div 
-            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4 md:p-6"
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
             onClick={handleOverlayClick}
         >
-            <div className="bg-white border border-gray-300 rounded-lg shadow-2xl w-full h-full max-w-[98vw] max-h-[98vh] lg:max-w-[95vw] lg:max-h-[95vh] xl:max-w-[92vw] xl:max-h-[92vh] overflow-hidden flex flex-col relative">
+            <div className="bg-white w-full h-full overflow-hidden flex flex-col relative">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 lg:px-8 xl:px-10 py-4 lg:py-5">
                     <div className="flex items-center justify-between">

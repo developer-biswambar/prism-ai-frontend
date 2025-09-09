@@ -279,21 +279,47 @@ const MiscellaneousPromptInput = ({
                     </div>
                 </div>
 
-                <textarea
-                    ref={textareaRef}
-                    value={userPrompt || ''}
-                    onChange={handleTextareaChange}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
-                        isPromptValid() ? 'border-gray-300' : 'border-red-300'
-                    }`}
-                    placeholder="Describe what you want to do with your data... For example:
-• 'Compare file_1 and file_2 to find missing records'
-• 'Calculate running totals by customer'  
-• 'Find customers who spent more than $1000'
-• 'Merge all files and remove duplicates'"
-                    rows={6}
-                    maxLength={1000}
-                />
+                <div className="relative">
+                    <textarea
+                        ref={textareaRef}
+                        value={userPrompt || ''}
+                        onChange={handleTextareaChange}
+                        className={`w-full px-4 py-4 border-2 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 resize-y transition-all duration-200 bg-gradient-to-br from-white to-gray-50/30 shadow-sm hover:shadow-md font-medium text-gray-800 leading-relaxed ${
+                            isPromptValid() ? 'border-gray-200' : 'border-red-300'
+                        }`}
+                        placeholder="✨ Describe what you want to do with your data in detail...
+
+Start typing your natural language query here. Be as specific as possible about your requirements, conditions, and expected results."
+                        rows={12}
+                        maxLength={50000}
+                        style={{
+                            lineHeight: '1.7',
+                            fontSize: '15px'
+                        }}
+                    />
+                    
+                    {/* Character counter */}
+                    <div className="absolute bottom-3 right-3 flex items-center space-x-3">
+                        {userPrompt && userPrompt.length > 0 && (
+                            <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm border border-gray-200">
+                                <div className={`text-xs ${
+                                    userPrompt.length > 40000 ? 'text-red-500' : 
+                                    userPrompt.length > 25000 ? 'text-amber-500' : 'text-gray-500'
+                                }`}>
+                                    {userPrompt.length.toLocaleString()}/{(50000).toLocaleString()}
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Writing indicator */}
+                        {userPrompt && userPrompt.length > 10 && (
+                            <div className="flex items-center space-x-1 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <span className="text-xs text-green-700 font-medium">Ready</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {!isPromptValid() && (
                     <div className="text-xs text-red-500 mt-1 flex items-center space-x-1">
@@ -410,39 +436,6 @@ const MiscellaneousPromptInput = ({
                 </div>
             )}
 
-            {/* Tips Section */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-start space-x-2">
-                    <MessageSquare size={16} className="text-green-600 mt-0.5"/>
-                    <div className="text-sm text-green-800">
-                        <p className="font-medium mb-2">Tips for Better Results:</p>
-                        <ul className="list-disc list-inside space-y-1 text-xs">
-                            <li><strong>Be specific</strong>: "Compare amounts in file_1 with file_2" vs "compare files"</li>
-                            <li><strong>Use file references</strong>: file_1, file_2, etc. to refer to your selected files</li>
-                            <li><strong>Mention column names</strong>: if you know specific columns to work with</li>
-                            <li><strong>State your goal clearly</strong>: find differences, calculate totals, merge data, etc.</li>
-                            <li><strong>Include conditions</strong>: "where status = 'active'" or "for last 30 days"</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            {/* AI Processing Info */}
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <div className="flex items-start space-x-2">
-                    <Sparkles size={16} className="text-purple-600 mt-0.5"/>
-                    <div className="text-sm text-purple-800">
-                        <p className="font-medium mb-1">How AI Processing Works:</p>
-                        <ol className="list-decimal list-inside space-y-1 text-xs">
-                            <li>AI analyzes your selected files and their column structures</li>
-                            <li>Converts your natural language query into optimized SQL</li>
-                            <li>Executes the query using DuckDB for high performance</li>
-                            <li>Returns results in your chosen format</li>
-                            <li>Shows you the generated SQL for transparency</li>
-                        </ol>
-                    </div>
-                </div>
-            </div>
 
             {/* Prompt Management Modal */}
             {showPromptManager && (

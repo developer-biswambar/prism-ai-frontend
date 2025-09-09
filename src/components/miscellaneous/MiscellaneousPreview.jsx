@@ -214,6 +214,7 @@ const MiscellaneousPreview = ({
     generatedSQL,
     processingError,
     processId,
+    processingTimeSeconds,
     onProcess,
     onDownload,
     onClear
@@ -303,6 +304,7 @@ const MiscellaneousPreview = ({
                 body: JSON.stringify({
                     original_prompt: userPrompt,
                     generated_sql: generatedSQL,
+                    ai_description: processResults?.metadata?.processing_info?.description || null,
                     files_info: selectedFiles.map((file, index) => ({
                         reference: `file_${index + 1}`,
                         filename: file.filename,
@@ -509,6 +511,17 @@ const MiscellaneousPreview = ({
                                 <span className="text-sm font-medium text-green-800">Processing Completed Successfully</span>
                             </div>
                             <div className="flex items-center space-x-4">
+                                {processingTimeSeconds && (
+                                    <div className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-md">
+                                        <span className="text-xs text-green-700">⚡</span>
+                                        <span className="text-xs font-medium text-green-700">
+                                            {processingTimeSeconds < 1 
+                                                ? `${(processingTimeSeconds * 1000).toFixed(0)}ms`
+                                                : `${processingTimeSeconds.toFixed(2)}s`
+                                            }
+                                        </span>
+                                    </div>
+                                )}
                                 <span className="text-sm text-green-700">
                                     {processResults.data?.length || 0} rows returned
                                 </span>
@@ -519,6 +532,12 @@ const MiscellaneousPreview = ({
                             <div className="mt-2 text-xs text-green-700">
                                 Query Type: {processResults.metadata.processing_info.query_type} | 
                                 Files Used: {processResults.metadata.processing_info.input_files || selectedFiles.length}
+                                {processingTimeSeconds && (
+                                    <span> | Processing Time: {processingTimeSeconds < 1 
+                                        ? `${(processingTimeSeconds * 1000).toFixed(0)}ms`
+                                        : `${processingTimeSeconds.toFixed(2)}s`
+                                    }</span>
+                                )}
                             </div>
                         )}
                     </div>
@@ -763,6 +782,21 @@ const MiscellaneousPreview = ({
                         </div>
                     )}
 
+                    {/* AI Description Display */}
+                    {processResults?.metadata?.processing_info?.description && (
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                            <div className="flex items-start space-x-2">
+                                <Sparkles className="text-purple-600 mt-0.5" size={16} />
+                                <div>
+                                    <span className="text-sm font-medium text-purple-800">What the AI Did:</span>
+                                    <p className="text-sm text-purple-700 mt-1">
+                                        {processResults.metadata.processing_info.description}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Results Table */}
                     {processResults.data && processResults.data.length > 0 ? (
                         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -837,6 +871,38 @@ const MiscellaneousPreview = ({
                                 </div>
                             )}
                         </div>
+                    ) : processResults && !processResults.success ? (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                            <div className="flex items-start space-x-3">
+                                <XCircle className="text-red-600 mt-0.5" size={20} />
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-red-800">SQL Execution Failed</p>
+                                    <p className="text-sm text-red-700 mt-1">
+                                        {processResults.error || 'An error occurred while executing the query'}
+                                    </p>
+                                    {processResults.errors && processResults.errors.length > 0 && (
+                                        <div className="mt-2">
+                                            <p className="text-xs font-medium text-red-800 mb-1">Error Details:</p>
+                                            <ul className="text-xs text-red-700 list-disc list-inside space-y-1">
+                                                {processResults.errors.map((error, index) => (
+                                                    <li key={index}>{error}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {processResults.warnings && processResults.warnings.length > 0 && (
+                                        <div className="mt-2">
+                                            <p className="text-xs font-medium text-red-800 mb-1">Warnings:</p>
+                                            <ul className="text-xs text-red-700 list-disc list-inside space-y-1">
+                                                {processResults.warnings.map((warning, index) => (
+                                                    <li key={index}>{warning}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     ) : (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
                             <AlertCircle className="text-yellow-600 mx-auto mb-2" size={24} />
@@ -906,6 +972,9 @@ const MiscellaneousPreview = ({
                     currentPrompt={userPrompt}
                     processName={processName}
                     selectedFiles={selectedFiles}
+                    processResults={processResults}
+                    generatedSQL={generatedSQL}
+                    processId={processId}
                     onPromptLoaded={() => {}} // Not used in save mode
                     onPromptSaved={() => {
                         setShowSavePromptModal(false);

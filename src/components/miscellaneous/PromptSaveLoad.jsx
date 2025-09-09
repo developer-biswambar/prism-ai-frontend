@@ -25,6 +25,9 @@ const PromptSaveLoad = ({
     currentPrompt,
     processName,
     selectedFiles,
+    processResults = null, // Process results containing metadata and AI description
+    generatedSQL = null, // Generated SQL for reverse engineering
+    processId = null, // Process ID
     onPromptLoaded,
     onPromptSaved,
     onClose,
@@ -45,6 +48,11 @@ const PromptSaveLoad = ({
         tags: []
     });
     const [saveErrors, setSaveErrors] = useState([]);
+    
+    // Ideal prompt generation state
+    const [generatingIdealPrompt, setGeneratingIdealPrompt] = useState(false);
+    const [idealPrompt, setIdealPrompt] = useState('');
+    const [idealPromptData, setIdealPromptData] = useState(null);
 
     // Categories
     const categories = [
@@ -80,6 +88,70 @@ const PromptSaveLoad = ({
         }
     };
 
+    // Generate ideal prompt using reverse engineering
+    const generateIdealPrompt = async () => {
+        if (!generatedSQL || !processResults) {
+            setSaveErrors(['Cannot generate ideal prompt: missing process data']);
+            return false;
+        }
+
+        setGeneratingIdealPrompt(true);
+        setSaveErrors([]);
+        
+        try {
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/generate-ideal-prompt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    original_prompt: currentPrompt,
+                    generated_sql: generatedSQL,
+                    ai_description: processResults?.metadata?.processing_info?.description || null,
+                    files_info: selectedFiles.map((file, index) => ({
+                        reference: `file_${index + 1}`,
+                        filename: file.filename,
+                        columns: file.columns || [],
+                        total_rows: file.totalRows || 0
+                    })),
+                    results_summary: {
+                        row_count: processResults?.data?.length || 0,
+                        column_count: processResults?.metadata?.processing_info?.column_count || 0,
+                        query_type: processResults?.metadata?.processing_info?.query_type || 'unknown'
+                    },
+                    process_id: processId
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                // Store the generated ideal prompt data
+                setIdealPromptData(data);
+                setIdealPrompt(data.ideal_prompt);
+                
+                // Auto-populate the form with AI-generated data
+                setSaveForm({
+                    name: data.name || `${processName} - Optimized`,
+                    description: data.description || '',
+                    category: data.category || 'Data Processing',
+                    tags: []
+                });
+
+                return true;
+            } else {
+                setSaveErrors([data.error || 'Failed to generate ideal prompt']);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error generating ideal prompt:', error);
+            setSaveErrors([error.message || 'Failed to generate ideal prompt']);
+            return false;
+        } finally {
+            setGeneratingIdealPrompt(false);
+        }
+    };
+
     const handleSavePrompt = async () => {
         setSaveErrors([]);
         setLoading(true);
@@ -98,13 +170,13 @@ const PromptSaveLoad = ({
         try {
             const promptData = {
                 name: saveForm.name.trim(),
-                ideal_prompt: currentPrompt.trim(),
+                ideal_prompt: idealPrompt || currentPrompt.trim(), // Use ideal prompt if available
                 original_prompt: currentPrompt.trim(),
                 description: saveForm.description.trim(),
                 category: saveForm.category,
-                file_pattern: selectedFiles.length > 0 
+                file_pattern: idealPromptData?.file_pattern || (selectedFiles.length > 0 
                     ? `Works with ${selectedFiles.length} file(s) - ${selectedFiles.map(f => f.filename).join(', ')}`
-                    : 'General purpose'
+                    : 'General purpose')
             };
 
             console.log('💾 Saving prompt:', promptData);
@@ -464,11 +536,43 @@ const PromptSaveLoad = ({
                     {activeTab === 'save' && (
                         <div className="space-y-6">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-800 mb-2">Save Current Prompt</h3>
+                                <h3 className="text-lg font-semibold text-gray-800 mb-2">Save Optimized Prompt</h3>
                                 <p className="text-sm text-gray-600">
-                                    Save your current prompt for reuse in future data processing tasks.
+                                    Generate an AI-optimized version of your prompt using reverse engineering, then save it to your library.
                                 </p>
                             </div>
+
+                            {/* Generate Ideal Prompt Section */}
+                            {!idealPromptData && generatedSQL && (
+                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center space-x-2">
+                                            <Sparkles className="text-purple-600" size={16} />
+                                            <h4 className="font-medium text-purple-800">AI Optimization Available</h4>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-purple-700 mb-3">
+                                        Use AI to analyze your successful query and create an optimized, more specific prompt that will generate similar results consistently.
+                                    </p>
+                                    <button
+                                        onClick={generateIdealPrompt}
+                                        disabled={generatingIdealPrompt}
+                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-purple-300 transition-colors"
+                                    >
+                                        {generatingIdealPrompt ? (
+                                            <>
+                                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                                                <span>Generating Ideal Prompt...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles size={16} />
+                                                <span>Generate Ideal Prompt</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Current Prompt Preview */}
                             <div>
@@ -479,6 +583,52 @@ const PromptSaveLoad = ({
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Ideal Prompt Preview and Edit */}
+                            {idealPromptData && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <div className="flex items-center space-x-2 mb-3">
+                                        <Sparkles className="text-green-600" size={16} />
+                                        <h4 className="font-medium text-green-800">AI-Generated Ideal Prompt</h4>
+                                    </div>
+                                    
+                                    {idealPromptData.improvements_made && (
+                                        <div className="bg-green-100 border border-green-300 rounded p-3 mb-3">
+                                            <p className="text-sm font-medium text-green-800 mb-1">Improvements Made:</p>
+                                            <p className="text-sm text-green-700">{idealPromptData.improvements_made}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="mb-3">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Ideal Prompt (Editable):
+                                        </label>
+                                        <textarea
+                                            value={idealPrompt}
+                                            onChange={(e) => setIdealPrompt(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y"
+                                            rows={8}
+                                            placeholder="AI-generated ideal prompt..."
+                                        />
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => {
+                                            setIdealPromptData(null);
+                                            setIdealPrompt('');
+                                            setSaveForm({
+                                                name: processName ? `${processName} - Saved` : '',
+                                                description: '',
+                                                category: 'Data Processing',
+                                                tags: []
+                                            });
+                                        }}
+                                        className="text-sm text-gray-600 hover:text-gray-800 underline"
+                                    >
+                                        ← Generate a new ideal prompt
+                                    </button>
+                                </div>
+                            )}
 
                             {/* Save Form */}
                             <div className="space-y-4">
