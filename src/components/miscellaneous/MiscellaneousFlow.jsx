@@ -315,50 +315,19 @@ const MiscellaneousFlow = ({
         >
             <div className="bg-white w-full h-full overflow-hidden flex flex-col relative">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 lg:px-8 xl:px-10 py-4 lg:py-5">
+                <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-start space-x-3">
-                            <div className="flex-1">
-                                <h1 className="text-2xl font-bold text-white">Miscellaneous Data Processing</h1>
-                                <p className="text-purple-100 mt-1">
-                                    Process multiple files using natural language queries with AI-powered engine
-                                </p>
-                            </div>
-                            <div className="group relative">
-                                <HelpCircle size={20} className="text-purple-200 cursor-help hover:text-white transition-colors" />
-                                <div className="absolute top-full right-0 mt-2 w-80 p-4 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 text-gray-800">
-                                    <h4 className="font-semibold text-gray-900 mb-2">How it works:</h4>
-                                    <div className="text-sm space-y-2">
-                                        <div className="flex items-start space-x-2">
-                                            <span className="text-blue-600 font-medium">1.</span>
-                                            <span>Select 1-5 CSV/Excel files to process</span>
-                                        </div>
-                                        <div className="flex items-start space-x-2">
-                                            <span className="text-blue-600 font-medium">2.</span>
-                                            <span>Write a natural language query describing what you want</span>
-                                        </div>
-                                        <div className="flex items-start space-x-2">
-                                            <span className="text-blue-600 font-medium">3.</span>
-                                            <span>AI converts your query to SQL and processes the data</span>
-                                        </div>
-                                        <div className="flex items-start space-x-2">
-                                            <span className="text-blue-600 font-medium">4.</span>
-                                            <span>Download results or view in the data viewer</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="flex items-center space-x-3">
+                            <Brain className="text-white" size={24} />
+                            <h1 className="text-xl font-bold text-white">Miscellaneous Data Processing</h1>
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <Brain className="text-white" size={32} />
-                            <button
-                                onClick={onCancel}
-                                className="text-white hover:text-gray-200 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
-                                title="Close"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
+                        <button
+                            onClick={onCancel}
+                            className="text-white hover:text-gray-200 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
+                            title="Close"
+                        >
+                            <X size={20} />
+                        </button>
                     </div>
                 </div>
 

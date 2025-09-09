@@ -8,7 +8,8 @@ import {
     X,
     Upload,
     HelpCircle,
-    RefreshCw
+    RefreshCw,
+    Search
 } from 'lucide-react';
 import { apiService } from '../../services/defaultApi.js';
 import FileUploadModal from '../../fileManagement/FileUploadModal.jsx';
@@ -34,6 +35,9 @@ const MiscellaneousFileSelection = ({
     const [uploadSuccess, setUploadSuccess] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    
+    // Search state
+    const [searchTerm, setSearchTerm] = useState('');
     
     const fileInputRef = useRef(null);
     
@@ -335,6 +339,16 @@ const MiscellaneousFileSelection = ({
         });
     };
 
+    // Filter sorted files based on search term
+    const filteredFiles = sortedFiles.filter(file => {
+        if (!searchTerm) return true;
+        
+        const searchLower = searchTerm.toLowerCase();
+        const fileName = (file.custom_name || file.filename || '').toLowerCase();
+        
+        return fileName.includes(searchLower);
+    });
+
     return (
         <div className="space-y-6">
             <div>
@@ -484,8 +498,37 @@ const MiscellaneousFileSelection = ({
 
             {/* File List */}
             <div className="space-y-3">
+                {/* Search Input */}
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="Search files by name..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder-gray-500"
+                    />
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm('')}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        >
+                            <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        </button>
+                    )}
+                </div>
+
                 <div className="flex items-center justify-between">
-                    <h4 className="text-md font-medium text-gray-700">Available Files:</h4>
+                    <h4 className="text-md font-medium text-gray-700">
+                        Available Files:
+                        {searchTerm && (
+                            <span className="text-sm font-normal text-gray-500 ml-2">
+                                ({filteredFiles.length} of {files.length} shown)
+                            </span>
+                        )}
+                    </h4>
                     <button
                         onClick={handleRefresh}
                         disabled={isRefreshing}
@@ -509,9 +552,20 @@ const MiscellaneousFileSelection = ({
                             Upload some files first to use in data processing
                         </p>
                     </div>
+                ) : filteredFiles.length === 0 ? (
+                    <div className="text-center py-8 bg-yellow-50 rounded-lg border-2 border-dashed border-yellow-300">
+                        <Search size={48} className="mx-auto mb-4 text-yellow-400"/>
+                        <p className="text-yellow-600 mb-2">No files match your search</p>
+                        <p className="text-sm text-yellow-500">
+                            Try adjusting your search term or <button 
+                                onClick={() => setSearchTerm('')}
+                                className="text-blue-500 hover:text-blue-700 underline"
+                            >clear the search</button>
+                        </p>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                        {sortedFiles.map((file, index) => {
+                        {filteredFiles.map((file, index) => {
                             const isSelected = isFileSelected(file);
                             const canSelect = selectedCount < maxFiles || isSelected;
                             

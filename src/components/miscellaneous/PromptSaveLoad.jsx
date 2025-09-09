@@ -53,6 +53,11 @@ const PromptSaveLoad = ({
     const [generatingIdealPrompt, setGeneratingIdealPrompt] = useState(false);
     const [idealPrompt, setIdealPrompt] = useState('');
     const [idealPromptData, setIdealPromptData] = useState(null);
+    const [lastGenerationTime, setLastGenerationTime] = useState(0);
+    
+    // Edit prompt state
+    const [editingPrompt, setEditingPrompt] = useState(null);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     // Categories
     const categories = [
@@ -92,6 +97,11 @@ const PromptSaveLoad = ({
     const generateIdealPrompt = async () => {
         if (!generatedSQL || !processResults) {
             setSaveErrors(['Cannot generate ideal prompt: missing process data']);
+            return false;
+        }
+
+        // Prevent multiple simultaneous requests
+        if (generatingIdealPrompt) {
             return false;
         }
 
@@ -140,12 +150,34 @@ const PromptSaveLoad = ({
 
                 return true;
             } else {
-                setSaveErrors([data.error || 'Failed to generate ideal prompt']);
+                // Handle different error types
+                if (data.error_type === 'quota_exceeded') {
+                    setSaveErrors([
+                        data.error || 'AI quota exceeded',
+                        data.suggestion || 'You can still save your original prompt manually.'
+                    ]);
+                } else if (data.error_type === 'rate_limited') {
+                    setSaveErrors([
+                        data.error || 'AI service busy',
+                        data.suggestion || 'Wait a moment and try again, or save manually.'
+                    ]);
+                } else {
+                    setSaveErrors([data.error || 'Failed to generate ideal prompt']);
+                }
                 return false;
             }
         } catch (error) {
             console.error('Error generating ideal prompt:', error);
-            setSaveErrors([error.message || 'Failed to generate ideal prompt']);
+            
+            // Check if it's a rate limiting error
+            if (error.message && error.message.includes('429')) {
+                setSaveErrors([
+                    'OpenAI API is currently rate limited. Please wait a moment and try again.',
+                    'Tip: You can save your prompt manually without AI optimization.'
+                ]);
+            } else {
+                setSaveErrors([error.message || 'Failed to generate ideal prompt']);
+            }
             return false;
         } finally {
             setGeneratingIdealPrompt(false);
@@ -181,8 +213,16 @@ const PromptSaveLoad = ({
 
             console.log('💾 Saving prompt:', promptData);
 
-            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/save-prompt`, {
-                method: 'POST',
+            // Determine if this is an update or create
+            const isUpdate = isEditMode && editingPrompt;
+            const url = isUpdate 
+                ? `${API_ENDPOINTS.MISCELLANEOUS}/saved-prompts/${editingPrompt.id}`
+                : `${API_ENDPOINTS.MISCELLANEOUS}/save-prompt`;
+            
+            const method = isUpdate ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -199,6 +239,12 @@ const PromptSaveLoad = ({
                     category: 'Data Processing',
                     tags: []
                 });
+                // Reset edit state
+                setIsEditMode(false);
+                setEditingPrompt(null);
+                setIdealPrompt('');
+                setIdealPromptData(null);
+                
                 setActiveTab('load'); // Switch to load tab to see saved prompt
                 
                 if (onPromptSaved) {
@@ -291,6 +337,19 @@ const PromptSaveLoad = ({
             hour: '2-digit',
             minute: '2-digit'
         });
+    };
+
+    const handleEditPrompt = (prompt) => {
+        setEditingPrompt(prompt);
+        setIsEditMode(true);
+        setSaveForm({
+            name: prompt.name,
+            description: prompt.description || '',
+            category: prompt.category || 'Data Processing',
+            tags: prompt.tags || []
+        });
+        setIdealPrompt(prompt.ideal_prompt || prompt.original_prompt);
+        setActiveTab('save'); // Switch to save tab for editing
     };
 
     const exportPrompt = (prompt) => {
@@ -475,6 +534,13 @@ const PromptSaveLoad = ({
                                                         <Eye size={16} />
                                                     </button>
                                                     <button
+                                                        onClick={() => handleEditPrompt(prompt)}
+                                                        className="p-2 text-gray-400 hover:text-green-600"
+                                                        title="Edit prompt"
+                                                    >
+                                                        <Edit3 size={16} />
+                                                    </button>
+                                                    <button
                                                         onClick={() => exportPrompt(prompt)}
                                                         className="p-2 text-gray-400 hover:text-blue-600"
                                                         title="Export prompt"
@@ -536,14 +602,47 @@ const PromptSaveLoad = ({
                     {activeTab === 'save' && (
                         <div className="space-y-6">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-800 mb-2">Save Optimized Prompt</h3>
+                                <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                    {isEditMode ? 'Edit Prompt' : 'Save Optimized Prompt'}
+                                </h3>
                                 <p className="text-sm text-gray-600">
-                                    Generate an AI-optimized version of your prompt using reverse engineering, then save it to your library.
+                                    {isEditMode 
+                                        ? 'Update your saved prompt with new details.'
+                                        : 'Generate an AI-optimized version of your prompt using reverse engineering, then save it to your library.'
+                                    }
                                 </p>
                             </div>
 
-                            {/* Generate Ideal Prompt Section */}
-                            {!idealPromptData && generatedSQL && (
+                            {/* Edit mode indicator */}
+                            {isEditMode && editingPrompt && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <div className="flex items-center space-x-2">
+                                        <Edit3 className="text-blue-600" size={16} />
+                                        <span className="text-sm font-medium text-blue-800">
+                                            Editing: {editingPrompt.name}
+                                        </span>
+                                        <button
+                                            onClick={() => {
+                                                setIsEditMode(false);
+                                                setEditingPrompt(null);
+                                                setIdealPrompt('');
+                                                setSaveForm({
+                                                    name: processName ? `${processName} - Saved` : '',
+                                                    description: '',
+                                                    category: 'Data Processing',
+                                                    tags: []
+                                                });
+                                            }}
+                                            className="text-blue-600 hover:text-blue-800 text-sm underline ml-auto"
+                                        >
+                                            Cancel Edit
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Generate Ideal Prompt Section - only show for new prompts */}
+                            {!isEditMode && !idealPromptData && generatedSQL && (
                                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center space-x-2">
@@ -554,34 +653,63 @@ const PromptSaveLoad = ({
                                     <p className="text-sm text-purple-700 mb-3">
                                         Use AI to analyze your successful query and create an optimized, more specific prompt that will generate similar results consistently.
                                     </p>
-                                    <button
-                                        onClick={generateIdealPrompt}
-                                        disabled={generatingIdealPrompt}
-                                        className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-purple-300 transition-colors"
-                                    >
-                                        {generatingIdealPrompt ? (
-                                            <>
-                                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                                                <span>Generating Ideal Prompt...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Sparkles size={16} />
-                                                <span>Generate Ideal Prompt</span>
-                                            </>
-                                        )}
-                                    </button>
+                                    <div className="flex items-center space-x-3">
+                                        <button
+                                            onClick={generateIdealPrompt}
+                                            disabled={generatingIdealPrompt}
+                                            className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-purple-300 transition-colors"
+                                        >
+                                            {generatingIdealPrompt ? (
+                                                <>
+                                                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                                                    <span>Generating Ideal Prompt...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles size={16} />
+                                                    <span>Generate Ideal Prompt</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        <span className="text-sm text-gray-500">or</span>
+                                        <button
+                                            onClick={() => {
+                                                // Skip AI optimization and proceed with manual saving
+                                                setSaveForm({
+                                                    name: processName ? `${processName} - Manual Save` : 'Manual Save',
+                                                    description: 'Original user prompt saved without AI optimization',
+                                                    category: 'Data Processing',
+                                                    tags: []
+                                                });
+                                            }}
+                                            className="text-sm text-purple-600 hover:text-purple-800 underline"
+                                        >
+                                            Skip optimization and save manually
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
-                            {/* Current Prompt Preview */}
+                            {/* Current/Editing Prompt */}
                             <div>
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">Current Prompt:</h4>
-                                <div className="bg-gray-50 border border-gray-200 rounded p-3">
-                                    <p className="text-sm text-gray-800 italic">
-                                        "{currentPrompt || 'No prompt available'}"
-                                    </p>
-                                </div>
+                                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                    {isEditMode ? 'Edit Prompt Content:' : 'Current Prompt:'}
+                                </h4>
+                                {isEditMode ? (
+                                    <textarea
+                                        value={idealPrompt}
+                                        onChange={(e) => setIdealPrompt(e.target.value)}
+                                        className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y"
+                                        rows={8}
+                                        placeholder="Edit your prompt content..."
+                                    />
+                                ) : (
+                                    <div className="bg-gray-50 border border-gray-200 rounded p-3">
+                                        <p className="text-sm text-gray-800 italic">
+                                            "{currentPrompt || 'No prompt available'}"
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Ideal Prompt Preview and Edit */}
@@ -689,16 +817,49 @@ const PromptSaveLoad = ({
 
                             {/* Errors */}
                             {saveErrors.length > 0 && (
-                                <div className="bg-red-50 border border-red-200 rounded p-3">
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                                     <div className="flex items-start space-x-2">
                                         <AlertCircle className="text-red-600 mt-0.5" size={16} />
-                                        <div>
-                                            <h4 className="text-sm font-medium text-red-800">Please fix the following errors:</h4>
-                                            <ul className="text-sm text-red-700 mt-1 list-disc list-inside">
+                                        <div className="flex-1">
+                                            <h4 className="text-sm font-medium text-red-800 mb-2">
+                                                {saveErrors.length === 1 && saveErrors[0].includes('quota') ? 
+                                                    'AI Service Quota Exceeded' :
+                                                saveErrors.length === 1 && saveErrors[0].includes('busy') ?
+                                                    'AI Service Temporarily Busy' :
+                                                    'Please Address the Following:'
+                                                }
+                                            </h4>
+                                            <ul className="text-sm text-red-700 space-y-1">
                                                 {saveErrors.map((error, index) => (
-                                                    <li key={index}>{error}</li>
+                                                    <li key={index} className={index === 0 ? 'font-medium' : 'text-red-600'}>
+                                                        {index === 0 ? '• ' : '💡 '}{error}
+                                                    </li>
                                                 ))}
                                             </ul>
+                                            
+                                            {/* Show manual save option for AI errors */}
+                                            {(saveErrors.some(error => error.includes('quota') || error.includes('busy'))) && (
+                                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                                    <p className="text-sm font-medium text-blue-800 mb-2">Manual Save Available:</p>
+                                                    <p className="text-sm text-blue-700 mb-3">
+                                                        You can still save your original prompt without AI optimization.
+                                                    </p>
+                                                    <button
+                                                        onClick={() => {
+                                                            setSaveErrors([]);
+                                                            setSaveForm({
+                                                                name: processName ? `${processName} - Manual Save` : 'Manual Save',
+                                                                description: 'Original user prompt saved without AI optimization',
+                                                                category: 'Data Processing',
+                                                                tags: []
+                                                            });
+                                                        }}
+                                                        className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                                                    >
+                                                        Proceed with Manual Save
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -714,18 +875,18 @@ const PromptSaveLoad = ({
                                 </button>
                                 <button
                                     onClick={handleSavePrompt}
-                                    disabled={loading || !saveForm.name.trim() || !currentPrompt.trim()}
+                                    disabled={loading || !saveForm.name.trim() || (!idealPrompt && !currentPrompt.trim())}
                                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
                                 >
                                     {loading ? (
                                         <>
                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                            <span>Saving...</span>
+                                            <span>{isEditMode ? 'Updating...' : 'Saving...'}</span>
                                         </>
                                     ) : (
                                         <>
                                             <Save size={16} />
-                                            <span>Save Prompt</span>
+                                            <span>{isEditMode ? 'Update Prompt' : 'Save Prompt'}</span>
                                         </>
                                     )}
                                 </button>
