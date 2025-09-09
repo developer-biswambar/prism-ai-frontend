@@ -219,28 +219,28 @@ class MiscellaneousService {
             {
                 category: "Data Reconciliation",
                 examples: [
-                    "Compare file_0 and file_1 to find records missing from file_1 based on transaction_id",
-                    "Find mismatches between file_0 and file_1 where amounts don't match",
-                    "Show records that exist in file_0 but not in file_1",
-                    "Reconcile customer data between file_0 and file_1 using email address as key"
+                    "Compare file_1 and file_2 to find records missing from file_2 based on transaction_id",
+                    "Find mismatches between file_1 and file_2 where amounts don't match",
+                    "Show records that exist in file_1 but not in file_2",
+                    "Reconcile customer data between file_1 and file_2 using email address as key"
                 ]
             },
             {
                 category: "Data Merging & Deduplication",
                 examples: [
                     "Merge all files and remove duplicates based on email address",
-                    "Combine file_0 and file_1 and keep only unique records based on customer_id",
-                    "Join file_0 with file_1 on customer_id and merge their data",
+                    "Combine file_1 and file_2 and keep only unique records based on customer_id",
+                    "Join file_1 with file_2 on customer_id and merge their data",
                     "Union all files and show consolidated customer information"
                 ]
             },
             {
                 category: "Delta Analysis",
                 examples: [
-                    "Show differences between January data (file_0) and February data (file_1)",
-                    "Compare sales between file_0 and file_1 and highlight changes in revenue",
-                    "Find products with changed prices between file_0 and file_1",
-                    "Calculate month-over-month growth comparing file_0 to file_1"
+                    "Show differences between January data (file_1) and February data (file_2)",
+                    "Compare sales between file_1 and file_2 and highlight changes in revenue",
+                    "Find products with changed prices between file_1 and file_2",
+                    "Calculate month-over-month growth comparing file_1 to file_2"
                 ]
             },
             {

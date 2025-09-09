@@ -1,17 +1,16 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
     AlertCircle,
     Database,
-    FileSpreadsheet,
-    FileText,
     Lightbulb,
     MessageSquare,
     Sparkles,
     RefreshCw,
     CheckCircle,
-    Brain,
-    Play
+    BookOpen
 } from 'lucide-react';
+import { API_ENDPOINTS } from '../../config/environment';
+import PromptSaveLoad from './PromptSaveLoad';
 
 const MiscellaneousPromptInput = ({
     userPrompt,
@@ -29,33 +28,39 @@ const MiscellaneousPromptInput = ({
 }) => {
 
     const [showExamples, setShowExamples] = useState(false);
+    const [savedPrompts, setSavedPrompts] = useState([]);
+    const [showSavedPrompts, setShowSavedPrompts] = useState(false);
+    const [loadingPrompts, setLoadingPrompts] = useState(false);
+    const [showPromptManager, setShowPromptManager] = useState(false);
+    
+    const textareaRef = useRef(null);
 
     const examplePrompts = [
         {
             category: "Data Reconciliation",
             examples: [
-                "Compare file_0 and file_1 to find records missing from file_1",
-                "Find mismatches between file_0 and file_1 based on transaction_id and amount",
-                "Show records that exist in file_0 but not in file_1",
-                "Reconcile customer data between file_0 and file_1 using email address"
+                "Compare file_1 and file_2 to find records missing from file_2",
+                "Find mismatches between file_1 and file_2 based on transaction_id and amount",
+                "Show records that exist in file_1 but not in file_2",
+                "Reconcile customer data between file_1 and file_2 using email address"
             ]
         },
         {
             category: "Data Merging & Deduplication",
             examples: [
                 "Merge all files and remove duplicates based on email address",
-                "Combine file_0 and file_1 and keep only unique records",
-                "Join file_0 with file_1 on customer_id and merge their data",
+                "Combine file_1 and file_2 and keep only unique records",
+                "Join file_1 with file_2 on customer_id and merge their data",
                 "Merge files and show consolidated customer information"
             ]
         },
         {
             category: "Delta Analysis",
             examples: [
-                "Show differences between January data (file_0) and February data (file_1)",
-                "Compare sales between file_0 and file_1 and highlight changes",
-                "Find products with changed prices between file_0 and file_1",
-                "Calculate month-over-month growth from file_0 to file_1"
+                "Show differences between January data (file_1) and February data (file_2)",
+                "Compare sales between file_1 and file_2 and highlight changes",
+                "Find products with changed prices between file_1 and file_2",
+                "Calculate month-over-month growth from file_1 to file_2"
             ]
         },
         {
@@ -80,7 +85,7 @@ const MiscellaneousPromptInput = ({
 
     const getFileInfo = () => {
         return selectedFiles.map((file, index) => ({
-            reference: `file_${index}`,
+            reference: `file_${index + 1}`,
             name: file.filename,
             rows: file.totalRows,
             columns: file.columns.slice(0, 5).join(', ') + (file.columns.length > 5 ? '...' : '')
@@ -92,8 +97,60 @@ const MiscellaneousPromptInput = ({
         setShowExamples(false);
     };
 
-    const getCharacterCount = () => userPrompt.length;
-    const isPromptValid = () => userPrompt.trim().length >= 10;
+    const handleTextareaChange = (e) => {
+        onPromptChange(e.target.value);
+    };
+
+    // Load saved prompts on component mount
+    useEffect(() => {
+        loadSavedPrompts();
+    }, []);
+
+    const loadSavedPrompts = async () => {
+        setLoadingPrompts(true);
+        try {
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/saved-prompts`);
+            if (response.ok) {
+                const data = await response.json();
+                setSavedPrompts(data.prompts || []);
+            }
+        } catch (error) {
+            console.error('Error loading saved prompts:', error);
+        } finally {
+            setLoadingPrompts(false);
+        }
+    };
+
+    const loadPrompt = (prompt) => {
+        onPromptChange(prompt.ideal_prompt);
+        setShowSavedPrompts(false);
+    };
+
+    const deletePrompt = async (promptId) => {
+        try {
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/saved-prompts/${promptId}`, {
+                method: 'DELETE'
+            });
+            if (response.ok) {
+                // Reload prompts after deletion
+                loadSavedPrompts();
+            }
+        } catch (error) {
+            console.error('Error deleting prompt:', error);
+        }
+    };
+
+    const handlePromptLoaded = (prompt) => {
+        onPromptChange(prompt.ideal_prompt || prompt.original_prompt);
+        loadSavedPrompts(); // Refresh the quick access list
+    };
+
+    const handlePromptSaved = (savedPrompt) => {
+        loadSavedPrompts(); // Refresh the quick access list
+    };
+
+    const getCharacterCount = () => userPrompt ? userPrompt.length : 0;
+    const isPromptValid = () => userPrompt && userPrompt.trim().length >= 10;
 
     return (
         <div className="space-y-6">
@@ -102,6 +159,62 @@ const MiscellaneousPromptInput = ({
                 <p className="text-sm text-gray-600">
                     Describe what you want to do with your data in plain English. Our AI will convert your request into efficient SQL queries.
                 </p>
+            </div>
+
+            {/* Manage Prompts Section */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <BookOpen className="text-purple-600" size={16} />
+                        <span className="text-sm font-medium text-purple-800">Saved Prompts</span>
+                        {savedPrompts.length > 0 && (
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                                {savedPrompts.length}
+                            </span>
+                        )}
+                    </div>
+                    <button
+                        onClick={() => setShowPromptManager(true)}
+                        className="flex items-center space-x-1 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                        <BookOpen size={14} />
+                        <span>Manage Prompts</span>
+                    </button>
+                </div>
+                
+                <div className="mt-3">
+                    {savedPrompts.length === 0 ? (
+                        <p className="text-xs text-purple-600">
+                            No saved prompts yet. Use "Save Prompt" after successful data processing to build your library.
+                        </p>
+                    ) : (
+                        <div>
+                            <p className="text-xs text-purple-600 mb-2">
+                                {savedPrompts.length} saved prompt{savedPrompts.length !== 1 ? 's' : ''} available
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                                {savedPrompts.slice(0, 3).map((prompt) => (
+                                    <button
+                                        key={prompt.id}
+                                        onClick={() => loadPrompt(prompt)}
+                                        className="text-xs bg-white border border-purple-200 text-purple-700 px-2 py-1 rounded hover:bg-purple-50 transition-colors truncate max-w-32"
+                                        title={prompt.description}
+                                    >
+                                        {prompt.name}
+                                    </button>
+                                ))}
+                                {savedPrompts.length > 3 && (
+                                    <button
+                                        onClick={() => setShowPromptManager(true)}
+                                        className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded hover:bg-purple-200 transition-colors"
+                                    >
+                                        +{savedPrompts.length - 3} more
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Process Name */}
@@ -167,13 +280,14 @@ const MiscellaneousPromptInput = ({
                 </div>
 
                 <textarea
-                    value={userPrompt}
-                    onChange={(e) => onPromptChange(e.target.value)}
+                    ref={textareaRef}
+                    value={userPrompt || ''}
+                    onChange={handleTextareaChange}
                     className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${
                         isPromptValid() ? 'border-gray-300' : 'border-red-300'
                     }`}
                     placeholder="Describe what you want to do with your data... For example:
-• 'Compare file_0 and file_1 to find missing records'
+• 'Compare file_1 and file_2 to find missing records'
 • 'Calculate running totals by customer'  
 • 'Find customers who spent more than $1000'
 • 'Merge all files and remove duplicates'"
@@ -264,6 +378,7 @@ const MiscellaneousPromptInput = ({
                 </div>
             </div>
 
+
             {/* Examples Panel */}
             {showExamples && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
@@ -302,8 +417,8 @@ const MiscellaneousPromptInput = ({
                     <div className="text-sm text-green-800">
                         <p className="font-medium mb-2">Tips for Better Results:</p>
                         <ul className="list-disc list-inside space-y-1 text-xs">
-                            <li><strong>Be specific</strong>: "Compare amounts in file_0 with file_1" vs "compare files"</li>
-                            <li><strong>Use file references</strong>: file_0, file_1, etc. to refer to your selected files</li>
+                            <li><strong>Be specific</strong>: "Compare amounts in file_1 with file_2" vs "compare files"</li>
+                            <li><strong>Use file references</strong>: file_1, file_2, etc. to refer to your selected files</li>
                             <li><strong>Mention column names</strong>: if you know specific columns to work with</li>
                             <li><strong>State your goal clearly</strong>: find differences, calculate totals, merge data, etc.</li>
                             <li><strong>Include conditions</strong>: "where status = 'active'" or "for last 30 days"</li>
@@ -328,6 +443,19 @@ const MiscellaneousPromptInput = ({
                     </div>
                 </div>
             </div>
+
+            {/* Prompt Management Modal */}
+            {showPromptManager && (
+                <PromptSaveLoad
+                    currentPrompt={userPrompt}
+                    processName={processName}
+                    selectedFiles={selectedFiles}
+                    onPromptLoaded={handlePromptLoaded}
+                    onPromptSaved={handlePromptSaved}
+                    onClose={() => setShowPromptManager(false)}
+                    defaultTab="load"
+                />
+            )}
         </div>
     );
 };

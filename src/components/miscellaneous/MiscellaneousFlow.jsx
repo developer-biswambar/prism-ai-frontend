@@ -7,6 +7,7 @@ import {
     Download,
     ExternalLink,
     FileText,
+    HelpCircle,
     Play,
     Save,
     Trash2,
@@ -25,7 +26,8 @@ const MiscellaneousFlow = ({
     flowData,
     onComplete,
     onCancel,
-    onSendMessage
+    onSendMessage,
+    onFilesRefresh // Callback to refresh file list
 }) => {
     // State management
     const [currentStep, setCurrentStep] = useState('file_selection');
@@ -64,11 +66,17 @@ const MiscellaneousFlow = ({
 
     // Handle prompt changes to track if reprocessing is needed
     const handlePromptChange = (newPrompt) => {
+        console.log('🔄 MiscellaneousFlow handlePromptChange called with:', newPrompt);
+        console.log('🔄 Current userPrompt before update:', userPrompt);
+        
         setUserPrompt(newPrompt);
+        
+        console.log('✅ setUserPrompt called with:', newPrompt);
         
         // If results exist and prompt changed from the original, mark as changed
         if (processResults && originalPrompt && newPrompt !== originalPrompt) {
             setHasPromptChanged(true);
+            console.log('🔄 Marked prompt as changed');
         }
     };
 
@@ -77,7 +85,7 @@ const MiscellaneousFlow = ({
             case 'file_selection':
                 return getSelectedFilesArray().length >= 1 && getSelectedFilesArray().length <= 5;
             case 'prompt_input':
-                return userPrompt.trim().length > 10 && processName.trim().length > 0;
+                return userPrompt && userPrompt.trim().length > 10 && processName && processName.trim().length > 0;
             case 'preview_process':
                 return true;
             default:
@@ -248,6 +256,7 @@ const MiscellaneousFlow = ({
                         files={files}
                         selectedFiles={selectedFilesForProcessing}
                         onSelectionChange={setSelectedFilesForProcessing}
+                        onFilesRefresh={onFilesRefresh}
                         maxFiles={5}
                     />
                 );
@@ -294,18 +303,44 @@ const MiscellaneousFlow = ({
 
     return (
         <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4 md:p-6"
             onClick={handleOverlayClick}
         >
-            <div className="bg-white border border-gray-300 rounded-lg shadow-lg max-w-6xl xl:max-w-7xl 2xl:max-w-8xl mx-auto w-full max-h-[90vh] xl:max-h-[95vh] overflow-hidden flex flex-col relative">
+            <div className="bg-white border border-gray-300 rounded-lg shadow-2xl w-full h-full max-w-[98vw] max-h-[98vh] lg:max-w-[95vw] lg:max-h-[95vh] xl:max-w-[92vw] xl:max-h-[92vh] overflow-hidden flex flex-col relative">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-4">
+                <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 lg:px-8 xl:px-10 py-4 lg:py-5">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-white">Miscellaneous Data Processing</h1>
-                            <p className="text-purple-100 mt-1">
-                                Process multiple files using natural language queries with AI-powered engine
-                            </p>
+                        <div className="flex items-start space-x-3">
+                            <div className="flex-1">
+                                <h1 className="text-2xl font-bold text-white">Miscellaneous Data Processing</h1>
+                                <p className="text-purple-100 mt-1">
+                                    Process multiple files using natural language queries with AI-powered engine
+                                </p>
+                            </div>
+                            <div className="group relative">
+                                <HelpCircle size={20} className="text-purple-200 cursor-help hover:text-white transition-colors" />
+                                <div className="absolute top-full right-0 mt-2 w-80 p-4 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 text-gray-800">
+                                    <h4 className="font-semibold text-gray-900 mb-2">How it works:</h4>
+                                    <div className="text-sm space-y-2">
+                                        <div className="flex items-start space-x-2">
+                                            <span className="text-blue-600 font-medium">1.</span>
+                                            <span>Select 1-5 CSV/Excel files to process</span>
+                                        </div>
+                                        <div className="flex items-start space-x-2">
+                                            <span className="text-blue-600 font-medium">2.</span>
+                                            <span>Write a natural language query describing what you want</span>
+                                        </div>
+                                        <div className="flex items-start space-x-2">
+                                            <span className="text-blue-600 font-medium">3.</span>
+                                            <span>AI converts your query to SQL and processes the data</span>
+                                        </div>
+                                        <div className="flex items-start space-x-2">
+                                            <span className="text-blue-600 font-medium">4.</span>
+                                            <span>Download results or view in the data viewer</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="flex items-center space-x-2">
                             <Brain className="text-white" size={32} />
@@ -321,70 +356,123 @@ const MiscellaneousFlow = ({
                 </div>
 
                 {/* Progress Steps */}
-                <div className="bg-gray-50 px-6 py-4">
+                <div className="bg-gray-50 px-6 lg:px-8 xl:px-10 py-4 lg:py-5 border-b border-gray-200">
                     <div className="flex items-center justify-between">
-                        {steps.map((step, index) => {
-                            const isCurrent = step.id === currentStep;
-                            const isCompleted = getCurrentStepIndex() > index;
-                            const IconComponent = step.icon;
+                        <div className="flex items-center justify-between flex-1">
+                            {steps.map((step, index) => {
+                                const isCurrent = step.id === currentStep;
+                                const isCompleted = getCurrentStepIndex() > index;
+                                const IconComponent = step.icon;
 
-                            return (
-                                <div key={step.id} className="flex items-center">
-                                    <div className={`flex items-center space-x-2 ${
-                                        isCurrent ? 'text-blue-600' : 
-                                        isCompleted ? 'text-green-600' : 'text-gray-400'
-                                    }`}>
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                            isCurrent ? 'bg-blue-100' :
-                                            isCompleted ? 'bg-green-100' : 'bg-gray-100'
+                                const getStepTooltip = (stepId) => {
+                                    switch(stepId) {
+                                        case 'file_selection':
+                                            return 'Select 1-5 CSV or Excel files to process. You can drag & drop files or upload new ones.';
+                                        case 'prompt_input':
+                                            return 'Write a natural language query describing what you want to do with your data. The AI will convert this to SQL.';
+                                        case 'preview_process':
+                                            return 'Review your configuration and process the data. You can then download results or view them in detail.';
+                                        default:
+                                            return '';
+                                    }
+                                };
+
+                                return (
+                                    <div key={step.id} className="flex items-center">
+                                        <div className={`group relative flex items-center space-x-2 ${
+                                            isCurrent ? 'text-blue-600' : 
+                                            isCompleted ? 'text-green-600' : 'text-gray-400'
                                         }`}>
-                                            <IconComponent size={16} />
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                                isCurrent ? 'bg-blue-100' :
+                                                isCompleted ? 'bg-green-100' : 'bg-gray-100'
+                                            }`}>
+                                                <IconComponent size={16} />
+                                            </div>
+                                            <span className="text-sm font-medium">{step.title}</span>
+                                            
+                                            {/* Step tooltip */}
+                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10 max-w-xs">
+                                                {getStepTooltip(step.id)}
+                                            </div>
                                         </div>
-                                        <span className="text-sm font-medium">{step.title}</span>
+                                        {index < steps.length - 1 && (
+                                            <div className={`ml-4 w-12 h-0.5 ${
+                                                isCompleted ? 'bg-green-300' : 'bg-gray-200'
+                                            }`} />
+                                        )}
                                     </div>
-                                    {index < steps.length - 1 && (
-                                        <div className={`ml-4 w-12 h-0.5 ${
-                                            isCompleted ? 'bg-green-300' : 'bg-gray-200'
-                                        }`} />
-                                    )}
+                                );
+                            })}
+                        </div>
+                        
+                        {/* Progress Steps Help */}
+                        <div className="group relative ml-4">
+                            <HelpCircle size={16} className="text-gray-400 cursor-help hover:text-gray-600" />
+                            <div className="absolute top-full right-0 mt-2 w-72 p-3 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50 text-gray-800">
+                                <h4 className="font-semibold text-gray-900 mb-2">Progress Steps:</h4>
+                                <div className="text-xs space-y-1">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                        <span>Current step</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span>Completed step</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                        <span>Upcoming step</span>
+                                    </div>
                                 </div>
-                            );
-                        })}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* Step Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    {renderStepContent()}
+                <div className="flex-1 overflow-y-auto p-6 lg:p-8 xl:p-10">
+                    <div className="max-w-full mx-auto">
+                        {renderStepContent()}
+                    </div>
                 </div>
                 
                 {/* Floating Process Data Button for Natural Language Query step */}
                 {currentStep === 'prompt_input' && (
-                    <div className="absolute bottom-20 right-6 z-30">
-                        <button
-                            onClick={processDataFromPromptInput}
-                            disabled={!canProceedToNext() || isProcessing}
-                            className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
-                            title="Process your data with AI"
-                        >
-                            {isProcessing ? (
-                                <>
-                                    <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                                    <span>Processing...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Brain size={20} className="text-white" />
-                                    <span>Process Data</span>
-                                    <Play size={16} className="text-white" />
-                                </>
+                    <div className="absolute bottom-20 lg:bottom-24 right-6 lg:right-8 xl:right-10 z-30">
+                        <div className="group relative">
+                            <button
+                                onClick={processDataFromPromptInput}
+                                disabled={!canProceedToNext() || isProcessing}
+                                className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                                        <span>Processing...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Brain size={20} className="text-white" />
+                                        <span>Process Data</span>
+                                        <Play size={16} className="text-white" />
+                                    </>
+                                )}
+                            </button>
+                            {!isProcessing && (
+                                <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                    {!canProceedToNext() 
+                                        ? 'Complete your query and process name first'
+                                        : 'Process your data using AI-generated SQL'
+                                    }
+                                </div>
                             )}
-                        </button>
+                        </div>
                     </div>
                 )}
 
                 {/* Footer Navigation */}
-                <div className="bg-gray-50 px-6 py-4 flex items-center justify-between">
+                <div className="bg-gray-50 px-6 lg:px-8 xl:px-10 py-4 lg:py-5 flex items-center justify-between border-t border-gray-200">
                     <div className="flex items-center space-x-4">
                         <button
                             onClick={onCancel}
@@ -402,92 +490,143 @@ const MiscellaneousFlow = ({
 
                     <div className="flex items-center space-x-3">
                         {getCurrentStepIndex() > 0 && (
-                            <button
-                                onClick={prevStep}
-                                className="flex items-center space-x-1 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-                            >
-                                <ChevronLeft size={16} />
-                                <span>Previous</span>
-                            </button>
+                            <div className="group relative">
+                                <button
+                                    onClick={prevStep}
+                                    className="flex items-center space-x-1 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                                >
+                                    <ChevronLeft size={16} />
+                                    <span>Previous</span>
+                                </button>
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                    Go back to the previous step
+                                </div>
+                            </div>
                         )}
 
                         {currentStep === 'preview_process' ? (
                             <div className="flex items-center space-x-2">
                                 {processResults && (
                                     <>
-                                        <button
-                                            onClick={() => downloadResults('csv')}
-                                            className="flex items-center space-x-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-                                        >
-                                            <Download size={16} />
-                                            <span>CSV</span>
-                                        </button>
+                                        <div className="group relative">
+                                            <button
+                                                onClick={() => downloadResults('csv')}
+                                                className="flex items-center space-x-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                                            >
+                                                <Download size={16} />
+                                                <span>CSV</span>
+                                            </button>
+                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                                Download results as CSV file
+                                            </div>
+                                        </div>
                                         
-                                        <button
-                                            onClick={() => downloadResults('excel')}
-                                            className="flex items-center space-x-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                                        >
-                                            <Download size={16} />
-                                            <span>Excel</span>
-                                        </button>
+                                        <div className="group relative">
+                                            <button
+                                                onClick={() => downloadResults('excel')}
+                                                className="flex items-center space-x-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                                            >
+                                                <Download size={16} />
+                                                <span>Excel</span>
+                                            </button>
+                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                                Download results as Excel file
+                                            </div>
+                                        </div>
 
-                                        <button
-                                            onClick={() => window.open(`/viewer/${processId}`, `viewer_${processId}`, 'toolbar=yes,scrollbars=yes,resizable=yes,width=1400,height=900,menubar=yes,location=yes,directories=no,status=yes')}
-                                            className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                        >
-                                            <ExternalLink size={16} />
-                                            <span>Open in Data Viewer</span>
-                                        </button>
+                                        <div className="group relative">
+                                            <button
+                                                onClick={() => window.open(`/viewer/${processId}`, `viewer_${processId}`, 'toolbar=yes,scrollbars=yes,resizable=yes,width=1400,height=900,menubar=yes,location=yes,directories=no,status=yes')}
+                                                className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                            >
+                                                <ExternalLink size={16} />
+                                                <span>Open in Data Viewer</span>
+                                            </button>
+                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                                View results in interactive data viewer
+                                            </div>
+                                        </div>
 
-                                        <button
-                                            onClick={clearResults}
-                                            className="flex items-center space-x-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                                        >
-                                            <Trash2 size={16} />
-                                            <span>Clear</span>
-                                        </button>
+                                        <div className="group relative">
+                                            <button
+                                                onClick={clearResults}
+                                                className="flex items-center space-x-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                                            >
+                                                <Trash2 size={16} />
+                                                <span>Clear</span>
+                                            </button>
+                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                                Clear results and start over
+                                            </div>
+                                        </div>
                                     </>
                                 )}
 
                                 {!processResults && (
-                                    <button
-                                        onClick={processData}
-                                        disabled={!canProceedToNext() || isProcessing}
-                                        className="flex items-center space-x-1 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                    >
-                                        {isProcessing ? (
-                                            <>
-                                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                                                <span>Processing...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Play size={16} />
-                                                <span>Process Data</span>
-                                            </>
+                                    <div className="group relative">
+                                        <button
+                                            onClick={processData}
+                                            disabled={!canProceedToNext() || isProcessing}
+                                            className="flex items-center space-x-1 px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                        >
+                                            {isProcessing ? (
+                                                <>
+                                                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                                                    <span>Processing...</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Play size={16} />
+                                                    <span>Process Data</span>
+                                                </>
+                                            )}
+                                        </button>
+                                        {!isProcessing && (
+                                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                                {!canProceedToNext() 
+                                                    ? 'Go back and complete the previous steps first'
+                                                    : 'Start processing your data with AI'
+                                                }
+                                            </div>
                                         )}
-                                    </button>
+                                    </div>
                                 )}
                             </div>
                         ) : currentStep !== 'prompt_input' ? (
-                            <button
-                                onClick={nextStep}
-                                disabled={!canProceedToNext()}
-                                className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                            >
-                                <span>Next</span>
-                                <ChevronRight size={16} />
-                            </button>
+                            <div className="group relative">
+                                <button
+                                    onClick={nextStep}
+                                    disabled={!canProceedToNext()}
+                                    className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                >
+                                    <span>Next</span>
+                                    <ChevronRight size={16} />
+                                </button>
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                    {!canProceedToNext() 
+                                        ? 'Complete this step first to continue'
+                                        : 'Proceed to the next step'
+                                    }
+                                </div>
+                            </div>
                         ) : (
                             // For prompt_input step, show a subtle next button as alternative
-                            <button
-                                onClick={nextStep}
-                                disabled={!canProceedToNext()}
-                                className="flex items-center space-x-1 px-4 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
-                            >
-                                <span>Skip to Preview</span>
-                                <ChevronRight size={14} />
-                            </button>
+                            <div className="group relative">
+                                <button
+                                    onClick={nextStep}
+                                    disabled={!canProceedToNext()}
+                                    className="flex items-center space-x-1 px-4 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                                >
+                                    <span>Skip to Preview</span>
+                                    <ChevronRight size={14} />
+                                </button>
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                    {!canProceedToNext() 
+                                        ? 'Complete your query and process name first'
+                                        : 'Skip to preview step without processing'
+                                    }
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>

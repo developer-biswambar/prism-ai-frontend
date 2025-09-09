@@ -36,7 +36,7 @@ class MessageService {
 
     // Message templates
     getWelcomeMessage() {
-        return `🎯 Welcome to Financial Data Reconciliation!
+        return `🎯 FORTE - File Operation, Reconciliation and Transformation Engine!
 
 📋 **Getting Started:**
 1. Upload two files to compare

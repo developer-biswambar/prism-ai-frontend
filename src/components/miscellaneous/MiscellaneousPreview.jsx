@@ -14,12 +14,196 @@ import {
     FileText,
     Play,
     RefreshCw,
+    Save,
+    Sparkles,
     Table,
     Trash2,
     XCircle
 } from 'lucide-react';
 import { formatSQL } from '../../utils/sqlFormatter';
 import { API_ENDPOINTS } from '../../config/environment';
+import PromptSaveLoad from './PromptSaveLoad';
+
+// Save Prompt Modal Component
+const SavePromptModal = ({ idealPrompt, onSave, onCancel, saving, error, originalPrompt, processName, selectedFiles }) => {
+    const [editedPrompt, setEditedPrompt] = useState(idealPrompt);
+    const [promptName, setPromptName] = useState('');
+    const [promptDescription, setPromptDescription] = useState('');
+    const [promptCategory, setPromptCategory] = useState('Data Processing');
+
+    React.useEffect(() => {
+        setEditedPrompt(idealPrompt);
+        // Generate a default name based on the process
+        if (processName) {
+            setPromptName(`${processName} - Optimized`);
+        }
+    }, [idealPrompt, processName]);
+
+    const handleSave = () => {
+        if (!editedPrompt.trim() || !promptName.trim()) return;
+
+        const promptData = {
+            name: promptName.trim(),
+            ideal_prompt: editedPrompt.trim(),
+            original_prompt: originalPrompt,
+            description: promptDescription.trim() || `Optimized version of: "${originalPrompt}"`,
+            category: promptCategory,
+            file_pattern: `Works with ${selectedFiles.length} file(s) - ${selectedFiles.map(f => f.filename).join(', ')}`,
+            tags: ['ai-optimized', 'data-processing']
+        };
+
+        console.log('💾 SavePromptModal handleSave - promptData:', promptData);
+        console.log('💾 editedPrompt:', editedPrompt);
+        console.log('💾 originalPrompt:', originalPrompt);
+
+        onSave(promptData);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                            <Sparkles className="text-purple-600" size={20} />
+                            <span>Save Optimized Prompt</span>
+                        </h3>
+                        <button
+                            onClick={onCancel}
+                            className="text-gray-400 hover:text-gray-600"
+                        >
+                            <XCircle size={20} />
+                        </button>
+                    </div>
+
+                    {/* AI Generated Comparison */}
+                    <div className="mb-6 space-y-4">
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <h4 className="text-sm font-medium text-amber-800 mb-2">Original Prompt:</h4>
+                            <p className="text-sm text-amber-700 italic bg-white p-2 rounded border">
+                                "{originalPrompt}"
+                            </p>
+                        </div>
+
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h4 className="text-sm font-medium text-green-800 mb-2 flex items-center space-x-1">
+                                <Sparkles size={14} />
+                                <span>AI-Optimized Prompt:</span>
+                            </h4>
+                            <textarea
+                                value={editedPrompt}
+                                onChange={(e) => setEditedPrompt(e.target.value)}
+                                className="w-full h-32 bg-white border border-green-300 rounded p-3 text-sm text-green-800 resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                                placeholder="AI-generated optimized prompt..."
+                            />
+                        </div>
+                    </div>
+
+                    {/* Prompt Metadata */}
+                    <div className="space-y-4 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Prompt Name *
+                            </label>
+                            <input
+                                type="text"
+                                value={promptName}
+                                onChange={(e) => setPromptName(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                placeholder="Give your prompt a descriptive name..."
+                                maxLength={100}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Description (Optional)
+                            </label>
+                            <textarea
+                                value={promptDescription}
+                                onChange={(e) => setPromptDescription(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                                rows={2}
+                                placeholder="Describe what this prompt does and when to use it..."
+                                maxLength={300}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Category
+                            </label>
+                            <select
+                                value={promptCategory}
+                                onChange={(e) => setPromptCategory(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            >
+                                <option value="Data Processing">Data Processing</option>
+                                <option value="Data Reconciliation">Data Reconciliation</option>
+                                <option value="Data Merging">Data Merging</option>
+                                <option value="Delta Analysis">Delta Analysis</option>
+                                <option value="Analytics">Analytics</option>
+                                <option value="Filtering">Filtering</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* File Requirements Info */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6">
+                        <h4 className="text-sm font-medium text-blue-800 mb-2">File Requirements:</h4>
+                        <div className="text-xs text-blue-700">
+                            <p>• Works with {selectedFiles.length} file(s)</p>
+                            <p>• Supports: CSV, Excel, JSON formats</p>
+                            <p>• Example files: {selectedFiles.map((f, i) => `file_${i + 1}`).join(', ')}</p>
+                        </div>
+                    </div>
+
+                    {/* Error Display */}
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                            <div className="flex items-start space-x-2">
+                                <XCircle className="text-red-600 mt-0.5" size={14} />
+                                <div>
+                                    <span className="text-sm font-medium text-red-800">Error</span>
+                                    <p className="text-sm text-red-700 mt-1">{error}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end space-x-3">
+                        <button
+                            onClick={onCancel}
+                            disabled={saving}
+                            className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={saving || !editedPrompt.trim() || !promptName.trim()}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                        >
+                            {saving ? (
+                                <>
+                                    <RefreshCw className="animate-spin" size={16} />
+                                    <span>Saving...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={16} />
+                                    <span>Save Prompt</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const MiscellaneousPreview = ({
     userPrompt,
@@ -43,6 +227,10 @@ const MiscellaneousPreview = ({
     const [executingSQL, setExecutingSQL] = useState(false);
     const [executeResults, setExecuteResults] = useState(null);
     const [executeError, setExecuteError] = useState(null);
+    const [showSavePromptModal, setShowSavePromptModal] = useState(false);
+    const [savingPrompt, setSavingPrompt] = useState(false);
+    const [savePromptError, setSavePromptError] = useState(null);
+    const [idealPrompt, setIdealPrompt] = useState('');
 
     // Initialize editable SQL when generatedSQL changes
     React.useEffect(() => {
@@ -98,6 +286,88 @@ const MiscellaneousPreview = ({
             setExecuteResults(null);
         } finally {
             setExecutingSQL(false);
+        }
+    };
+
+    // Generate ideal prompt and open save modal
+    const generateIdealPrompt = async () => {
+        setSavingPrompt(true);
+        setSavePromptError(null);
+        
+        try {
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/generate-ideal-prompt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    original_prompt: userPrompt,
+                    generated_sql: generatedSQL,
+                    files_info: selectedFiles.map((file, index) => ({
+                        reference: `file_${index + 1}`,
+                        filename: file.filename,
+                        columns: file.columns || [],
+                        total_rows: file.totalRows || 0
+                    })),
+                    results_summary: {
+                        total_rows: processResults?.data?.length || 0,
+                        columns: getResultColumns(),
+                        query_type: processResults?.metadata?.processing_info?.query_type || 'unknown'
+                    },
+                    process_id: processId
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setIdealPrompt(data.ideal_prompt);
+                setShowSavePromptModal(true);
+                setSavePromptError(null);
+            } else {
+                setSavePromptError(data.error || 'Failed to generate ideal prompt');
+            }
+        } catch (error) {
+            console.error('Error generating ideal prompt:', error);
+            setSavePromptError('Failed to generate ideal prompt: ' + error.message);
+        } finally {
+            setSavingPrompt(false);
+        }
+    };
+
+    // Save the ideal prompt
+    const saveIdealPrompt = async (promptData) => {
+        console.log('💾 saveIdealPrompt called with:', promptData);
+        
+        setSavingPrompt(true);
+        setSavePromptError(null);
+        
+        try {
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/save-prompt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(promptData),
+            });
+
+            const data = await response.json();
+            console.log('💾 Backend response:', data);
+
+            if (response.ok) {
+                setShowSavePromptModal(false);
+                setIdealPrompt('');
+                // Show success message (you could add a toast notification here)
+                console.log('✅ Prompt saved successfully:', data.message);
+            } else {
+                setSavePromptError(data.error || 'Failed to save prompt');
+                console.error('❌ Save failed:', data);
+            }
+        } catch (error) {
+            console.error('❌ Error saving prompt:', error);
+            setSavePromptError('Failed to save prompt: ' + error.message);
+        } finally {
+            setSavingPrompt(false);
         }
     };
 
@@ -173,7 +443,7 @@ const MiscellaneousPreview = ({
                             {selectedFiles.map((file, index) => (
                                 <div key={index} className="text-sm text-blue-700 flex items-center space-x-2">
                                     <FileSpreadsheet size={14} />
-                                    <span><strong>file_{index}</strong>: {file.filename} ({file.totalRows} rows)</span>
+                                    <span><strong>file_{index + 1}</strong>: {file.filename} ({file.totalRows} rows)</span>
                                 </div>
                             ))}
                         </div>
@@ -580,6 +850,14 @@ const MiscellaneousPreview = ({
                     {/* Action Buttons */}
                     <div className="flex justify-center space-x-3">
                         <button
+                            onClick={() => setShowSavePromptModal(true)}
+                            disabled={!processResults?.data || processResults.data.length === 0 || !userPrompt}
+                            className="flex items-center space-x-1 px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                            <Save size={16} />
+                            <span>Save Prompt</span>
+                        </button>
+                        <button
                             onClick={onClear}
                             className="flex items-center space-x-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                         >
@@ -587,6 +865,19 @@ const MiscellaneousPreview = ({
                             <span>Clear Results</span>
                         </button>
                     </div>
+
+                    {/* Save Prompt Error */}
+                    {savePromptError && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="flex items-start space-x-2">
+                                <XCircle className="text-red-600 mt-0.5" size={14} />
+                                <div>
+                                    <span className="text-sm font-medium text-red-800">Failed to Generate Prompt</span>
+                                    <p className="text-sm text-red-700 mt-1">{savePromptError}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -607,6 +898,22 @@ const MiscellaneousPreview = ({
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Save Prompt Modal */}
+            {showSavePromptModal && (
+                <PromptSaveLoad
+                    currentPrompt={userPrompt}
+                    processName={processName}
+                    selectedFiles={selectedFiles}
+                    onPromptLoaded={() => {}} // Not used in save mode
+                    onPromptSaved={() => {
+                        setShowSavePromptModal(false);
+                        console.log('✅ Prompt saved from results section');
+                    }}
+                    onClose={() => setShowSavePromptModal(false)}
+                    defaultTab="save"
+                />
             )}
         </div>
     );

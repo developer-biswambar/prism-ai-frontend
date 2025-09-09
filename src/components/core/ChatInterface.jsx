@@ -200,7 +200,8 @@ const ChatInterface = ({
                            typingMessage,
                            files,
                            onSendMessage,
-                           onDisplayDetailedResults
+                           onDisplayDetailedResults,
+                           onFilesRefresh
                        }) => {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
@@ -543,6 +544,7 @@ const ChatInterface = ({
                             onComplete={triggerFlowBasedOnProcessType}
                             onCancel={handleFlowCancel}
                             onSendMessage={onSendMessage}
+                            onFilesRefresh={onFilesRefresh}
                         />
                     </div>
                 )}

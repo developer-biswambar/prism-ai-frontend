@@ -1,20 +1,206 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import {
     AlertCircle,
     Check,
     File,
     FileSpreadsheet,
     FileText,
-    X
+    X,
+    Upload,
+    HelpCircle
 } from 'lucide-react';
+import { apiService } from '../../services/defaultApi.js';
+import FileUploadModal from '../../fileManagement/FileUploadModal.jsx';
 
 const MiscellaneousFileSelection = ({
     files,
     selectedFiles,
     onSelectionChange,
+    onFilesRefresh, // Callback to refresh file list after upload
     maxFiles = 5
 }) => {
     
+    // Drag & drop state
+    const [isDragOver, setIsDragOver] = useState(false);
+    const [dragCounter, setDragCounter] = useState(0);
+    
+    // File upload state
+    const [showUploadModal, setShowUploadModal] = useState(false);
+    const [currentUploadFile, setCurrentUploadFile] = useState(null);
+    const [uploadQueue, setUploadQueue] = useState([]);
+    const [currentUploadIndex, setCurrentUploadIndex] = useState(0);
+    const [uploadError, setUploadError] = useState('');
+    const [uploadSuccess, setUploadSuccess] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
+    
+    const fileInputRef = useRef(null);
+    
+    // Drag & drop handlers
+    const handleDragEnter = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragCounter(prev => prev + 1);
+        if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+            setIsDragOver(true);
+        }
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragCounter(prev => {
+            const newCount = prev - 1;
+            if (newCount <= 0) {
+                setIsDragOver(false);
+            }
+            return newCount;
+        });
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragOver(false);
+        setDragCounter(0);
+        
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        if (droppedFiles.length > 0) {
+            handleFilesSelected(droppedFiles);
+        }
+    };
+
+    // File selection handlers (from FileLibraryPage)
+    const handleFileInputChange = (event) => {
+        const selectedFiles = Array.from(event.target.files);
+        if (selectedFiles.length === 0) return;
+        
+        // Clear the input
+        event.target.value = '';
+        
+        handleFilesSelected(selectedFiles);
+    };
+
+    const handleFilesSelected = (selectedFiles) => {
+        setUploadError('');
+        
+        // Check file count limit
+        if (selectedFiles.length > 5) {
+            setUploadError('You can upload a maximum of 5 files at once.');
+            return;
+        }
+
+        // Validate file types
+        const invalidFiles = selectedFiles.filter(file =>
+            !apiService.isExcelFile(file) && !file.name.toLowerCase().endsWith('.csv')
+        );
+
+        if (invalidFiles.length > 0) {
+            setUploadError(`Invalid file types: ${invalidFiles.map(f => f.name).join(', ')}. Only CSV and Excel files are supported.`);
+            return;
+        }
+
+        // If single file, show modal immediately
+        if (selectedFiles.length === 1) {
+            setCurrentUploadFile(selectedFiles[0]);
+            setShowUploadModal(true);
+        } else {
+            // Multiple files - set up queue
+            setUploadQueue(selectedFiles);
+            setCurrentUploadIndex(0);
+            setCurrentUploadFile(selectedFiles[0]);
+            setShowUploadModal(true);
+        }
+    };
+
+    const handleUploadConfirm = async (uploadConfig) => {
+        setShowUploadModal(false);
+        setIsUploading(true);
+        setUploadError('');
+
+        try {
+            const response = await apiService.uploadFileWithOptions(
+                uploadConfig.file,
+                uploadConfig.sheetName,
+                uploadConfig.customName
+            );
+
+            if (response.success) {
+                setUploadSuccess(response.data);
+                setTimeout(() => setUploadSuccess(null), 4000);
+
+                // If there are more files in queue, process next
+                if (uploadQueue.length > 1 && currentUploadIndex < uploadQueue.length - 1) {
+                    const nextIndex = currentUploadIndex + 1;
+                    setCurrentUploadIndex(nextIndex);
+                    setCurrentUploadFile(uploadQueue[nextIndex]);
+
+                    // Small delay before showing next modal
+                    setTimeout(() => {
+                        setShowUploadModal(true);
+                    }, 500);
+                } else {
+                    // All files processed, clear queue
+                    setUploadQueue([]);
+                    setCurrentUploadIndex(0);
+                    setCurrentUploadFile(null);
+                }
+
+                // Refresh file list
+                if (onFilesRefresh) {
+                    onFilesRefresh();
+                }
+            } else {
+                setUploadError(response.message || 'Upload failed');
+                // Stop processing queue on error
+                setUploadQueue([]);
+                setCurrentUploadIndex(0);
+                setCurrentUploadFile(null);
+            }
+        } catch (err) {
+            setUploadError(err.message || 'Upload failed');
+            // Stop processing queue on error
+            setUploadQueue([]);
+            setCurrentUploadIndex(0);
+            setCurrentUploadFile(null);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleUploadCancel = () => {
+        setShowUploadModal(false);
+
+        // If there are more files in queue, ask user what to do
+        if (uploadQueue.length > 1 && currentUploadIndex < uploadQueue.length - 1) {
+            const remainingFiles = uploadQueue.length - currentUploadIndex - 1;
+            const continueWithNext = window.confirm(
+                `You have ${remainingFiles} more file(s) to upload. Do you want to continue with the next file?`
+            );
+
+            if (continueWithNext) {
+                const nextIndex = currentUploadIndex + 1;
+                setCurrentUploadIndex(nextIndex);
+                setCurrentUploadFile(uploadQueue[nextIndex]);
+                setShowUploadModal(true);
+            } else {
+                // Cancel entire queue
+                setUploadQueue([]);
+                setCurrentUploadIndex(0);
+                setCurrentUploadFile(null);
+            }
+        } else {
+            // Single file or last file, just clear
+            setUploadQueue([]);
+            setCurrentUploadIndex(0);
+            setCurrentUploadFile(null);
+        }
+    };
+
     const handleFileToggle = (file) => {
         const currentSelected = Object.keys(selectedFiles).length;
         const isCurrentlySelected = isFileSelected(file);
@@ -93,18 +279,11 @@ const MiscellaneousFileSelection = ({
             return dateB.getTime() - dateA.getTime();
         });
         
-        // Debug: Log the sorting result
-        console.log('📁 File Sorting Debug:');
-        console.log(`Total files: ${files.length}`);
-        sorted.forEach((file, index) => {
-            const date = file.last_modified || file.upload_time || file.uploadTime || file._storage_metadata?.created_at;
-            console.log(`${index + 1}. ${file.filename} - ${date}`);
-        });
         
         return sorted;
     }, [files]);
 
-    // Format date for display
+    // Format date for display with detailed relative times
     const formatDate = (file) => {
         const date = file.last_modified || 
                     file.upload_time || 
@@ -112,26 +291,139 @@ const MiscellaneousFileSelection = ({
                     file._storage_metadata?.created_at;
         if (!date) return 'Unknown';
         
-        const dateObj = new Date(date);
+        // Parse UTC timestamp and convert to local time for comparison
+        const dateObj = new Date(date + (date.includes('Z') ? '' : 'Z')); // Ensure UTC parsing
         const now = new Date();
         const diffTime = now - dateObj;
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         
-        if (diffDays === 0) return 'Today';
+        // Calculate different time units
+        const diffMinutes = Math.floor(diffTime / (1000 * 60));
+        const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffWeeks = Math.floor(diffDays / 7);
+        const diffMonths = Math.floor(diffDays / 30);
+        
+        // Return detailed relative time for recent uploads
+        if (diffMinutes < 1) return 'Just now';
+        if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+        if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
         if (diffDays === 1) return 'Yesterday';
-        if (diffDays < 7) return `${diffDays} days ago`;
-        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-        return dateObj.toLocaleDateString();
+        if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+        if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`;
+        if (diffMonths < 12) return `${diffMonths} month${diffMonths !== 1 ? 's' : ''} ago`;
+        
+        // For very old files, show actual date
+        return dateObj.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
     };
 
     return (
         <div className="space-y-6">
             <div>
-                <h3 className="text-lg font-semibold text-gray-800">Select Files for Processing</h3>
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                    <span>Select Files for Processing</span>
+                    <div className="group relative">
+                        <HelpCircle size={16} className="text-gray-400 cursor-help" />
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                            Choose 1-{maxFiles} files • Drag & drop or click to upload new files
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                    </div>
+                </h3>
                 <p className="text-sm text-gray-600">
                     Choose 1 to {maxFiles} files for your data processing operation. The AI will analyze these files and generate appropriate SQL queries.
                 </p>
             </div>
+
+            {/* Compact Drag & Drop Upload Zone */}
+            <div
+                className={`relative border-2 border-dashed rounded-lg transition-all duration-200 ${
+                    isDragOver 
+                        ? 'border-blue-500 bg-blue-50' 
+                        : isUploading 
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+            >
+                <div className="p-3 text-center">
+                    <div className={`transition-all duration-200 ${isDragOver ? 'scale-105' : ''}`}>
+                        {isUploading ? (
+                            <div className="animate-spin w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+                        ) : (
+                            <Upload size={24} className={`mx-auto mb-2 ${
+                                isDragOver ? 'text-blue-500' : 'text-gray-400'
+                            }`} />
+                        )}
+                        <p className="text-sm text-gray-600 mb-2">
+                            {isUploading 
+                                ? 'Uploading...'
+                                : isDragOver 
+                                    ? 'Drop files here'
+                                    : 'Drag & drop files or'
+                            }
+                        </p>
+                        {!isUploading && (
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 transition-colors"
+                            >
+                                Choose Files
+                            </button>
+                        )}
+                    </div>
+                    
+                    <div className="flex items-center justify-center space-x-3 text-xs text-gray-500 mt-2">
+                        <span>CSV, Excel</span>
+                        <span>•</span>
+                        <span>Max 5 files</span>
+                    </div>
+                    
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".csv,.xlsx,.xls"
+                        onChange={handleFileInputChange}
+                        className="hidden"
+                    />
+                </div>
+            </div>
+
+            {/* Upload Error */}
+            {uploadError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                        <AlertCircle className="text-red-600 mt-0.5" size={16} />
+                        <div>
+                            <span className="text-sm font-medium text-red-800">Upload Error</span>
+                            <p className="text-sm text-red-700 mt-1">{uploadError}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Upload Success */}
+            {uploadSuccess && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-start space-x-2">
+                        <Check className="text-green-600 mt-0.5" size={16} />
+                        <div>
+                            <span className="text-sm font-medium text-green-800">File Uploaded Successfully</span>
+                            <p className="text-sm text-green-700 mt-1">
+                                {uploadSuccess.custom_name || uploadSuccess.filename} • {uploadSuccess.totalRows} rows
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Selection Summary */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -158,12 +450,12 @@ const MiscellaneousFileSelection = ({
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <h4 className="text-sm font-medium text-green-800 mb-2">Selected Files:</h4>
                     <div className="space-y-2">
-                        {Object.entries(selectedFiles).map(([key, file]) => (
+                        {Object.entries(selectedFiles).map(([key, file], index) => (
                             <div key={key} className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
                                     {getFileIcon(file.filename)}
                                     <span className="text-sm text-green-700">
-                                        <strong>{key}</strong>: {file.filename}
+                                        <strong>file_{index + 1}</strong>: {file.custom_name || file.filename}
                                     </span>
                                 </div>
                                 <div className="text-xs text-green-600">
@@ -206,7 +498,7 @@ const MiscellaneousFileSelection = ({
                                         }
                                     `}
                                     onClick={() => canSelect && handleFileToggle(file)}
-                                    title={file.filename}
+                                    title={file.custom_name || file.filename}
                                 >
                                     {/* Selection indicator */}
                                     <div className="absolute top-2 right-2">
@@ -224,18 +516,20 @@ const MiscellaneousFileSelection = ({
                                     </div>
 
                                     {/* File info */}
-                                    <div className="pr-6">
+                                    <div className="pr-8">
                                         {/* File icon and name */}
                                         <div className="flex items-start space-x-2 mb-2">
                                             <div className="flex-shrink-0 mt-0.5">
                                                 {getFileIcon(file.filename)}
                                             </div>
-                                            <span className={`text-xs font-medium leading-tight truncate ${
-                                                isSelected ? 'text-blue-800' : 
-                                                canSelect ? 'text-gray-800' : 'text-gray-500'
-                                            }`}>
-                                                {file.filename}
-                                            </span>
+                                            <div className="flex-1 min-w-0">
+                                                <span className={`text-xs font-medium leading-tight break-words block ${
+                                                    isSelected ? 'text-blue-800' : 
+                                                    canSelect ? 'text-gray-800' : 'text-gray-500'
+                                                }`}>
+                                                    {file.custom_name || file.filename}
+                                                </span>
+                                            </div>
                                         </div>
                                         
                                         {/* Stats */}
@@ -278,7 +572,7 @@ const MiscellaneousFileSelection = ({
                         <p className="font-medium mb-1">File Selection Tips:</p>
                         <ul className="list-disc list-inside space-y-1 text-xs">
                             <li>Select related files that you want to analyze together</li>
-                            <li>Files will be referenced as file_0, file_1, etc. in your natural language queries</li>
+                            <li>Files will be referenced as file_1, file_2, etc. in your natural language queries</li>
                             <li>The AI can join, merge, compare, or analyze data across all selected files</li>
                             <li>Choose files with common columns for data matching operations</li>
                             <li>All file formats (CSV, Excel, JSON) are supported</li>
@@ -286,6 +580,17 @@ const MiscellaneousFileSelection = ({
                     </div>
                 </div>
             </div>
+
+            {/* File Upload Modal */}
+            {showUploadModal && currentUploadFile && (
+                <FileUploadModal
+                    isOpen={showUploadModal}
+                    file={currentUploadFile}
+                    onUpload={handleUploadConfirm}
+                    onCancel={handleUploadCancel}
+                    existingFiles={files}
+                />
+            )}
         </div>
     );
 };
