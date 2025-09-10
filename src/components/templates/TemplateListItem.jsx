@@ -13,7 +13,9 @@ import {
     MoreVertical,
     Settings,
     Copy,
-    Trash2
+    Trash2,
+    Eye,
+    ExternalLink
 } from 'lucide-react';
 import { templateService } from '../../services/templateService';
 
@@ -25,6 +27,8 @@ const TemplateListItem = ({
     onEdit = null,
     onDelete = null,
     onDuplicate = null,
+    onView = null,
+    onApply = null,
     showActions = false 
 }) => {
     const [showMenu, setShowMenu] = useState(false);
@@ -99,11 +103,14 @@ const TemplateListItem = ({
     };
 
     return (
-        <div className={`group relative bg-white rounded-lg border p-4 transition-all duration-200 hover:shadow-md ${
-            isSelected 
-                ? 'border-blue-500 shadow-md ring-2 ring-blue-100' 
-                : 'border-gray-200 hover:border-gray-300'
-        }`}>
+        <div 
+            className={`group relative bg-white rounded-lg border p-4 transition-all duration-200 hover:shadow-md cursor-pointer ${
+                isSelected 
+                    ? 'border-blue-500 shadow-md ring-2 ring-blue-100' 
+                    : 'border-gray-200 hover:border-gray-300'
+            }`}
+            onClick={onSelect}
+        >
             <div className="flex items-center space-x-4">
                 {/* Icon & Basic Info */}
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -164,86 +171,53 @@ const TemplateListItem = ({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center space-x-2">
-                    {/* Rating (if allowed) */}
-                    {onRate && (
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            {renderStars(rating || template.rating || 0, 0, true)}
-                        </div>
+                <div className="flex items-center space-x-1 justify-end flex-wrap">
+                    {/* Apply Button (when selected) */}
+                    {isSelected && onApply && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onApply(template);
+                            }}
+                            className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 transition-colors"
+                        >
+                            <div className="flex items-center space-x-1">
+                                <ExternalLink size={10} />
+                                <span>Apply</span>
+                            </div>
+                        </button>
                     )}
                     
-                    {/* Select Button */}
-                    <button
-                        onClick={onSelect}
-                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                            isSelected
-                                ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                        }`}
-                    >
-                        {isSelected ? (
+                    {/* View Button (when selected) */}
+                    {isSelected && onView && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onView(template);
+                            }}
+                            className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 transition-colors"
+                        >
                             <div className="flex items-center space-x-1">
-                                <CheckCircle size={12} />
-                                <span>Selected</span>
+                                <Eye size={10} />
+                                <span>View</span>
                             </div>
-                        ) : (
-                            'Select'
-                        )}
-                    </button>
-
-                    {/* Actions Menu */}
-                    {showActions && (
-                        <div className="relative">
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowMenu(!showMenu);
-                                }}
-                                className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <MoreVertical size={16} />
-                            </button>
-                            {showMenu && (
-                                <div className="absolute right-0 top-6 w-48 bg-white rounded-md shadow-lg z-20 border">
-                                    <div className="py-1">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onEdit?.(template);
-                                                setShowMenu(false);
-                                            }}
-                                            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                        >
-                                            <Settings size={14} />
-                                            <span>Edit</span>
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onDuplicate?.(template);
-                                                setShowMenu(false);
-                                            }}
-                                            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                                        >
-                                            <Copy size={14} />
-                                            <span>Duplicate</span>
-                                        </button>
-                                        <hr className="my-1" />
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onDelete?.(template);
-                                                setShowMenu(false);
-                                            }}
-                                            className="flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
-                                        >
-                                            <Trash2 size={14} />
-                                            <span>Delete</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        </button>
+                    )}
+                    
+                    {/* Delete Button (when selected) */}
+                    {isSelected && onDelete && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(template);
+                            }}
+                            className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 transition-colors"
+                        >
+                            <div className="flex items-center space-x-1">
+                                <Trash2 size={10} />
+                                <span>Delete</span>
+                            </div>
+                        </button>
                     )}
                 </div>
             </div>

@@ -154,10 +154,48 @@ const TemplateGallery = ({
         setSearchResults([]);
     };
 
+    const [localSelectedTemplate, setLocalSelectedTemplate] = useState(null);
+
     const handleTemplateSelect = (template) => {
+        // Only update local selection, don't trigger the parent callback yet
+        setLocalSelectedTemplate(template);
+    };
+
+    const handleTemplateApply = (template) => {
+        console.log('Apply button clicked for template:', template.name);
+        // This will actually apply the template and trigger navigation
         if (onTemplateSelect) {
+            console.log('Calling onTemplateSelect with template:', template.id);
             onTemplateSelect(template);
+        } else {
+            console.log('No onTemplateSelect callback provided');
         }
+    };
+
+    const handleTemplateDelete = async (template) => {
+        if (!confirm(`Are you sure you want to delete "${template.name}"?`)) {
+            return;
+        }
+
+        try {
+            await templateService.deleteTemplate(template.id);
+            // Refresh the template list
+            await loadTemplates();
+        } catch (error) {
+            console.error('Error deleting template:', error);
+            setError(`Failed to delete template: ${error.message}`);
+        }
+    };
+
+    const [viewTemplate, setViewTemplate] = useState(null);
+
+    const handleTemplateView = (template) => {
+        console.log('View button clicked for template:', template.name);
+        setViewTemplate(template);
+    };
+
+    const closeViewModal = () => {
+        setViewTemplate(null);
     };
 
     const getCurrentTemplates = () => {
@@ -192,9 +230,12 @@ const TemplateGallery = ({
                         <TemplateCard
                             key={template.id}
                             template={template}
-                            isSelected={selectedTemplate?.id === template.id}
+                            isSelected={localSelectedTemplate?.id === template.id}
                             onSelect={() => handleTemplateSelect(template)}
                             onRate={(rating) => templateService.rateTemplate(template.id, rating)}
+                            onDelete={handleTemplateDelete}
+                            onView={handleTemplateView}
+                            onApply={handleTemplateApply}
                         />
                     ))}
                 </div>
@@ -206,9 +247,12 @@ const TemplateGallery = ({
                         <TemplateListItem
                             key={template.id}
                             template={template}
-                            isSelected={selectedTemplate?.id === template.id}
+                            isSelected={localSelectedTemplate?.id === template.id}
                             onSelect={() => handleTemplateSelect(template)}
                             onRate={(rating) => templateService.rateTemplate(template.id, rating)}
+                            onDelete={handleTemplateDelete}
+                            onView={handleTemplateView}
+                            onApply={handleTemplateApply}
                         />
                     ))}
                 </div>
@@ -253,15 +297,6 @@ const TemplateGallery = ({
                     <h2 className="text-2xl font-bold text-gray-900">Template Gallery</h2>
                     <p className="text-gray-600">Choose from pre-built templates or create your own</p>
                 </div>
-                {showCreateButton && onCreateNew && (
-                    <button
-                        onClick={onCreateNew}
-                        className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                    >
-                        <Plus size={16} />
-                        <span>Create Template</span>
-                    </button>
-                )}
             </div>
 
             {/* Search and Controls */}
@@ -384,20 +419,101 @@ const TemplateGallery = ({
                     <h3 className="text-lg font-medium text-gray-900">
                         All Templates ({templates.length})
                     </h3>
-                    {showCreateButton && onCreateNew && (
-                        <button
-                            onClick={onCreateNew}
-                            className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                        >
-                            <Plus size={16} />
-                            <span>Create Template</span>
-                        </button>
-                    )}
                 </div>
             </div>
 
             {/* Templates Grid/List */}
             {renderTemplateGrid()}
+
+            {/* View Template Modal */}
+            {viewTemplate && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-gray-900">{viewTemplate.name}</h3>
+                            <button 
+                                onClick={closeViewModal}
+                                className="text-gray-500 hover:text-gray-700"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="font-semibold text-gray-800 mb-2">Description:</h4>
+                                <p className="text-gray-600">{viewTemplate.description}</p>
+                            </div>
+                            
+                            <div>
+                                <h4 className="font-semibold text-gray-800 mb-2">Template Content:</h4>
+                                <div className="bg-gray-50 p-3 rounded border max-h-40 overflow-y-auto">
+                                    <pre className="text-sm text-gray-700 whitespace-pre-wrap">
+                                        {viewTemplate.template_content || viewTemplate.description || 'No content available'}
+                                    </pre>
+                                </div>
+                            </div>
+                            
+                            {viewTemplate.template_metadata && (
+                                <div>
+                                    <h4 className="font-semibold text-gray-800 mb-2">Metadata:</h4>
+                                    <div className="bg-gray-50 p-3 rounded border max-h-40 overflow-y-auto">
+                                        <pre className="text-xs text-gray-600">
+                                            {JSON.stringify(viewTemplate.template_metadata, null, 2)}
+                                        </pre>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span className="font-medium text-gray-700">Type:</span> {viewTemplate.template_type}
+                                </div>
+                                <div>
+                                    <span className="font-medium text-gray-700">Category:</span> {viewTemplate.category}
+                                </div>
+                                <div>
+                                    <span className="font-medium text-gray-700">Created by:</span> {viewTemplate.created_by || 'Anonymous'}
+                                </div>
+                                <div>
+                                    <span className="font-medium text-gray-700">Usage count:</span> {viewTemplate.usage_count || 0}
+                                </div>
+                            </div>
+                            
+                            {viewTemplate.tags && viewTemplate.tags.length > 0 && (
+                                <div>
+                                    <span className="font-medium text-gray-700">Tags:</span>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                        {viewTemplate.tags.map(tag => (
+                                            <span key={tag} className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="flex justify-end space-x-2 mt-6">
+                            <button
+                                onClick={closeViewModal}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleTemplateApply(viewTemplate);
+                                    closeViewModal();
+                                }}
+                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                            >
+                                Apply Template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

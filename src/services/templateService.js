@@ -7,7 +7,7 @@ import { API_ENDPOINTS } from '../config/environment';
 
 class TemplateService {
     constructor() {
-        this.baseURL = API_ENDPOINTS.TEMPLATES;
+        this.baseURL = API_ENDPOINTS.SAVED_TEMPLATES;
     }
 
     // Template CRUD Operations
@@ -248,7 +248,11 @@ class TemplateService {
                     category: templateMetadata.category,
                     tags: templateMetadata.tags || [],
                     is_public: templateMetadata.is_public || false,
-                    created_by: templateMetadata.created_by
+                    created_by: templateMetadata.created_by,
+                    
+                    // Enhanced template data
+                    template_content: templateMetadata.template_content,
+                    template_metadata: templateMetadata.template_metadata
                 })
             });
 

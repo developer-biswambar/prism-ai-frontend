@@ -28,6 +28,8 @@ const TemplateCard = ({
     onEdit = null,
     onDelete = null,
     onDuplicate = null,
+    onView = null,
+    onApply = null,
     showActions = false 
 }) => {
     const [isHovered, setIsHovered] = useState(false);
@@ -244,32 +246,65 @@ const TemplateCard = ({
                         {template.created_by ? `by ${template.created_by}` : 'Anonymous'}
                     </div>
                     
-                    <div className="flex items-center space-x-2">
-                        {/* Rating (if allowed) */}
-                        {onRate && (
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                {renderStars(rating || template.rating || 0, 0, true)}
-                            </div>
+                    <div className="flex items-center space-x-1 justify-end flex-wrap relative" style={{ zIndex: 20 }}>
+                        {console.log('TemplateCard render:', { 
+                            isSelected, 
+                            hasOnApply: !!onApply, 
+                            hasOnView: !!onView,
+                            templateName: template.name 
+                        })}
+                        
+                        {/* Apply Button (when selected) */}
+                        {isSelected && onApply && (
+                            <button
+                                onClick={(e) => {
+                                    console.log('TemplateCard: Apply button clicked');
+                                    e.stopPropagation();
+                                    onApply(template);
+                                }}
+                                className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 transition-colors"
+                                style={{ zIndex: 10 }}
+                            >
+                                <div className="flex items-center space-x-1">
+                                    <ExternalLink size={10} />
+                                    <span>Apply</span>
+                                </div>
+                            </button>
                         )}
                         
-                        {/* Select Button */}
-                        <button
-                            onClick={onSelect}
-                            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                isSelected
-                                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                            }`}
-                        >
-                            {isSelected ? (
+                        {/* View Button (when selected) */}
+                        {isSelected && onView && (
+                            <button
+                                onClick={(e) => {
+                                    console.log('TemplateCard: View button clicked');
+                                    e.stopPropagation();
+                                    onView(template);
+                                }}
+                                className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 transition-colors"
+                                style={{ zIndex: 10 }}
+                            >
                                 <div className="flex items-center space-x-1">
-                                    <CheckCircle size={12} />
-                                    <span>Selected</span>
+                                    <Eye size={10} />
+                                    <span>View</span>
                                 </div>
-                            ) : (
-                                'Select'
-                            )}
-                        </button>
+                            </button>
+                        )}
+                        
+                        {/* Delete Button (when selected) */}
+                        {isSelected && onDelete && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete(template);
+                                }}
+                                className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 transition-colors"
+                            >
+                                <div className="flex items-center space-x-1">
+                                    <Trash2 size={10} />
+                                    <span>Delete</span>
+                                </div>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -286,9 +321,10 @@ const TemplateCard = ({
                 </div>
             )}
 
-            {/* Click overlay */}
+            {/* Click overlay for selection - positioned behind buttons */}
             <div 
                 className="absolute inset-0 cursor-pointer"
+                style={{ zIndex: 1 }}
                 onClick={onSelect}
             />
         </div>

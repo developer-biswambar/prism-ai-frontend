@@ -22,6 +22,7 @@ import {
     Lightbulb
 } from 'lucide-react';
 import { templateService } from '../../services/templateService';
+import { API_ENDPOINTS } from '../../config/environment';
 
 const TemplateCreationModal = ({ 
     isOpen, 
@@ -46,7 +47,10 @@ const TemplateCreationModal = ({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
-    const [showPreview, setShowPreview] = useState(false);
+    
+    // Prompt optimization state (reusing from PromptSaveLoad pattern)
+    const [generatingIdealPrompt, setGeneratingIdealPrompt] = useState(false);
+    const [idealPromptData, setIdealPromptData] = useState(null);
     
     // Available options
     const [categories, setCategories] = useState([]);
@@ -193,6 +197,103 @@ const TemplateCreationModal = ({
         setError('');
     };
 
+    // Generate ideal prompt using reverse engineering (reused from PromptSaveLoad)
+    const generateIdealPrompt = async () => {
+        if (!queryData?.user_prompt || !queryData?.process_results) {
+            setError('Cannot generate ideal prompt: missing process data');
+            return false;
+        }
+
+        // Prevent multiple simultaneous requests
+        if (generatingIdealPrompt) {
+            return false;
+        }
+
+        setGeneratingIdealPrompt(true);
+        setError('');
+        
+        try {
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/generate-ideal-prompt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    original_prompt: queryData.user_prompt,
+                    generated_sql: queryData.generated_sql,
+                    ai_description: queryData.process_results?.metadata?.processing_info?.description || null,
+                    files_info: queryData.file_schemas?.map((file, index) => ({
+                        reference: `file_${index + 1}`,
+                        filename: file.filename,
+                        columns: file.columns || [],
+                        total_rows: file.totalRows || 0
+                    })) || [],
+                    results_summary: {
+                        row_count: queryData.process_results?.data?.length || 0,
+                        column_count: queryData.process_results?.metadata?.processing_info?.column_count || 0,
+                        query_type: queryData.process_results?.metadata?.processing_info?.query_type || 'unknown'
+                    },
+                    process_id: queryData.process_id
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                // Store the generated ideal prompt data
+                setIdealPromptData(data);
+                
+                // Auto-populate the form with AI-generated data
+                setFormData(prev => ({
+                    ...prev,
+                    name: data.name || prev.name || '',
+                    description: data.description || prev.description,
+                    category: data.category || prev.category,
+                }));
+                
+                // Scroll to show the AI-generated content
+                setTimeout(() => {
+                    const aiContentSection = document.querySelector('.bg-blue-50');
+                    if (aiContentSection) {
+                        aiContentSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }, 100);
+                
+                // Show success feedback
+                console.log('AI-optimized template data generated:', {
+                    ideal_prompt: data.ideal_prompt?.substring(0, 100) + '...',
+                    file_pattern: data.file_pattern,
+                    improvements: data.improvements_made
+                });
+
+                return true;
+            } else {
+                // Handle different error types
+                if (data.error_type === 'quota_exceeded') {
+                    setError(data.error || 'AI quota exceeded. You can still create the template manually.');
+                } else if (data.error_type === 'rate_limited') {
+                    setError(data.error || 'AI service busy. Wait a moment and try again, or create manually.');
+                } else {
+                    setError(data.error || 'Failed to generate ideal prompt');
+                }
+                return false;
+            }
+        } catch (error) {
+            console.error('Error generating ideal prompt:', error);
+            
+            // Check if it's a rate limiting error
+            if (error.message && error.message.includes('429')) {
+                setError('OpenAI API is currently rate limited. Please wait a moment and try again.');
+            } else {
+                setError(error.message || 'Failed to generate ideal prompt');
+            }
+            return false;
+        } finally {
+            setGeneratingIdealPrompt(false);
+        }
+    };
+
+
     const handleTagAdd = (tag) => {
         if (!tag || formData.tags.includes(tag)) return;
         
@@ -238,9 +339,42 @@ const TemplateCreationModal = ({
         setError('');
 
         try {
+            // Create enhanced template data with rich information
+            const enhancedTemplateData = {
+                ...formData,
+                // Core template content
+                template_content: idealPromptData?.ideal_prompt || queryData?.user_prompt || '',
+                
+                // Rich template metadata
+                template_metadata: {
+                    original_prompt: queryData?.user_prompt || '',
+                    ideal_prompt: idealPromptData?.ideal_prompt || '',
+                    file_pattern: idealPromptData?.file_pattern || '',
+                    improvements_made: idealPromptData?.improvements_made || '',
+                    
+                    // File schema information
+                    file_schemas: queryData?.file_schemas || [],
+                    
+                    // Processing context
+                    processing_context: {
+                        query_type: queryData?.process_results?.metadata?.processing_info?.query_type || 'unknown',
+                        generated_sql: queryData?.generated_sql || '',
+                        column_count: queryData?.process_results?.metadata?.processing_info?.column_count || 0,
+                        row_count: queryData?.process_results?.data?.length || 0
+                    },
+                    
+                    // Success metrics from original query
+                    success_metrics: {
+                        has_results: Boolean(queryData?.process_results?.data?.length),
+                        execution_success: Boolean(queryData?.process_results?.success),
+                        process_id: queryData?.process_id || ''
+                    }
+                }
+            };
+            
             const result = await templateService.createTemplateFromQuery(
                 queryData,
-                formData
+                enhancedTemplateData
             );
 
             setSuccess(true);
@@ -270,7 +404,6 @@ const TemplateCreationModal = ({
         setTagInput('');
         setError('');
         setSuccess(false);
-        setShowPreview(false);
     };
 
     const handleClose = () => {
@@ -308,12 +441,12 @@ const TemplateCreationModal = ({
 
                 {/* Content */}
                 <div className="flex flex-1 overflow-hidden">
-                    {/* Form */}
+                    {/* Form - Full Width */}
                     <div className="flex-1 p-6 overflow-y-auto">
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-4 max-w-4xl mx-auto">
                             {/* Template Name */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Template Name *
                                 </label>
                                 <input
@@ -324,39 +457,18 @@ const TemplateCreationModal = ({
                                     placeholder="Enter a descriptive name for your template"
                                     maxLength={200}
                                 />
-                                <div className="text-xs text-gray-500 mt-1">
-                                    {formData.name.length}/200 characters
-                                </div>
                             </div>
 
-                            {/* Description */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Description *
-                                </label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={(e) => handleInputChange('description', e.target.value)}
-                                    rows={4}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                                    placeholder="Describe what this template does and when to use it"
-                                    maxLength={1000}
-                                />
-                                <div className="text-xs text-gray-500 mt-1">
-                                    {formData.description.length}/1000 characters
-                                </div>
-                            </div>
-
-                            {/* Template Type & Category */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Template Type, Category, Author, Visibility - All in one row */}
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
                                         Template Type *
                                     </label>
                                     <select
                                         value={formData.template_type}
                                         onChange={(e) => handleInputChange('template_type', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                                        className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 text-xs"
                                     >
                                         {templateTypes.map(type => (
                                             <option key={type} value={type}>
@@ -367,7 +479,7 @@ const TemplateCreationModal = ({
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
                                         Category *
                                     </label>
                                     <input
@@ -375,8 +487,8 @@ const TemplateCreationModal = ({
                                         list="categories"
                                         value={formData.category}
                                         onChange={(e) => handleInputChange('category', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                        placeholder="e.g., Finance, Operations, Sales"
+                                        className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-transparent text-xs"
+                                        placeholder="Finance, etc."
                                     />
                                     <datalist id="categories">
                                         {categories.map(category => (
@@ -384,7 +496,128 @@ const TemplateCreationModal = ({
                                         ))}
                                     </datalist>
                                 </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        Author
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.created_by}
+                                        onChange={(e) => handleInputChange('created_by', e.target.value)}
+                                        className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-transparent text-xs"
+                                        placeholder="Your name"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        Visibility
+                                    </label>
+                                    <div className="flex items-center space-x-3 mt-1">
+                                        <label className="flex items-center space-x-1 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="visibility"
+                                                checked={!formData.is_public}
+                                                onChange={() => handleInputChange('is_public', false)}
+                                                className="text-purple-500 focus:ring-purple-500 w-3 h-3"
+                                            />
+                                            <Lock size={12} className="text-gray-400" />
+                                            <span className="text-xs">Private</span>
+                                        </label>
+                                        <label className="flex items-center space-x-1 cursor-pointer">
+                                            <input
+                                                type="radio"
+                                                name="visibility"
+                                                checked={formData.is_public}
+                                                onChange={() => handleInputChange('is_public', true)}
+                                                className="text-purple-500 focus:ring-purple-500 w-3 h-3"
+                                            />
+                                            <Globe size={12} className="text-gray-400" />
+                                            <span className="text-xs">Public</span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
+
+                            {/* Description - Now with more space */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Description *
+                                </label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => handleInputChange('description', e.target.value)}
+                                    rows={4}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                                    placeholder="Describe what this template does and when to use it. Be specific about the use case, expected inputs, and outcomes. This helps other users understand when and how to apply this template."
+                                    maxLength={1000}
+                                />
+                                <div className="text-xs text-gray-500 mt-1">
+                                    {formData.description.length}/1000 characters
+                                </div>
+                            </div>
+
+                            {/* AI-Generated Rich Content */}
+                            {idealPromptData && (
+                                <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex items-center space-x-2 mb-3">
+                                        <Sparkles className="text-blue-500" size={16} />
+                                        <h4 className="font-medium text-blue-900">AI-Optimized Template Content</h4>
+                                    </div>
+                                    
+                                    {/* Template Content (Ideal Prompt) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-blue-700 mb-2">
+                                            Template Content (Detailed Instructions)
+                                        </label>
+                                        <textarea
+                                            value={idealPromptData.ideal_prompt || ''}
+                                            onChange={(e) => setIdealPromptData(prev => ({...prev, ideal_prompt: e.target.value}))}
+                                            rows={6}
+                                            className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white"
+                                            placeholder="AI-generated detailed template instructions"
+                                        />
+                                        <div className="text-xs text-blue-600 mt-1">
+                                            This detailed content will be used by AI for more accurate processing
+                                        </div>
+                                    </div>
+
+                                    {/* File Pattern */}
+                                    {idealPromptData.file_pattern && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-blue-700 mb-2">
+                                                File Pattern
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={idealPromptData.file_pattern || ''}
+                                                onChange={(e) => setIdealPromptData(prev => ({...prev, file_pattern: e.target.value}))}
+                                                className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                                                placeholder="File structure pattern for matching similar datasets"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Improvements Made */}
+                                    {idealPromptData.improvements_made && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-blue-700 mb-2">
+                                                AI Improvements
+                                            </label>
+                                            <textarea
+                                                value={idealPromptData.improvements_made || ''}
+                                                onChange={(e) => setIdealPromptData(prev => ({...prev, improvements_made: e.target.value}))}
+                                                rows={3}
+                                                className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white"
+                                                placeholder="Explanation of AI optimizations"
+                                                readOnly
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Tags */}
                             <div>
@@ -444,51 +677,6 @@ const TemplateCreationModal = ({
                                 )}
                             </div>
 
-                            {/* Visibility & Author */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Visibility
-                                    </label>
-                                    <div className="flex items-center space-x-4">
-                                        <label className="flex items-center space-x-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="visibility"
-                                                checked={!formData.is_public}
-                                                onChange={() => handleInputChange('is_public', false)}
-                                                className="text-purple-500 focus:ring-purple-500"
-                                            />
-                                            <Lock size={16} className="text-gray-400" />
-                                            <span className="text-sm">Private</span>
-                                        </label>
-                                        <label className="flex items-center space-x-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="visibility"
-                                                checked={formData.is_public}
-                                                onChange={() => handleInputChange('is_public', true)}
-                                                className="text-purple-500 focus:ring-purple-500"
-                                            />
-                                            <Globe size={16} className="text-gray-400" />
-                                            <span className="text-sm">Public</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Author
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.created_by}
-                                        onChange={(e) => handleInputChange('created_by', e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                        placeholder="Your name or identifier (optional)"
-                                    />
-                                </div>
-                            </div>
 
                             {/* Error Message */}
                             {error && (
@@ -549,78 +737,6 @@ const TemplateCreationModal = ({
                         </form>
                     </div>
 
-                    {/* Preview Panel */}
-                    <div className="w-80 border-l border-gray-200 p-6 bg-gray-50">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="font-medium text-gray-900">Preview</h3>
-                            <button
-                                type="button"
-                                onClick={() => setShowPreview(!showPreview)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                {showPreview ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                        </div>
-
-                        {showPreview && (
-                            <div className="space-y-4">
-                                {/* Template Card Preview */}
-                                <div className="bg-white rounded-lg border p-4">
-                                    <div className="flex items-start space-x-3">
-                                        <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
-                                            {templateService.getTemplateTypeIcon(formData.template_type)}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-semibold text-gray-900 text-sm line-clamp-2">
-                                                {formData.name || 'Template Name'}
-                                            </h4>
-                                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                                {formData.description || 'Template description'}
-                                            </p>
-                                            <div className="flex items-center space-x-2 mt-2">
-                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800 border border-gray-200">
-                                                    {templateService.formatTemplateTypeDisplay(formData.template_type)}
-                                                </span>
-                                                <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
-                                                    {formData.category || 'Category'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Original Query Info */}
-                                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                                    <div className="flex items-center space-x-2 mb-2">
-                                        <FileText size={14} className="text-blue-500" />
-                                        <span className="text-sm font-medium text-blue-900">Original Query</span>
-                                    </div>
-                                    <p className="text-xs text-blue-800 line-clamp-3">
-                                        {queryData?.user_prompt}
-                                    </p>
-                                </div>
-
-                                {/* Statistics */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500">Visibility:</span>
-                                        <span className={`flex items-center space-x-1 ${formData.is_public ? 'text-green-600' : 'text-gray-600'}`}>
-                                            {formData.is_public ? <Globe size={12} /> : <Lock size={12} />}
-                                            <span>{formData.is_public ? 'Public' : 'Private'}</span>
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500">Tags:</span>
-                                        <span className="text-gray-600">{formData.tags.length}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-500">Author:</span>
-                                        <span className="text-gray-600">{formData.created_by || 'Anonymous'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
                 </div>
 
                 {/* Footer - Always Visible */}
@@ -630,7 +746,7 @@ const TemplateCreationModal = ({
                         <span>Tip: Choose descriptive names and tags to help others find your template</span>
                     </div>
                     
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-between w-full">
                         <button
                             type="button"
                             onClick={handleClose}
@@ -639,32 +755,58 @@ const TemplateCreationModal = ({
                         >
                             Cancel
                         </button>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={loading || success || !formData.name.trim() || !formData.description.trim() || !formData.category.trim()}
-                            className="flex items-center space-x-3 px-12 py-4 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-2xl hover:shadow-purple-500/25 transition-all transform hover:scale-105 border-2 border-purple-500"
-                            title={(!formData.name.trim() || !formData.description.trim() || !formData.category.trim()) ? "Please fill in all required fields" : "Create template from this query"}
-                        >
-                            {loading ? (
-                                <>
-                                    <Loader className="animate-spin" size={18} />
-                                    <span>Creating Template...</span>
-                                </>
-                            ) : success ? (
-                                <>
-                                    <CheckCircle size={18} />
-                                    <span>Template Created!</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Save size={20} />
-                                    <span>💾 CREATE TEMPLATE</span>
-                                    <div className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs">
-                                        SAVE
-                                    </div>
-                                </>
+                        
+                        <div className="flex items-center space-x-3">
+                            {/* Generate Optimized Template Button - only show if we have query data */}
+                            {queryData?.user_prompt && queryData?.process_results && (
+                                <button
+                                    onClick={generateIdealPrompt}
+                                    disabled={generatingIdealPrompt || loading}
+                                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-lg hover:shadow-xl transition-all"
+                                    title="Use AI to optimize template based on your successful query"
+                                >
+                                    {generatingIdealPrompt ? (
+                                        <>
+                                            <Loader className="animate-spin" size={16} />
+                                            <span>Generating...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles size={16} />
+                                            <span>Generate Optimized</span>
+                                        </>
+                                    )}
+                                    {idealPromptData && (
+                                        <CheckCircle size={14} className="text-green-300" />
+                                    )}
+                                </button>
                             )}
-                        </button>
+                            
+                            {/* Save Template Button */}
+                            <button
+                                onClick={handleSubmit}
+                                disabled={loading || success || !formData.name.trim() || !formData.description.trim() || !formData.category.trim()}
+                                className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-lg hover:shadow-xl transition-all"
+                                title={(!formData.name.trim() || !formData.description.trim() || !formData.category.trim()) ? "Please fill in all required fields" : "Save template"}
+                            >
+                                {loading ? (
+                                    <>
+                                        <Loader className="animate-spin" size={16} />
+                                        <span>Saving...</span>
+                                    </>
+                                ) : success ? (
+                                    <>
+                                        <CheckCircle size={16} />
+                                        <span>Saved!</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save size={16} />
+                                        <span>Save Template</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
