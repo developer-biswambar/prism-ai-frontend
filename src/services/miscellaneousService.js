@@ -343,6 +343,36 @@ class MiscellaneousService {
     }
 
     /**
+     * Verify query intent before execution
+     * @param {Object} request - The intent verification request
+     * @param {string} request.user_prompt - Natural language query
+     * @param {Array} request.files - Array of file references
+     * @returns {Promise} Intent analysis response
+     */
+    async verifyIntent(request) {
+        try {
+            const response = await fetch(`${this.baseURL}/verify-intent`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.detail || `HTTP error! status: ${response.status}`);
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error verifying intent:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Format processing error for display
      * @param {Error} error - The error object
      * @returns {string} Formatted error message

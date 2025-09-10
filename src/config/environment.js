@@ -83,6 +83,9 @@ export const API_ENDPOINTS = {
     
     // File Generator
     FILE_GENERATOR: `${ENV_CONFIG.API_BASE_URL}/file-generator`,
+    
+    // Templates
+    TEMPLATES: `${ENV_CONFIG.API_BASE_URL}/templates`,
 };
 
 /**

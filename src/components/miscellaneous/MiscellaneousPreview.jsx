@@ -217,7 +217,8 @@ const MiscellaneousPreview = ({
     processingTimeSeconds,
     onProcess,
     onDownload,
-    onClear
+    onClear,
+    onCreateTemplate
 }) => {
 
     const [showSQL, setShowSQL] = useState(false);
@@ -523,7 +524,10 @@ const MiscellaneousPreview = ({
                                     </div>
                                 )}
                                 <span className="text-sm text-green-700">
-                                    {processResults.data?.length || 0} rows returned
+                                    {processResults.total_count && processResults.total_count !== processResults.data?.length ? 
+                                        `Showing ${processResults.data?.length || 0} of ${processResults.total_count.toLocaleString()} total records` :
+                                        `${processResults.data?.length || 0} records returned`
+                                    }
                                 </span>
                             </div>
                         </div>
@@ -532,6 +536,9 @@ const MiscellaneousPreview = ({
                             <div className="mt-2 text-xs text-green-700">
                                 Query Type: {processResults.metadata.processing_info.query_type} | 
                                 Files Used: {processResults.metadata.processing_info.input_files || selectedFiles.length}
+                                {processResults.total_count && processResults.total_count !== processResults.data?.length && (
+                                    <span> | Total Records: {processResults.total_count.toLocaleString()} (sample of {processResults.data?.length || 0} shown)</span>
+                                )}
                                 {processingTimeSeconds && (
                                     <span> | Processing Time: {processingTimeSeconds < 1 
                                         ? `${(processingTimeSeconds * 1000).toFixed(0)}ms`
@@ -922,6 +929,32 @@ const MiscellaneousPreview = ({
                         >
                             <Save size={16} />
                             <span>Save Prompt</span>
+                        </button>
+                        <button
+                            onClick={() => onCreateTemplate && onCreateTemplate({
+                                user_prompt: userPrompt,
+                                file_schemas: selectedFiles.map(file => ({
+                                    filename: file.filename,
+                                    columns: file.columns || [],
+                                    sample_data: file.sample_data || {}
+                                })),
+                                process_results: processResults,
+                                generated_sql: generatedSQL,
+                                process_id: processId
+                            })}
+                            disabled={!processResults?.data || processResults.data.length === 0 || !userPrompt || !onCreateTemplate}
+                            className="flex items-center space-x-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                            <Sparkles size={16} />
+                            <span>Save as Template</span>
+                        </button>
+                        <button
+                            onClick={onProcess}
+                            disabled={isProcessing}
+                            className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                            <RefreshCw size={16} />
+                            <span>Reprocess</span>
                         </button>
                         <button
                             onClick={onClear}

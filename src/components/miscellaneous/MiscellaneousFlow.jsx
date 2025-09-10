@@ -10,6 +10,7 @@ import {
     HelpCircle,
     Play,
     Save,
+    Sparkles,
     Trash2,
     Upload,
     Wand2,
@@ -18,7 +19,11 @@ import {
 import MiscellaneousFileSelection from './MiscellaneousFileSelection.jsx';
 import MiscellaneousPromptInput from './MiscellaneousPromptInput.jsx';
 import MiscellaneousPreview from './MiscellaneousPreview.jsx';
+import IntentVerificationModal from './IntentVerificationModal.jsx';
+import TemplateGallery from '../templates/TemplateGallery.jsx';
+import TemplateCreationModal from '../templates/TemplateCreationModal.jsx';
 import {miscellaneousService} from '../../services/miscellaneousService.js';
+import {templateService} from '../../services/templateService.js';
 
 const MiscellaneousFlow = ({
     files,
@@ -47,11 +52,23 @@ const MiscellaneousFlow = ({
     // Track if prompt changed after results were generated
     const [originalPrompt, setOriginalPrompt] = useState('');
     const [hasPromptChanged, setHasPromptChanged] = useState(false);
+    
+    // Intent verification state
+    const [showIntentModal, setShowIntentModal] = useState(false);
+    const [intentData, setIntentData] = useState(null);
+    const [isVerifyingIntent, setIsVerifyingIntent] = useState(false);
+    
+    // Template state
+    const [selectedTemplate, setSelectedTemplate] = useState(null);
+    const [showTemplateCreationModal, setShowTemplateCreationModal] = useState(false);
+    const [templateCreationData, setTemplateCreationData] = useState(null);
 
     // Step definitions
     const steps = [
         {id: 'file_selection', title: 'Select Files', icon: FileText},
+        {id: 'template_selection', title: 'Choose Template', icon: Sparkles},
         {id: 'prompt_input', title: 'Natural Language Query', icon: Wand2},
+        {id: 'intent_verification', title: 'Verify Intent', icon: Brain},
         {id: 'preview_process', title: 'Process & View Results', icon: Database}
     ];
 
@@ -79,14 +96,25 @@ const MiscellaneousFlow = ({
             setHasPromptChanged(true);
             console.log('🔄 Marked prompt as changed');
         }
+        
+        // Clear intent data when prompt changes - requires re-verification
+        if (intentData && newPrompt !== userPrompt) {
+            setIntentData(null);
+            setShowIntentModal(false);
+            console.log('🔄 Cleared intent data due to prompt change');
+        }
     };
 
     const canProceedToNext = () => {
         switch(currentStep) {
             case 'file_selection':
                 return getSelectedFilesArray().length >= 1 && getSelectedFilesArray().length <= 5;
+            case 'template_selection':
+                return true; // Template selection is optional - users can skip to write custom prompt
             case 'prompt_input':
                 return userPrompt && userPrompt.trim().length > 10 && processName && processName.trim().length > 0;
+            case 'intent_verification':
+                return intentData !== null; // Can proceed ONLY if intent has been verified
             case 'preview_process':
                 return true;
             default:
@@ -100,9 +128,17 @@ const MiscellaneousFlow = ({
         if (currentIndex < steps.length - 1) {
             const nextStepId = steps[currentIndex + 1].id;
             
-            // If moving from prompt_input to preview_process and prompt has changed,
+            // If moving from prompt_input to intent_verification, trigger intent verification
+            if (currentStep === 'prompt_input' && nextStepId === 'intent_verification') {
+                setCurrentStep(nextStepId);
+                // Automatically start intent verification when entering this step
+                setTimeout(() => verifyIntent(), 100);
+                return;
+            }
+            
+            // If moving from intent_verification to preview_process and prompt has changed,
             // clear outdated results
-            if (currentStep === 'prompt_input' && nextStepId === 'preview_process' && hasPromptChanged) {
+            if (currentStep === 'intent_verification' && nextStepId === 'preview_process' && hasPromptChanged) {
                 setProcessResults(null);
                 setProcessId(null);
                 setGeneratedSQL('');
@@ -120,6 +156,123 @@ const MiscellaneousFlow = ({
         if (currentIndex > 0) {
             setCurrentStep(steps[currentIndex - 1].id);
         }
+    };
+
+    // Intent verification methods
+    const verifyIntent = async () => {
+        if (!canProceedToNext()) return;
+
+        setIsVerifyingIntent(true);
+        try {
+            onSendMessage('system', '🔍 Analyzing your query intent...');
+            
+            const filesArray = getSelectedFilesArray();
+            const fileReferences = filesArray.map((file, index) => ({
+                file_id: file.file_id,
+                role: `file_${index}`,
+                label: file.filename || `File ${index + 1}`
+            }));
+
+            const response = await miscellaneousService.verifyIntent({
+                user_prompt: userPrompt,
+                files: fileReferences
+            });
+
+            if (response.success) {
+                setIntentData(response.intent_summary);
+                setShowIntentModal(true);
+                onSendMessage('system', '✅ Intent analysis complete! Please review before execution.');
+            } else {
+                throw new Error(response.message || 'Intent verification failed');
+            }
+        } catch (error) {
+            console.error('Intent verification failed:', error);
+            onSendMessage('system', `❌ Intent verification failed: ${error.message}`);
+            // Fall back to proceeding without verification
+            setCurrentStep('preview_process');
+        } finally {
+            setIsVerifyingIntent(false);
+        }
+    };
+
+    const handleIntentConfirm = () => {
+        setShowIntentModal(false);
+        // Move to next step with verified intent and immediately trigger processing
+        setCurrentStep('preview_process');
+        
+        // Clear any existing results first
+        setProcessResults(null);
+        setProcessId(null);
+        setGeneratedSQL('');
+        setProcessingError(null);
+        setProcessingTimeSeconds(null);
+        
+        // Trigger processing after a brief delay to ensure UI updates
+        setTimeout(() => {
+            processData();
+        }, 100);
+    };
+
+    const handleIntentClarify = () => {
+        setShowIntentModal(false);
+        setIntentData(null);
+        // Go back to prompt input to modify query
+        setCurrentStep('prompt_input');
+    };
+
+    const handleIntentModalClose = () => {
+        setShowIntentModal(false);
+        // Stay on current step, user can try verification again
+    };
+
+    // Template handling functions
+    const handleTemplateSelect = async (template) => {
+        try {
+            setSelectedTemplate(template);
+            
+            // Apply template to generate prompt
+            const fileSchemas = getSelectedFilesArray().map(file => ({
+                filename: file.filename,
+                columns: file.columns || [],
+                sample_data: file.sample_data || {}
+            }));
+            
+            const result = await templateService.applyTemplate(
+                template.id,
+                getSelectedFilesArray(),
+                {} // Default parameters for now
+            );
+            
+            if (result.success) {
+                setUserPrompt(result.generated_query);
+                setProcessName(template.name);
+                onSendMessage('system', `✅ Applied template: ${template.name}`);
+                
+                // Auto-advance to next step
+                setCurrentStep('prompt_input');
+            } else {
+                onSendMessage('system', `❌ Failed to apply template: ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error applying template:', error);
+            onSendMessage('system', `❌ Error applying template: ${error.message}`);
+        }
+    };
+
+    const handleSkipTemplate = () => {
+        setSelectedTemplate(null);
+        setCurrentStep('prompt_input');
+    };
+
+    const handleCreateTemplate = (queryData) => {
+        console.log('🎯 handleCreateTemplate called with:', queryData);
+        setTemplateCreationData(queryData);
+        setShowTemplateCreationModal(true);
+    };
+
+    const handleTemplateCreated = (newTemplate) => {
+        onSendMessage('system', `✅ Template "${newTemplate.name}" created successfully!`);
+        setShowTemplateCreationModal(false);
     };
 
     // Process data with natural language
@@ -215,12 +368,13 @@ const MiscellaneousFlow = ({
         setProcessingError(null);
         setProcessingTimeSeconds(null);
         setHasPromptChanged(false);
+        setIntentData(null); // Clear previous intent data
         
-        // Move to preview step first
-        setCurrentStep('preview_process');
+        // Move to intent verification step first (required step)
+        setCurrentStep('intent_verification');
         
-        // Process the data
-        await processData();
+        // Automatically start intent verification
+        setTimeout(() => verifyIntent(), 100);
     };
 
     // Clear results and start over
@@ -232,6 +386,8 @@ const MiscellaneousFlow = ({
         setProcessingTimeSeconds(null);
         setOriginalPrompt('');
         setHasPromptChanged(false);
+        setIntentData(null); // Clear intent data
+        setShowIntentModal(false); // Close modal if open
         setCurrentStep('file_selection');
     };
 
@@ -267,6 +423,45 @@ const MiscellaneousFlow = ({
                     />
                 );
 
+            case 'template_selection':
+                const fileSchemas = getSelectedFilesArray().map(file => ({
+                    filename: file.filename,
+                    columns: file.columns || [],
+                    sample_data: file.sample_data || {}
+                }));
+                
+                return (
+                    <div className="space-y-6">
+                        <div className="text-center">
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Choose a Template</h3>
+                            <p className="text-gray-600">
+                                Select from pre-built templates or skip to write a custom query
+                            </p>
+                        </div>
+                        
+                        <TemplateGallery
+                            onTemplateSelect={handleTemplateSelect}
+                            selectedTemplate={selectedTemplate}
+                            showCreateButton={true}
+                            onCreateNew={() => {
+                                setTemplateCreationData(null); // Will use fallback data
+                                setShowTemplateCreationModal(true);
+                            }}
+                            userPrompt={userPrompt}
+                            fileSchemas={fileSchemas}
+                        />
+                        
+                        <div className="flex justify-center">
+                            <button
+                                onClick={handleSkipTemplate}
+                                className="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                                Skip templates and write custom query →
+                            </button>
+                        </div>
+                    </div>
+                );
+
             case 'prompt_input':
                 return (
                     <MiscellaneousPromptInput
@@ -285,6 +480,52 @@ const MiscellaneousFlow = ({
                     />
                 );
 
+            case 'intent_verification':
+                return (
+                    <div className="p-8 text-center space-y-6">
+                        <div className="max-w-2xl mx-auto">
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                                <Brain size={48} className="text-blue-600 mx-auto mb-4" />
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                    Intent Verification
+                                </h3>
+                                <p className="text-gray-600 mb-4">
+                                    AI is analyzing your query to show you exactly what will happen before execution.
+                                    This helps ensure accuracy and lets you review the planned operations.
+                                </p>
+                                
+                                {isVerifyingIntent ? (
+                                    <div className="flex items-center justify-center space-x-3">
+                                        <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                        <span className="text-blue-600 font-medium">Analyzing intent...</span>
+                                    </div>
+                                ) : intentData ? (
+                                    <div className="text-green-600 font-medium">
+                                        ✅ Intent analysis complete! Review the details in the modal.
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={verifyIntent}
+                                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                    >
+                                        Start Intent Verification
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <div className="text-sm text-gray-500">
+                                This step analyzes your natural language query and shows you:
+                                <ul className="mt-2 space-y-1 text-left">
+                                    <li>• Visual data flow diagram</li>
+                                    <li>• Sample data previews</li>
+                                    <li>• Expected results summary</li>
+                                    <li>• Plain language explanation</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                );
+
             case 'preview_process':
                 return (
                     <MiscellaneousPreview
@@ -300,6 +541,7 @@ const MiscellaneousFlow = ({
                         onProcess={processData}
                         onDownload={downloadResults}
                         onClear={clearResults}
+                        onCreateTemplate={handleCreateTemplate}
                     />
                 );
 
@@ -344,8 +586,12 @@ const MiscellaneousFlow = ({
                                     switch(stepId) {
                                         case 'file_selection':
                                             return 'Select 1-5 CSV or Excel files to process. You can drag & drop files or upload new ones.';
+                                        case 'template_selection':
+                                            return 'Choose from pre-built templates to quickly apply common data operations, or skip to write a custom query.';
                                         case 'prompt_input':
                                             return 'Write a natural language query describing what you want to do with your data. The AI will convert this to SQL.';
+                                        case 'intent_verification':
+                                            return 'AI analyzes your query and shows exactly what will happen, with data flow diagrams and sample previews.';
                                         case 'preview_process':
                                             return 'Review your configuration and process the data. You can then download results or view them in detail.';
                                         default:
@@ -413,36 +659,25 @@ const MiscellaneousFlow = ({
                     </div>
                 </div>
                 
-                {/* Floating Process Data Button for Natural Language Query step */}
+                {/* Floating Verify Intent Button for Natural Language Query step */}
                 {currentStep === 'prompt_input' && (
                     <div className="absolute bottom-20 lg:bottom-24 right-6 lg:right-8 xl:right-10 z-30">
                         <div className="group relative">
                             <button
-                                onClick={processDataFromPromptInput}
-                                disabled={!canProceedToNext() || isProcessing}
+                                onClick={nextStep}
+                                disabled={!canProceedToNext()}
                                 className="flex items-center space-x-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none"
                             >
-                                {isProcessing ? (
-                                    <>
-                                        <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                                        <span>Processing...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Brain size={20} className="text-white" />
-                                        <span>Process Data</span>
-                                        <Play size={16} className="text-white" />
-                                    </>
-                                )}
+                                <Brain size={20} className="text-white" />
+                                <span>Verify Intent</span>
+                                <Play size={16} className="text-white" />
                             </button>
-                            {!isProcessing && (
-                                <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
-                                    {!canProceedToNext() 
-                                        ? 'Complete your query and process name first'
-                                        : 'Process your data using AI-generated SQL'
-                                    }
-                                </div>
-                            )}
+                            <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                {!canProceedToNext() 
+                                    ? 'Complete your query and process name first'
+                                    : 'Verify your query intent before processing'
+                                }
+                            </div>
                         </div>
                     </div>
                 )}
@@ -591,15 +826,15 @@ const MiscellaneousFlow = ({
                                 <button
                                     onClick={nextStep}
                                     disabled={!canProceedToNext()}
-                                    className="flex items-center space-x-1 px-4 py-2 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                                    className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
                                 >
-                                    <span>Skip to Preview</span>
+                                    <span>Verify Intent</span>
                                     <ChevronRight size={14} />
                                 </button>
                                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
                                     {!canProceedToNext() 
                                         ? 'Complete your query and process name first'
-                                        : 'Skip to preview step without processing'
+                                        : 'Proceed to intent verification step'
                                     }
                                 </div>
                             </div>
@@ -607,6 +842,40 @@ const MiscellaneousFlow = ({
                     </div>
                 </div>
             </div>
+
+            {/* Intent Verification Modal */}
+            <IntentVerificationModal
+                isOpen={showIntentModal}
+                onClose={handleIntentModalClose}
+                intentData={intentData}
+                originalPrompt={userPrompt}
+                onConfirm={handleIntentConfirm}
+                onClarify={handleIntentClarify}
+                isLoading={isProcessing}
+            />
+
+            {/* Template Creation Modal */}
+            <TemplateCreationModal
+                isOpen={showTemplateCreationModal}
+                onClose={() => {
+                    setShowTemplateCreationModal(false);
+                    setTemplateCreationData(null);
+                }}
+                queryData={templateCreationData || {
+                    user_prompt: userPrompt,
+                    file_schemas: getSelectedFilesArray().map(file => ({
+                        filename: file.filename,
+                        columns: file.columns || [],
+                        sample_data: file.sample_data || {}
+                    })),
+                    process_results: processResults
+                }}
+                onTemplateCreated={handleTemplateCreated}
+                initialValues={{
+                    category: 'Custom',
+                    created_by: 'User'
+                }}
+            />
         </div>
     );
 };
