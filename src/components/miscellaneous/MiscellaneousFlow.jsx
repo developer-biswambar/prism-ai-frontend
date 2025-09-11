@@ -267,6 +267,7 @@ const MiscellaneousFlow = ({
                     total_count: result.row_count || result.data?.length || 0
                 });
                 setProcessId(result.process_id);
+                setGeneratedSQL(result.generated_sql || ''); // Add this line to show the query
                 setUserPrompt(useCase.description || useCase.name);
                 setProcessName(useCase.name);
                 setOriginalPrompt(useCase.description || useCase.name);
@@ -350,6 +351,7 @@ const MiscellaneousFlow = ({
                     total_count: result.row_count || result.data?.length || 0
                 });
                 setProcessId(result.process_id);
+                setGeneratedSQL(result.generated_sql || ''); // Add this line to show the query
                 setUserPrompt(pendingUseCaseExecution.useCase.description || pendingUseCaseExecution.useCase.name);
                 setProcessName(pendingUseCaseExecution.useCase.name);
                 setOriginalPrompt(pendingUseCaseExecution.useCase.description || pendingUseCaseExecution.useCase.name);
@@ -404,6 +406,7 @@ const MiscellaneousFlow = ({
                     total_count: result.row_count || result.data?.length || 0
                 });
                 setProcessId(result.process_id);
+                setGeneratedSQL(result.generated_sql || ''); // Add this line to show the query
                 setUserPrompt(executionErrorData.useCase.description || executionErrorData.useCase.name);
                 setProcessName(executionErrorData.useCase.name);
                 setOriginalPrompt(executionErrorData.useCase.description || executionErrorData.useCase.name);
