@@ -19,7 +19,11 @@ import {
     Trash2,
     Code,
     Brain,
-    Layers
+    Layers,
+    Edit,
+    Eye,
+    EyeOff,
+    Copy
 } from 'lucide-react';
 import { useCaseService } from '../../services/useCaseService';
 
@@ -33,6 +37,9 @@ const UseCaseEditModal = ({
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [activeTab, setActiveTab] = useState('basic');
+    const [showAdvancedMetadata, setShowAdvancedMetadata] = useState(false);
+    const [isEditingSQL, setIsEditingSQL] = useState(false);
+    const [copied, setCopied] = useState(false);
 
     // Categories and types for dropdowns
     const [categories, setCategories] = useState([]);
@@ -181,6 +188,66 @@ const UseCaseEditModal = ({
         }
     };
 
+    // Utility functions for SQL formatting
+    const cleanSQLString = (sqlStr) => {
+        if (!sqlStr) return '';
+        // Remove escape characters and fix formatting
+        return sqlStr
+            .replace(/\\"/g, '"')     // Remove escaped quotes
+            .replace(/\\n/g, '\n')    // Convert \n to actual newlines
+            .replace(/\\t/g, '    ')  // Convert \t to spaces
+            .trim();
+    };
+
+    const formatSQLForStorage = (sqlStr) => {
+        if (!sqlStr) return '';
+        // Keep it clean for storage but don't re-escape
+        return sqlStr.trim();
+    };
+
+    const extractSQLFromMetadata = () => {
+        const metadata = formData.use_case_metadata;
+        
+        // Try different possible locations for SQL
+        const sqlSources = [
+            metadata?.processing_context?.generated_sql,
+            metadata?.template_metadata?.processing_context?.generated_sql,
+            metadata?.generated_sql,
+            metadata?.sql_query,
+            metadata?.query
+        ];
+        
+        for (const sql of sqlSources) {
+            if (sql && typeof sql === 'string') {
+                return cleanSQLString(sql);
+            }
+        }
+        return '';
+    };
+
+    const updateSQLInMetadata = (newSQL) => {
+        const cleanSQL = formatSQLForStorage(newSQL);
+        const updatedMetadata = { ...formData.use_case_metadata };
+        
+        // Update in the most common location
+        if (!updatedMetadata.processing_context) {
+            updatedMetadata.processing_context = {};
+        }
+        updatedMetadata.processing_context.generated_sql = cleanSQL;
+        
+        handleInputChange('use_case_metadata', updatedMetadata);
+    };
+
+    const copySQL = async (sql) => {
+        try {
+            await navigator.clipboard.writeText(sql);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy SQL:', err);
+        }
+    };
+
     const resetForm = () => {
         setFormData({
             name: '',
@@ -195,6 +262,8 @@ const UseCaseEditModal = ({
         setError('');
         setSuccess(false);
         setActiveTab('basic');
+        setShowAdvancedMetadata(false);
+        setIsEditingSQL(false);
     };
 
     const handleClose = () => {
@@ -210,7 +279,7 @@ const UseCaseEditModal = ({
         { id: 'basic', label: 'Basic Info', icon: FileText },
         { id: 'content', label: 'Content', icon: Brain },
         { id: 'config', label: 'Configuration', icon: Settings },
-        { id: 'metadata', label: 'Metadata', icon: Info }
+        { id: 'metadata', label: 'Details & Query', icon: Database }
     ];
 
     const renderBasicTab = () => (
@@ -381,35 +450,177 @@ const UseCaseEditModal = ({
         </div>
     );
 
-    const renderMetadataTab = () => (
-        <div className="space-y-6">
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Metadata (JSON)
-                </label>
-                <p className="text-sm text-gray-600 mb-3">
-                    Additional metadata including original prompts, AI improvements, file schemas, and processing context.
-                </p>
-                <textarea
-                    value={JSON.stringify(formData.use_case_metadata, null, 2)}
-                    onChange={(e) => {
-                        try {
-                            const parsed = JSON.parse(e.target.value);
-                            handleInputChange('use_case_metadata', parsed);
-                        } catch (err) {
-                            // Keep the raw text if JSON is invalid, don't update until valid
-                        }
-                    }}
-                    rows={12}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none font-mono text-sm"
-                    placeholder="Enter JSON metadata..."
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                    Must be valid JSON. Invalid JSON will not be saved.
-                </p>
+    const renderMetadataTab = () => {
+        const metadata = formData.use_case_metadata;
+        const sqlQuery = extractSQLFromMetadata();
+        
+        return (
+            <div className="space-y-6">
+                {/* User-Friendly Metadata Section */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="text-lg font-medium text-blue-900 mb-3 flex items-center space-x-2">
+                        <Info size={20} />
+                        <span>Use Case Details</span>
+                    </h3>
+                    
+                    {/* Original Prompt */}
+                    {metadata?.original_prompt && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-blue-800 mb-2">
+                                Original Prompt
+                            </label>
+                            <div className="bg-white border border-blue-200 rounded p-3 text-sm text-gray-700">
+                                {metadata.original_prompt}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Template Description */}
+                    {metadata?.template_description && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-blue-800 mb-2">
+                                Template Description
+                            </label>
+                            <div className="bg-white border border-blue-200 rounded p-3 text-sm text-gray-700">
+                                {metadata.template_description}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* File Information */}
+                    {metadata?.file_patterns && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-blue-800 mb-2">
+                                Compatible File Types
+                            </label>
+                            <div className="bg-white border border-blue-200 rounded p-3 text-sm text-gray-700">
+                                {metadata.file_patterns}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Processing Information */}
+                    {metadata?.processing_context?.query_type && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-blue-800 mb-2">
+                                Query Type
+                            </label>
+                            <div className="bg-white border border-blue-200 rounded p-3 text-sm text-gray-700 capitalize">
+                                {metadata.processing_context.query_type.replace('_', ' ')}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* SQL Query Section */}
+                {sqlQuery && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                            <div className="flex items-center space-x-2">
+                                <Code className="text-gray-600" size={16} />
+                                <span className="text-sm font-medium text-gray-700">SQL Query</span>
+                                {isEditingSQL && (
+                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                        Editing
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={() => copySQL(sqlQuery)}
+                                    className="text-xs text-gray-600 hover:text-blue-600 px-3 py-1 rounded border flex items-center space-x-1"
+                                >
+                                    <Copy size={12} />
+                                    <span>{copied ? 'Copied!' : 'Copy'}</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsEditingSQL(!isEditingSQL)}
+                                    className="text-xs text-gray-600 hover:text-blue-600 px-3 py-1 rounded border flex items-center space-x-1"
+                                >
+                                    {isEditingSQL ? <Eye size={12} /> : <Edit size={12} />}
+                                    <span>{isEditingSQL ? 'View' : 'Edit'}</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4">
+                            {!isEditingSQL ? (
+                                <pre className="bg-gray-900 text-green-400 p-4 rounded text-sm overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed min-h-[200px]">
+                                    <code>{sqlQuery}</code>
+                                </pre>
+                            ) : (
+                                <div>
+                                    <textarea
+                                        value={sqlQuery}
+                                        onChange={(e) => updateSQLInMetadata(e.target.value)}
+                                        className="w-full bg-gray-900 text-green-400 p-4 rounded text-sm font-mono leading-relaxed border border-gray-700 resize-none focus:outline-none focus:border-blue-500 min-h-[200px] overflow-x-auto"
+                                        placeholder="Edit your SQL query here..."
+                                        spellCheck={false}
+                                        style={{ 
+                                            whiteSpace: 'pre-wrap',
+                                            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace'
+                                        }}
+                                    />
+                                    <div className="flex justify-between items-center mt-3">
+                                        <p className="text-xs text-gray-500">
+                                            Changes will be saved automatically when you save the use case
+                                        </p>
+                                        <button
+                                            onClick={() => setIsEditingSQL(false)}
+                                            className="text-xs text-gray-600 hover:text-gray-800 px-3 py-1 rounded border"
+                                        >
+                                            Done Editing
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Advanced Metadata Toggle */}
+                <div className="border-t border-gray-200 pt-4">
+                    <button
+                        onClick={() => setShowAdvancedMetadata(!showAdvancedMetadata)}
+                        className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-800"
+                    >
+                        {showAdvancedMetadata ? <EyeOff size={16} /> : <Eye size={16} />}
+                        <span>{showAdvancedMetadata ? 'Hide' : 'Show'} Advanced Metadata (JSON)</span>
+                    </button>
+                </div>
+
+                {/* Advanced JSON Metadata (Collapsible) */}
+                {showAdvancedMetadata && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2 mb-3">
+                            <AlertCircle className="text-yellow-600" size={16} />
+                            <span className="text-sm font-medium text-yellow-800">Advanced Mode</span>
+                        </div>
+                        <p className="text-sm text-yellow-700 mb-3">
+                            ⚠️ Editing raw JSON metadata requires technical knowledge. Invalid JSON will prevent saving.
+                        </p>
+                        <textarea
+                            value={JSON.stringify(formData.use_case_metadata, null, 2)}
+                            onChange={(e) => {
+                                try {
+                                    const parsed = JSON.parse(e.target.value);
+                                    handleInputChange('use_case_metadata', parsed);
+                                } catch (err) {
+                                    // Keep the raw text if JSON is invalid, don't update until valid
+                                }
+                            }}
+                            rows={12}
+                            className="w-full px-3 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 resize-none font-mono text-sm"
+                            placeholder="Enter JSON metadata..."
+                        />
+                        <p className="text-xs text-yellow-600 mt-1">
+                            Must be valid JSON. Changes here will override the user-friendly fields above.
+                        </p>
+                    </div>
+                )}
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

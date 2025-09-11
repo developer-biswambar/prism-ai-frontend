@@ -7,7 +7,16 @@ import {
     Sparkles,
     RefreshCw,
     CheckCircle,
-    BookOpen
+    BookOpen,
+    Brain,
+    Zap,
+    Target,
+    TrendingUp,
+    X,
+    Loader,
+    ArrowRight,
+    Copy,
+    CheckCircle2
 } from 'lucide-react';
 import { API_ENDPOINTS } from '../../config/environment';
 import PromptSaveLoad from './PromptSaveLoad';
@@ -32,6 +41,12 @@ const MiscellaneousPromptInput = ({
     const [showSavedPrompts, setShowSavedPrompts] = useState(false);
     const [loadingPrompts, setLoadingPrompts] = useState(false);
     const [showPromptManager, setShowPromptManager] = useState(false);
+    
+    // Prompt improvement state
+    const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
+    const [showImprovementModal, setShowImprovementModal] = useState(false);
+    const [improvementData, setImprovementData] = useState(null);
+    const [improvementError, setImprovementError] = useState('');
     
     const textareaRef = useRef(null);
 
@@ -147,6 +162,56 @@ const MiscellaneousPromptInput = ({
 
     const handlePromptSaved = (savedPrompt) => {
         loadSavedPrompts(); // Refresh the quick access list
+    };
+
+    // Prompt improvement function
+    const improvePrompt = async () => {
+        if (!userPrompt || !selectedFiles || selectedFiles.length === 0) {
+            setImprovementError('Please enter a prompt and select files first');
+            return;
+        }
+
+        setIsImprovingPrompt(true);
+        setImprovementError('');
+        
+        try {
+            const requestData = {
+                user_prompt: userPrompt,
+                files: selectedFiles.map(file => ({
+                    file_id: file.file_id,
+                    filename: file.filename
+                }))
+            };
+
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/improve-prompt`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                setImprovementData(data);
+                setShowImprovementModal(true);
+            } else {
+                setImprovementError(data.detail || 'Failed to improve prompt');
+            }
+        } catch (error) {
+            console.error('Error improving prompt:', error);
+            setImprovementError('Failed to connect to improvement service');
+        } finally {
+            setIsImprovingPrompt(false);
+        }
+    };
+
+    const applyImprovedPrompt = () => {
+        if (improvementData?.improved_prompt) {
+            onPromptChange(improvementData.improved_prompt);
+            setShowImprovementModal(false);
+        }
     };
 
     const getCharacterCount = () => userPrompt ? userPrompt.length : 0;
@@ -270,6 +335,19 @@ const MiscellaneousPromptInput = ({
                             {getCharacterCount()} characters
                         </span>
                         <button
+                            onClick={improvePrompt}
+                            disabled={isImprovingPrompt || !isPromptValid() || !selectedFiles || selectedFiles.length === 0}
+                            className="flex items-center space-x-1 px-2 py-1 text-xs text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+                            title="Get AI suggestions to improve your prompt"
+                        >
+                            {isImprovingPrompt ? (
+                                <Loader size={14} className="animate-spin" />
+                            ) : (
+                                <Brain size={14} />
+                            )}
+                            <span>{isImprovingPrompt ? 'Improving...' : 'Improve'}</span>
+                        </button>
+                        <button
                             onClick={() => setShowExamples(!showExamples)}
                             className="flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-700"
                         >
@@ -325,6 +403,14 @@ Start typing your natural language query here. Be as specific as possible about 
                     <div className="text-xs text-red-500 mt-1 flex items-center space-x-1">
                         <AlertCircle size={12} />
                         <span>Please provide at least 10 characters describing your data operation</span>
+                    </div>
+                )}
+                
+                {/* Improvement Error */}
+                {improvementError && (
+                    <div className="text-xs text-red-500 mt-1 flex items-center space-x-1">
+                        <AlertCircle size={12} />
+                        <span>{improvementError}</span>
                     </div>
                 )}
                 
@@ -448,6 +534,191 @@ Start typing your natural language query here. Be as specific as possible about 
                     onClose={() => setShowPromptManager(false)}
                     defaultTab="load"
                 />
+            )}
+
+            {/* Prompt Improvement Modal */}
+            {showImprovementModal && improvementData && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                            <div>
+                                <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
+                                    <Brain className="text-purple-500" size={24} />
+                                    <span>AI-Improved Prompt</span>
+                                </h2>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Your prompt has been enhanced for better results
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowImprovementModal(false)}
+                                className="text-gray-400 hover:text-gray-600 p-1"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            {/* Intent & Confidence */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                        <Target className="text-blue-600" size={16} />
+                                        <span className="text-sm font-medium text-blue-800">Query Intent</span>
+                                    </div>
+                                    <p className="text-sm text-blue-700 capitalize">
+                                        {improvementData.query_intent}
+                                    </p>
+                                    {improvementData.business_context && (
+                                        <p className="text-xs text-blue-600 mt-2">
+                                            {improvementData.business_context}
+                                        </p>
+                                    )}
+                                </div>
+                                
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                    <div className="flex items-center space-x-2 mb-2">
+                                        <TrendingUp className="text-green-600" size={16} />
+                                        <span className="text-sm font-medium text-green-800">Confidence Score</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <div className="flex-1 bg-green-200 rounded-full h-2">
+                                            <div 
+                                                className="bg-green-600 h-2 rounded-full transition-all duration-500"
+                                                style={{ width: `${(improvementData.confidence_score || 0.8) * 100}%` }}
+                                            ></div>
+                                        </div>
+                                        <span className="text-sm font-medium text-green-700">
+                                            {Math.round((improvementData.confidence_score || 0.8) * 100)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Before & After Comparison */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Original Prompt */}
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+                                        <MessageSquare className="text-gray-500" size={16} />
+                                        <span>Your Original Prompt</span>
+                                    </h3>
+                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 h-32 overflow-y-auto">
+                                        <p className="text-sm text-gray-700 leading-relaxed">
+                                            {improvementData.original_prompt}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Improved Prompt */}
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+                                        <Sparkles className="text-purple-500" size={16} />
+                                        <span>AI-Improved Prompt</span>
+                                    </h3>
+                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 h-32 overflow-y-auto">
+                                        <p className="text-sm text-purple-700 leading-relaxed">
+                                            {improvementData.improved_prompt}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Expected Output Columns */}
+                            {improvementData.expected_output_columns && improvementData.expected_output_columns.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+                                        <Database className="text-green-500" size={16} />
+                                        <span>Expected Output Columns</span>
+                                    </h3>
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                        <div className="flex flex-wrap gap-2">
+                                            {improvementData.expected_output_columns.map((column, index) => (
+                                                <span 
+                                                    key={index}
+                                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200"
+                                                >
+                                                    {column}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Improvements Made */}
+                            {improvementData.improvements_made && improvementData.improvements_made.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+                                        <Zap className="text-orange-500" size={16} />
+                                        <span>Key Improvements</span>
+                                    </h3>
+                                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                        <ul className="space-y-2">
+                                            {improvementData.improvements_made.map((improvement, index) => (
+                                                <li key={index} className="flex items-start space-x-2">
+                                                    <CheckCircle2 className="text-orange-600 flex-shrink-0 mt-0.5" size={14} />
+                                                    <span className="text-sm text-orange-700">{improvement}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Additional Suggestions */}
+                            {improvementData.suggestions && improvementData.suggestions.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
+                                        <Lightbulb className="text-yellow-500" size={16} />
+                                        <span>Additional Suggestions</span>
+                                    </h3>
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                        <ul className="space-y-2">
+                                            {improvementData.suggestions.map((suggestion, index) => (
+                                                <li key={index} className="flex items-start space-x-2">
+                                                    <ArrowRight className="text-yellow-600 flex-shrink-0 mt-0.5" size={14} />
+                                                    <span className="text-sm text-yellow-700">{suggestion}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
+                            <div className="flex items-center space-x-4">
+                                <button
+                                    onClick={() => navigator.clipboard.writeText(improvementData.improved_prompt)}
+                                    className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-white transition-colors"
+                                >
+                                    <Copy size={16} />
+                                    <span>Copy Improved Prompt</span>
+                                </button>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={() => setShowImprovementModal(false)}
+                                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                                >
+                                    Keep Original
+                                </button>
+                                <button
+                                    onClick={applyImprovedPrompt}
+                                    className="flex items-center space-x-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                >
+                                    <Sparkles size={16} />
+                                    <span>Use Improved Prompt</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -157,8 +157,18 @@ const UseCaseGallery = ({
         setSearchResults([]);
     };
 
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        try {
+            await loadInitialData();
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
     const [localSelectedUseCase, setLocalSelectedUseCase] = useState(null);
     const [loadingUseCases, setLoadingUseCases] = useState(new Set());
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleUseCaseSelect = (useCase) => {
         // Only update local selection, don't trigger the parent callback yet
@@ -358,31 +368,45 @@ const UseCaseGallery = ({
                     )}
                 </div>
 
-                {/* View Mode Toggle */}
+                {/* Action Buttons */}
                 <div className="flex items-center space-x-2">
+                    {/* Refresh Button */}
+                    <button
+                        onClick={handleRefresh}
+                        disabled={isRefreshing || loading}
+                        className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Refresh use cases"
+                    >
+                        <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+                        <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+                    </button>
+
+                    {/* View Mode Toggle */}
                     <button
                         onClick={() => setViewMode('grid')}
                         className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                        title="Grid view"
                     >
                         <Grid size={16} />
                     </button>
                     <button
                         onClick={() => setViewMode('list')}
                         className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                        title="List view"
                     >
                         <List size={16} />
                     </button>
+                    
+                    {/* Filters Toggle */}
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                        <Filter size={16} />
+                        <span>Filters</span>
+                        {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </button>
                 </div>
-
-                {/* Filters Toggle */}
-                <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                    <Filter size={16} />
-                    <span>Filters</span>
-                    {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
             </div>
 
             {/* Filters Panel */}

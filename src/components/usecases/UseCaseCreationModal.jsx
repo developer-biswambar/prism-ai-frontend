@@ -148,8 +148,8 @@ const UseCaseCreationModal = ({
         
         const prompt = queryData.user_prompt;
         
-        // Create a more generic description
-        let description = `Use case created from: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`;
+        // Create a more generic description - remove the 100 character limit
+        let description = `Use case created from: "${prompt}"`;
         
         // Add file context
         if (queryData.file_schemas?.length > 0) {
@@ -162,6 +162,11 @@ const UseCaseCreationModal = ({
             if (uniqueColumns.length > 5) {
                 description += ` and ${uniqueColumns.length - 5} more`;
             }
+        }
+        
+        // Only truncate if it's extremely long (over 4500 characters to leave room for editing)
+        if (description.length > 4500) {
+            description = description.substring(0, 4500) + '...';
         }
         
         return description;
@@ -548,13 +553,13 @@ const UseCaseCreationModal = ({
                                 <textarea
                                     value={formData.description}
                                     onChange={(e) => handleInputChange('description', e.target.value)}
-                                    rows={4}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                                    rows={6}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-vertical"
                                     placeholder="Describe what this use case does and when to use it. Be specific about the scenario, expected inputs, and outcomes. This helps other users understand when and how to apply this use case."
-                                    maxLength={1000}
+                                    maxLength={5000}
                                 />
                                 <div className="text-xs text-gray-500 mt-1">
-                                    {formData.description.length}/1000 characters
+                                    {formData.description.length}/5000 characters
                                 </div>
                             </div>
 
