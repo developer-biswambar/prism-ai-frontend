@@ -10,58 +10,58 @@ class UseCaseService {
         this.baseURL = API_ENDPOINTS.SAVED_USE_CASES;
     }
 
-    // Template CRUD Operations
-    async createTemplate(templateData) {
+    // Use Case CRUD Operations
+    async createUseCase(useCaseData) {
         try {
             const response = await fetch(this.baseURL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(templateData)
+                body: JSON.stringify(useCaseData)
             });
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to create template');
+                throw new Error(error.detail || 'Failed to create use case');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error creating template:', error);
+            console.error('Error creating use case:', error);
             throw error;
         }
     }
 
-    async getTemplate(templateId, templateType = null) {
+    async getUseCase(useCaseId, useCaseType = null) {
         try {
-            const url = new URL(`${this.baseURL}/${templateId}`);
-            if (templateType) {
-                url.searchParams.append('template_type', templateType);
+            const url = new URL(`${this.baseURL}/${useCaseId}`);
+            if (useCaseType) {
+                url.searchParams.append('use_case_type', useCaseType);
             }
 
             const response = await fetch(url);
             
             if (!response.ok) {
                 if (response.status === 404) {
-                    throw new Error('Template not found');
+                    throw new Error('Use case not found');
                 }
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to get template');
+                throw new Error(error.detail || 'Failed to get use case');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error getting template:', error);
+            console.error('Error getting use case:', error);
             throw error;
         }
     }
 
-    async updateTemplate(templateId, updateData, templateType = null) {
+    async updateUseCase(useCaseId, updateData, useCaseType = null) {
         try {
-            const url = new URL(`${this.baseURL}/${templateId}`);
-            if (templateType) {
-                url.searchParams.append('template_type', templateType);
+            const url = new URL(`${this.baseURL}/${useCaseId}`);
+            if (useCaseType) {
+                url.searchParams.append('use_case_type', useCaseType);
             }
 
             const response = await fetch(url, {
@@ -74,21 +74,21 @@ class UseCaseService {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to update template');
+                throw new Error(error.detail || 'Failed to update use case');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error updating template:', error);
+            console.error('Error updating use case:', error);
             throw error;
         }
     }
 
-    async deleteTemplate(templateId, templateType = null) {
+    async deleteUseCase(useCaseId, useCaseType = null) {
         try {
-            const url = new URL(`${this.baseURL}/${templateId}`);
-            if (templateType) {
-                url.searchParams.append('template_type', templateType);
+            const url = new URL(`${this.baseURL}/${useCaseId}`);
+            if (useCaseType) {
+                url.searchParams.append('use_case_type', useCaseType);
             }
 
             const response = await fetch(url, {
@@ -97,23 +97,23 @@ class UseCaseService {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to delete template');
+                throw new Error(error.detail || 'Failed to delete use case');
             }
 
             return true;
         } catch (error) {
-            console.error('Error deleting template:', error);
+            console.error('Error deleting use case:', error);
             throw error;
         }
     }
 
-    // Template Discovery
-    async listTemplates(filters = {}) {
+    // Use Case Discovery
+    async listUseCases(filters = {}) {
         try {
             const url = new URL(this.baseURL);
             
             // Add filter parameters
-            if (filters.template_type) url.searchParams.append('template_type', filters.template_type);
+            if (filters.use_case_type) url.searchParams.append('use_case_type', filters.use_case_type);
             if (filters.category) url.searchParams.append('category', filters.category);
             if (filters.is_public !== undefined) url.searchParams.append('is_public', filters.is_public);
             if (filters.created_by) url.searchParams.append('created_by', filters.created_by);
@@ -124,23 +124,23 @@ class UseCaseService {
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to list templates');
+                throw new Error(error.detail || 'Failed to list use cases');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error listing templates:', error);
+            console.error('Error listing use cases:', error);
             throw error;
         }
     }
 
-    async searchTemplates(query, filters = {}) {
+    async searchUseCases(query, filters = {}) {
         try {
             const url = new URL(`${this.baseURL}/search/query`);
             url.searchParams.append('q', query);
             
             // Add filter parameters
-            if (filters.template_type) url.searchParams.append('template_type', filters.template_type);
+            if (filters.use_case_type) url.searchParams.append('use_case_type', filters.use_case_type);
             if (filters.category) url.searchParams.append('category', filters.category);
             if (filters.tags && filters.tags.length > 0) {
                 filters.tags.forEach(tag => url.searchParams.append('tags', tag));
@@ -150,38 +150,38 @@ class UseCaseService {
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to search templates');
+                throw new Error(error.detail || 'Failed to search use cases');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error searching templates:', error);
+            console.error('Error searching use cases:', error);
             throw error;
         }
     }
 
-    async getPopularTemplates(limit = 10, templateType = null) {
+    async getPopularUseCases(limit = 10, useCaseType = null) {
         try {
             const url = new URL(`${this.baseURL}/popular/list`);
             url.searchParams.append('limit', limit);
-            if (templateType) url.searchParams.append('template_type', templateType);
+            if (useCaseType) url.searchParams.append('use_case_type', useCaseType);
 
             const response = await fetch(url);
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to get popular templates');
+                throw new Error(error.detail || 'Failed to get popular use cases');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error getting popular templates:', error);
+            console.error('Error getting popular use cases:', error);
             throw error;
         }
     }
 
-    // Template Application
-    async suggestTemplates(userPrompt, fileSchemas, limit = 5) {
+    // Use Case Application
+    async suggestUseCases(userPrompt, fileSchemas, limit = 5) {
         try {
             const response = await fetch(`${this.baseURL}/suggest`, {
                 method: 'POST',
@@ -197,25 +197,26 @@ class UseCaseService {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to suggest templates');
+                throw new Error(error.detail || 'Failed to suggest use cases');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error suggesting templates:', error);
+            console.error('Error suggesting use cases:', error);
             throw error;
         }
     }
 
-    async applyTemplate(templateId, files, parameters = {}) {
+    // Smart Template Execution
+    async smartExecuteUseCase(useCaseId, files, parameters = {}) {
         try {
-            const response = await fetch(`${this.baseURL}/apply`, {
+            const response = await fetch(`${this.baseURL}/execute`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    template_id: templateId,
+                    template_id: useCaseId,
                     files: files,
                     parameters: parameters
                 })
@@ -223,17 +224,70 @@ class UseCaseService {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to apply template');
+                throw new Error(error.detail || 'Failed to execute use case');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error applying template:', error);
+            console.error('Error executing use case:', error);
             throw error;
         }
     }
 
-    async createTemplateFromQuery(queryData, templateMetadata) {
+    async executeWithUserMapping(useCaseId, files, userMapping, parameters = {}) {
+        try {
+            const response = await fetch(`${this.baseURL}/execute/with-mapping`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    template_id: useCaseId,
+                    files: files,
+                    user_mapping: userMapping,
+                    parameters: parameters
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to execute use case with mapping');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error executing use case with mapping:', error);
+            throw error;
+        }
+    }
+
+    async applyUseCase(useCaseId, files, parameters = {}) {
+        try {
+            const response = await fetch(`${this.baseURL}/apply`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    use_case_id: useCaseId,
+                    files: files,
+                    parameters: parameters
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to apply use case');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error applying use case:', error);
+            throw error;
+        }
+    }
+
+    async createUseCaseFromQuery(queryData, useCaseMetadata) {
         try {
             const response = await fetch(`${this.baseURL}/create-from-query`, {
                 method: 'POST',
@@ -242,38 +296,39 @@ class UseCaseService {
                 },
                 body: JSON.stringify({
                     query_data: queryData,
-                    template_name: templateMetadata.name,
-                    template_description: templateMetadata.description,
-                    template_type: templateMetadata.template_type,
-                    category: templateMetadata.category,
-                    tags: templateMetadata.tags || [],
-                    is_public: templateMetadata.is_public || false,
-                    created_by: templateMetadata.created_by,
+                    // Map to backend expected field names
+                    template_name: useCaseMetadata.name,
+                    template_description: useCaseMetadata.description,
+                    template_type: useCaseMetadata.use_case_type,
+                    category: useCaseMetadata.category,
+                    tags: useCaseMetadata.tags || [],
+                    created_by: useCaseMetadata.created_by,
                     
-                    // Enhanced template data
-                    template_content: templateMetadata.template_content,
-                    template_metadata: templateMetadata.template_metadata
+                    // Enhanced use case data
+                    template_content: useCaseMetadata.use_case_content,
+                    template_config: useCaseMetadata.template_config,
+                    template_metadata: useCaseMetadata.use_case_metadata
                 })
             });
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to create template from query');
+                throw new Error(error.detail || 'Failed to create use case from query');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error creating template from query:', error);
+            console.error('Error creating use case from query:', error);
             throw error;
         }
     }
 
-    // Template Analytics
-    async markTemplateUsage(templateId, templateType = null) {
+    // Use Case Analytics
+    async markUseCaseUsage(useCaseId, useCaseType = null) {
         try {
-            const url = new URL(`${this.baseURL}/${templateId}/usage`);
-            if (templateType) {
-                url.searchParams.append('template_type', templateType);
+            const url = new URL(`${this.baseURL}/${useCaseId}/usage`);
+            if (useCaseType) {
+                url.searchParams.append('use_case_type', useCaseType);
             }
 
             const response = await fetch(url, {
@@ -282,25 +337,25 @@ class UseCaseService {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to mark template usage');
+                throw new Error(error.detail || 'Failed to mark use case usage');
             }
 
             return true;
         } catch (error) {
-            console.error('Error marking template usage:', error);
+            console.error('Error marking use case usage:', error);
             throw error;
         }
     }
 
-    async rateTemplate(templateId, rating, templateType = null) {
+    async rateUseCase(useCaseId, rating, useCaseType = null) {
         try {
             if (rating < 1 || rating > 5) {
                 throw new Error('Rating must be between 1 and 5');
             }
 
-            const url = new URL(`${this.baseURL}/${templateId}/rating`);
-            if (templateType) {
-                url.searchParams.append('template_type', templateType);
+            const url = new URL(`${this.baseURL}/${useCaseId}/rating`);
+            if (useCaseType) {
+                url.searchParams.append('use_case_type', useCaseType);
             }
 
             const response = await fetch(url, {
@@ -313,21 +368,21 @@ class UseCaseService {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to rate template');
+                throw new Error(error.detail || 'Failed to rate use case');
             }
 
             return true;
         } catch (error) {
-            console.error('Error rating template:', error);
+            console.error('Error rating use case:', error);
             throw error;
         }
     }
 
     // Utility Methods
-    async getCategories(templateType = null) {
+    async getCategories(useCaseType = null) {
         try {
             const url = new URL(`${this.baseURL}/categories/list`);
-            if (templateType) url.searchParams.append('template_type', templateType);
+            if (useCaseType) url.searchParams.append('use_case_type', useCaseType);
 
             const response = await fetch(url);
             
@@ -343,18 +398,18 @@ class UseCaseService {
         }
     }
 
-    async getTemplateTypes() {
+    async getUseCaseTypes() {
         try {
             const response = await fetch(`${this.baseURL}/types/list`);
             
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.detail || 'Failed to get template types');
+                throw new Error(error.detail || 'Failed to get use case types');
             }
 
             return await response.json();
         } catch (error) {
-            console.error('Error getting template types:', error);
+            console.error('Error getting use case types:', error);
             throw error;
         }
     }
@@ -364,13 +419,13 @@ class UseCaseService {
             const response = await fetch(`${this.baseURL}/health/check`);
             return await response.json();
         } catch (error) {
-            console.error('Error checking template service health:', error);
+            console.error('Error checking use case service health:', error);
             return { status: 'unhealthy', error: error.message };
         }
     }
 
     // Helper methods
-    formatTemplateTypeDisplay(templateType) {
+    formatUseCaseTypeDisplay(useCaseType) {
         const typeMap = {
             'data_processing': 'Data Processing',
             'reconciliation': 'Reconciliation',
@@ -378,10 +433,10 @@ class UseCaseService {
             'transformation': 'Transformation',
             'reporting': 'Reporting'
         };
-        return typeMap[templateType] || templateType;
+        return typeMap[useCaseType] || useCaseType;
     }
 
-    getTemplateTypeIcon(templateType) {
+    getUseCaseTypeIcon(useCaseType) {
         const iconMap = {
             'data_processing': '⚙️',
             'reconciliation': '🔄',
@@ -389,7 +444,7 @@ class UseCaseService {
             'transformation': '🔧',
             'reporting': '📋'
         };
-        return iconMap[templateType] || '📄';
+        return iconMap[useCaseType] || '📄';
     }
 
     getRatingStars(rating, ratingCount) {
@@ -399,5 +454,5 @@ class UseCaseService {
 }
 
 // Export singleton instance
-export const templateService = new TemplateService();
-export default templateService;
+export const useCaseService = new UseCaseService();
+export default useCaseService;

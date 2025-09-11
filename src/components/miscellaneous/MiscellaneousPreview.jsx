@@ -812,7 +812,10 @@ const MiscellaneousPreview = ({
                                     <Table className="text-gray-600" size={16} />
                                     <span className="text-sm font-medium text-gray-700">Results Preview</span>
                                     <span className="text-xs text-gray-500">
-                                        ({processResults.data.length} total rows)
+                                        {processResults.total_count && processResults.total_count > processResults.data.length ? 
+                                            `(showing ${processResults.data.length} of ${processResults.total_count.toLocaleString()} total rows)` :
+                                            `(${processResults.data.length} rows)`
+                                        }
                                     </span>
                                 </div>
                                 
@@ -822,7 +825,7 @@ const MiscellaneousPreview = ({
                                         className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                                     >
                                         {processResults.is_limited ? 
-                                            `View all ${processResults.row_count} rows in Data Viewer` : 
+                                            `View all ${(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows in Data Viewer` : 
                                             (showAllRows ? 'Show first 10 rows' : 'Show all rows')
                                         }
                                     </button>
@@ -868,12 +871,12 @@ const MiscellaneousPreview = ({
                             
                             {processResults.is_limited && (
                                 <div className="bg-blue-50 px-4 py-2 text-center text-xs text-blue-700 border-t border-blue-200">
-                                    Showing first {processResults.preview_rows} of {processResults.row_count} rows. 
+                                    Showing first {processResults.data?.length || 0} of {(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows. 
                                     <button 
                                         onClick={openResultsInViewer}
                                         className="text-blue-600 hover:text-blue-800 ml-1 font-medium"
                                     >
-                                        View all {processResults.row_count} rows in Data Viewer
+                                        View all {(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows in Data Viewer
                                     </button>
                                 </div>
                             )}
@@ -946,7 +949,7 @@ const MiscellaneousPreview = ({
                             className="flex items-center space-x-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
                         >
                             <Sparkles size={16} />
-                            <span>Save as Template</span>
+                            <span>Save as UseCase</span>
                         </button>
                         <button
                             onClick={onProcess}

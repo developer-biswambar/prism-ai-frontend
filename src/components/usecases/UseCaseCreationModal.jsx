@@ -1,6 +1,6 @@
 /**
- * Template Creation Modal Component
- * Allows users to save successful queries as reusable templates
+ * Use Case Creation Modal Component
+ * Allows users to save successful queries as reusable use cases
  */
 
 import React, { useState, useEffect } from 'react';
@@ -9,8 +9,6 @@ import {
     X,
     Sparkles,
     Tag,
-    Globe,
-    Lock,
     AlertCircle,
     CheckCircle,
     Loader,
@@ -21,24 +19,23 @@ import {
     Users,
     Lightbulb
 } from 'lucide-react';
-import { templateService } from '../../services/templateService';
+import { useCaseService } from '../../services/useCaseService';
 import { API_ENDPOINTS } from '../../config/environment';
 
-const TemplateCreationModal = ({ 
+const UseCaseCreationModal = ({ 
     isOpen, 
     onClose, 
     queryData,
-    onTemplateCreated = null,
+    onUseCaseCreated = null,
     initialValues = {} 
 }) => {
     // Form state
     const [formData, setFormData] = useState({
         name: '',
         description: '',
-        template_type: 'data_processing',
+        use_case_type: 'data_processing',
         category: '',
         tags: [],
-        is_public: false,
         created_by: ''
     });
 
@@ -54,7 +51,7 @@ const TemplateCreationModal = ({
     
     // Available options
     const [categories, setCategories] = useState([]);
-    const [templateTypes, setTemplateTypes] = useState([]);
+    const [useCaseTypes, setUseCaseTypes] = useState([]);
     const [suggestedTags, setSuggestedTags] = useState([]);
 
     // Load initial data and options
@@ -69,11 +66,11 @@ const TemplateCreationModal = ({
     const loadOptions = async () => {
         try {
             const [categoriesRes, typesRes] = await Promise.all([
-                templateService.getCategories(),
-                templateService.getTemplateTypes()
+                useCaseService.getCategories(),
+                useCaseService.getUseCaseTypes()
             ]);
             setCategories(categoriesRes);
-            setTemplateTypes(typesRes);
+            setUseCaseTypes(typesRes);
         } catch (err) {
             console.error('Error loading options:', err);
         }
@@ -84,10 +81,9 @@ const TemplateCreationModal = ({
         setFormData({
             name: initialValues.name || generateSmartName(),
             description: initialValues.description || generateSmartDescription(),
-            template_type: initialValues.template_type || detectTemplateType(),
+            use_case_type: initialValues.use_case_type || detectUseCaseType(),
             category: initialValues.category || detectCategory(),
             tags: initialValues.tags || [],
-            is_public: initialValues.is_public !== undefined ? initialValues.is_public : false,
             created_by: initialValues.created_by || ''
         });
     };
@@ -115,7 +111,7 @@ const TemplateCreationModal = ({
     const generateSmartName = () => {
         if (!queryData?.user_prompt) {
             const timestamp = new Date().toLocaleDateString();
-            return `Custom Template - ${timestamp}`;
+            return `Custom Use Case - ${timestamp}`;
         }
         
         const prompt = queryData.user_prompt;
@@ -137,18 +133,18 @@ const TemplateCreationModal = ({
         else if (prompt.toLowerCase().includes('payment')) context = ' Payment';
         
         const timestamp = new Date().toLocaleDateString();
-        return `${context} ${operation} Template - ${timestamp}`.trim();
+        return `${context} ${operation} Use Case - ${timestamp}`.trim();
     };
 
     const generateSmartDescription = () => {
         if (!queryData?.user_prompt) {
-            return 'Custom template created for data processing and analysis tasks.';
+            return 'Custom use case created for data processing and analysis tasks.';
         }
         
         const prompt = queryData.user_prompt;
         
         // Create a more generic description
-        let description = `Template created from: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`;
+        let description = `Use case created from: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`;
         
         // Add file context
         if (queryData.file_schemas?.length > 0) {
@@ -166,7 +162,7 @@ const TemplateCreationModal = ({
         return description;
     };
 
-    const detectTemplateType = () => {
+    const detectUseCaseType = () => {
         if (!queryData?.user_prompt) return 'data_processing';
         
         const prompt = queryData.user_prompt.toLowerCase();
@@ -200,7 +196,7 @@ const TemplateCreationModal = ({
     // Generate ideal prompt using reverse engineering (reused from PromptSaveLoad)
     const generateIdealPrompt = async () => {
         if (!queryData?.user_prompt || !queryData?.process_results) {
-            setError('Cannot generate ideal prompt: missing process data');
+            setError('Cannot generate ideal use case content: missing process data');
             return false;
         }
 
@@ -274,7 +270,7 @@ const TemplateCreationModal = ({
                 } else if (data.error_type === 'rate_limited') {
                     setError(data.error || 'AI service busy. Wait a moment and try again, or create manually.');
                 } else {
-                    setError(data.error || 'Failed to generate ideal prompt');
+                    setError(data.error || 'Failed to generate ideal use case content');
                 }
                 return false;
             }
@@ -285,7 +281,7 @@ const TemplateCreationModal = ({
             if (error.message && error.message.includes('429')) {
                 setError('OpenAI API is currently rate limited. Please wait a moment and try again.');
             } else {
-                setError(error.message || 'Failed to generate ideal prompt');
+                setError(error.message || 'Failed to generate ideal use case content');
             }
             return false;
         } finally {
@@ -319,9 +315,9 @@ const TemplateCreationModal = ({
     };
 
     const validateForm = () => {
-        if (!formData.name.trim()) return 'Template name is required';
-        if (!formData.description.trim()) return 'Template description is required';
-        if (!formData.template_type) return 'Template type is required';
+        if (!formData.name.trim()) return 'Use case name is required';
+        if (!formData.description.trim()) return 'Use case description is required';
+        if (!formData.use_case_type) return 'Use case type is required';
         if (!formData.category.trim()) return 'Category is required';
         return '';
     };
@@ -339,14 +335,36 @@ const TemplateCreationModal = ({
         setError('');
 
         try {
-            // Create enhanced template data with rich information
-            const enhancedTemplateData = {
+            // Create enhanced use case data with rich information
+            const enhancedUseCaseData = {
                 ...formData,
-                // Core template content
-                template_content: idealPromptData?.ideal_prompt || queryData?.user_prompt || '',
+                // Core use case content
+                use_case_content: idealPromptData?.ideal_prompt || queryData?.user_prompt || '',
                 
-                // Rich template metadata
-                template_metadata: {
+                // Template configuration for smart execution
+                template_config: {
+                    primary_sql: queryData?.generated_sql || '',
+                    column_mapping: {}, // Will be populated during execution
+                    fallback_strategy: 'fuzzy_match',
+                    execution_method: 'exact', // Default strategy
+                    
+                    // Store original file schema pattern for matching
+                    expected_file_schemas: queryData?.file_schemas?.map(schema => ({
+                        filename_pattern: schema.filename,
+                        required_columns: schema.columns || [],
+                        sample_data_structure: Object.keys(schema.sample_data || {})
+                    })) || [],
+                    
+                    // Performance and reliability metadata
+                    reliability_metrics: {
+                        tested_with_files: queryData?.file_schemas?.length || 0,
+                        successful_execution: Boolean(queryData?.process_results?.data?.length),
+                        last_successful_execution: new Date().toISOString()
+                    }
+                },
+                
+                // Rich use case metadata
+                use_case_metadata: {
                     original_prompt: queryData?.user_prompt || '',
                     ideal_prompt: idealPromptData?.ideal_prompt || '',
                     file_pattern: idealPromptData?.file_pattern || '',
@@ -368,24 +386,29 @@ const TemplateCreationModal = ({
                         has_results: Boolean(queryData?.process_results?.data?.length),
                         execution_success: Boolean(queryData?.process_results?.success),
                         process_id: queryData?.process_id || ''
-                    }
+                    },
+                    
+                    // Smart execution compatibility
+                    smart_execution_compatible: true,
+                    created_for_smart_execution: true,
+                    version: '2.0' // Version for tracking template format evolution
                 }
             };
             
-            const result = await templateService.createTemplateFromQuery(
+            const result = await useCaseService.createUseCaseFromQuery(
                 queryData,
-                enhancedTemplateData
+                enhancedUseCaseData
             );
 
             setSuccess(true);
             setTimeout(() => {
-                onTemplateCreated?.(result);
+                onUseCaseCreated?.(result);
                 onClose();
                 resetForm();
             }, 1500);
 
         } catch (err) {
-            setError(err.message || 'Failed to create template');
+            setError(err.message || 'Failed to create use case');
         } finally {
             setLoading(false);
         }
@@ -395,10 +418,9 @@ const TemplateCreationModal = ({
         setFormData({
             name: '',
             description: '',
-            template_type: 'data_processing',
+            use_case_type: 'data_processing',
             category: '',
             tags: [],
-            is_public: false,
             created_by: ''
         });
         setTagInput('');
@@ -424,10 +446,10 @@ const TemplateCreationModal = ({
                     <div>
                         <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
                             <Sparkles className="text-purple-500" size={24} />
-                            <span>Create Template from Query</span>
+                            <span>Create Use Case from Query</span>
                         </h2>
                         <p className="text-sm text-gray-600 mt-1">
-                            Save this successful query as a reusable template for future use
+                            Save this successful query as a reusable use case for future use
                         </p>
                     </div>
                     <button
@@ -447,32 +469,32 @@ const TemplateCreationModal = ({
                             {/* Template Name */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Template Name *
+                                    Use Case Name *
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.name}
                                     onChange={(e) => handleInputChange('name', e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="Enter a descriptive name for your template"
+                                    placeholder="Enter a descriptive name for your use case"
                                     maxLength={200}
                                 />
                             </div>
 
-                            {/* Template Type, Category, Author, Visibility - All in one row */}
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            {/* Template Type, Category, Author - All in one row */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                                 <div>
                                     <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Template Type *
+                                        Use Case Type *
                                     </label>
                                     <select
-                                        value={formData.template_type}
-                                        onChange={(e) => handleInputChange('template_type', e.target.value)}
+                                        value={formData.use_case_type}
+                                        onChange={(e) => handleInputChange('use_case_type', e.target.value)}
                                         className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 text-xs"
                                     >
-                                        {templateTypes.map(type => (
+                                        {useCaseTypes.map(type => (
                                             <option key={type} value={type}>
-                                                {templateService.formatTemplateTypeDisplay(type)}
+                                                {useCaseService.formatUseCaseTypeDisplay(type)}
                                             </option>
                                         ))}
                                     </select>
@@ -509,36 +531,6 @@ const TemplateCreationModal = ({
                                         placeholder="Your name"
                                     />
                                 </div>
-
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                                        Visibility
-                                    </label>
-                                    <div className="flex items-center space-x-3 mt-1">
-                                        <label className="flex items-center space-x-1 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="visibility"
-                                                checked={!formData.is_public}
-                                                onChange={() => handleInputChange('is_public', false)}
-                                                className="text-purple-500 focus:ring-purple-500 w-3 h-3"
-                                            />
-                                            <Lock size={12} className="text-gray-400" />
-                                            <span className="text-xs">Private</span>
-                                        </label>
-                                        <label className="flex items-center space-x-1 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="visibility"
-                                                checked={formData.is_public}
-                                                onChange={() => handleInputChange('is_public', true)}
-                                                className="text-purple-500 focus:ring-purple-500 w-3 h-3"
-                                            />
-                                            <Globe size={12} className="text-gray-400" />
-                                            <span className="text-xs">Public</span>
-                                        </label>
-                                    </div>
-                                </div>
                             </div>
 
                             {/* Description - Now with more space */}
@@ -551,7 +543,7 @@ const TemplateCreationModal = ({
                                     onChange={(e) => handleInputChange('description', e.target.value)}
                                     rows={4}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                                    placeholder="Describe what this template does and when to use it. Be specific about the use case, expected inputs, and outcomes. This helps other users understand when and how to apply this template."
+                                    placeholder="Describe what this use case does and when to use it. Be specific about the scenario, expected inputs, and outcomes. This helps other users understand when and how to apply this use case."
                                     maxLength={1000}
                                 />
                                 <div className="text-xs text-gray-500 mt-1">
@@ -564,20 +556,20 @@ const TemplateCreationModal = ({
                                 <div className="space-y-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                                     <div className="flex items-center space-x-2 mb-3">
                                         <Sparkles className="text-blue-500" size={16} />
-                                        <h4 className="font-medium text-blue-900">AI-Optimized Template Content</h4>
+                                        <h4 className="font-medium text-blue-900">AI-Optimized Use Case Content</h4>
                                     </div>
                                     
                                     {/* Template Content (Ideal Prompt) */}
                                     <div>
                                         <label className="block text-sm font-medium text-blue-700 mb-2">
-                                            Template Content (Detailed Instructions)
+                                            Use Case Content (Detailed Instructions)
                                         </label>
                                         <textarea
                                             value={idealPromptData.ideal_prompt || ''}
                                             onChange={(e) => setIdealPromptData(prev => ({...prev, ideal_prompt: e.target.value}))}
                                             rows={6}
                                             className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white"
-                                            placeholder="AI-generated detailed template instructions"
+                                            placeholder="AI-generated detailed use case instructions"
                                         />
                                         <div className="text-xs text-blue-600 mt-1">
                                             This detailed content will be used by AI for more accurate processing
@@ -699,7 +691,7 @@ const TemplateCreationModal = ({
                                                     <div className="w-3 h-3 border border-blue-400 rounded-full"></div>
                                                 )}
                                                 <span className={formData.name.trim() ? "text-green-700" : "text-blue-700"}>
-                                                    Template Name {formData.name.trim() ? "✓" : "(required)"}
+                                                    Use Case Name {formData.name.trim() ? "✓" : "(required)"}
                                                 </span>
                                             </div>
                                             <div className="flex items-center space-x-2">
@@ -731,7 +723,7 @@ const TemplateCreationModal = ({
                             {success && (
                                 <div className="flex items-center space-x-2 p-3 bg-green-50 border border-green-200 rounded-lg">
                                     <CheckCircle className="text-green-500 flex-shrink-0" size={16} />
-                                    <span className="text-sm text-green-700">Template created successfully!</span>
+                                    <span className="text-sm text-green-700">Use case created successfully!</span>
                                 </div>
                             )}
                         </form>
@@ -743,7 +735,7 @@ const TemplateCreationModal = ({
                 <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
                     <div className="flex items-center space-x-2 text-sm text-gray-500">
                         <Lightbulb size={16} />
-                        <span>Tip: Choose descriptive names and tags to help others find your template</span>
+                        <span>Tip: Choose descriptive names and tags to help others find your use case</span>
                     </div>
                     
                     <div className="flex items-center justify-between w-full">
@@ -757,37 +749,12 @@ const TemplateCreationModal = ({
                         </button>
                         
                         <div className="flex items-center space-x-3">
-                            {/* Generate Optimized Template Button - only show if we have query data */}
-                            {queryData?.user_prompt && queryData?.process_results && (
-                                <button
-                                    onClick={generateIdealPrompt}
-                                    disabled={generatingIdealPrompt || loading}
-                                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-lg hover:shadow-xl transition-all"
-                                    title="Use AI to optimize template based on your successful query"
-                                >
-                                    {generatingIdealPrompt ? (
-                                        <>
-                                            <Loader className="animate-spin" size={16} />
-                                            <span>Generating...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles size={16} />
-                                            <span>Generate Optimized</span>
-                                        </>
-                                    )}
-                                    {idealPromptData && (
-                                        <CheckCircle size={14} className="text-green-300" />
-                                    )}
-                                </button>
-                            )}
-                            
                             {/* Save Template Button */}
                             <button
                                 onClick={handleSubmit}
                                 disabled={loading || success || !formData.name.trim() || !formData.description.trim() || !formData.category.trim()}
                                 className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-lg hover:shadow-xl transition-all"
-                                title={(!formData.name.trim() || !formData.description.trim() || !formData.category.trim()) ? "Please fill in all required fields" : "Save template"}
+                                title={(!formData.name.trim() || !formData.description.trim() || !formData.category.trim()) ? "Please fill in all required fields" : "Save use case"}
                             >
                                 {loading ? (
                                     <>
@@ -802,7 +769,7 @@ const TemplateCreationModal = ({
                                 ) : (
                                     <>
                                         <Save size={16} />
-                                        <span>Save Template</span>
+                                        <span>Save Use Case</span>
                                     </>
                                 )}
                             </button>
@@ -814,4 +781,4 @@ const TemplateCreationModal = ({
     );
 };
 
-export default TemplateCreationModal;
+export default UseCaseCreationModal;

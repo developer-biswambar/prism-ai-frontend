@@ -446,6 +446,7 @@ const MainApp = () => {
                 onSendMessage={sendMessage}
                 onDisplayDetailedResults={displayDetailedResults}
                 onFilesRefresh={loadFiles}
+                onOpenFileLibrary={openFileLibrary}
             />
 
             <div

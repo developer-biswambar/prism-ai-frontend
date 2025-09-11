@@ -7,6 +7,7 @@ import {
     Download,
     ExternalLink,
     FileText,
+    FolderOpen,
     HelpCircle,
     Play,
     Save,
@@ -20,10 +21,11 @@ import MiscellaneousFileSelection from './MiscellaneousFileSelection.jsx';
 import MiscellaneousPromptInput from './MiscellaneousPromptInput.jsx';
 import MiscellaneousPreview from './MiscellaneousPreview.jsx';
 import IntentVerificationModal from './IntentVerificationModal.jsx';
-import TemplateGallery from '../templates/TemplateGallery.jsx';
-import TemplateCreationModal from '../templates/TemplateCreationModal.jsx';
+import UseCaseGallery from '../usecases/UseCaseGallery.jsx';
+import UseCaseCreationModal from '../usecases/UseCaseCreationModal.jsx';
+import ColumnMappingModal from '../usecases/ColumnMappingModal.jsx';
 import {miscellaneousService} from '../../services/miscellaneousService.js';
-import {templateService} from '../../services/templateService.js';
+import {useCaseService} from '../../services/useCaseService.js';
 
 const MiscellaneousFlow = ({
     files,
@@ -59,14 +61,20 @@ const MiscellaneousFlow = ({
     const [isVerifyingIntent, setIsVerifyingIntent] = useState(false);
     
     // Template state
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [showTemplateCreationModal, setShowTemplateCreationModal] = useState(false);
-    const [templateCreationData, setTemplateCreationData] = useState(null);
+    const [selectedUseCase, setSelectedUseCase] = useState(null);
+    const [showUseCaseCreationModal, setShowUseCaseCreationModal] = useState(false);
+    const [useCaseCreationData, setUseCaseCreationData] = useState(null);
+    
+    // Column mapping state
+    const [showColumnMappingModal, setShowColumnMappingModal] = useState(false);
+    const [columnMappingSuggestions, setColumnMappingSuggestions] = useState(null);
+    const [pendingUseCaseExecution, setPendingUseCaseExecution] = useState(null);
+    const [isExecutingUseCase, setIsExecutingUseCase] = useState(false);
 
     // Step definitions
     const steps = [
         {id: 'file_selection', title: 'Select Files', icon: FileText},
-        {id: 'template_selection', title: 'Choose Template', icon: Sparkles},
+        {id: 'use_case_selection', title: 'Choose Your Use Case', icon: Sparkles},
         {id: 'prompt_input', title: 'Natural Language Query', icon: Wand2},
         {id: 'intent_verification', title: 'Verify Intent', icon: Brain},
         {id: 'preview_process', title: 'Process & View Results', icon: Database}
@@ -109,8 +117,8 @@ const MiscellaneousFlow = ({
         switch(currentStep) {
             case 'file_selection':
                 return getSelectedFilesArray().length >= 1 && getSelectedFilesArray().length <= 5;
-            case 'template_selection':
-                return true; // Template selection is optional - users can skip to write custom prompt
+            case 'use_case_selection':
+                return true; // Use Case selection is optional - users can skip to write custom prompt
             case 'prompt_input':
                 return userPrompt && userPrompt.trim().length > 10 && processName && processName.trim().length > 0;
             case 'intent_verification':
@@ -225,54 +233,147 @@ const MiscellaneousFlow = ({
         // Stay on current step, user can try verification again
     };
 
-    // Template handling functions
-    const handleTemplateSelect = async (template) => {
+    // User Case handling functions
+    const handleUseCaseSelect = async (useCase) => {
         try {
-            setSelectedTemplate(template);
+            setSelectedUseCase(useCase);
+            setIsExecutingUseCase(true);
             
-            // Apply template to generate prompt
-            const fileSchemas = getSelectedFilesArray().map(file => ({
+            onSendMessage('system', `🔄 Executing Use Case: ${useCase.name}...`);
+            
+            // Prepare files for smart execution
+            const filesForExecution = getSelectedFilesArray().map(file => ({
+                file_id: file.file_id,
                 filename: file.filename,
                 columns: file.columns || [],
-                sample_data: file.sample_data || {}
+                total_rows: file.total_rows || 0
             }));
             
-            const result = await templateService.applyTemplate(
-                template.id,
-                getSelectedFilesArray(),
+            const result = await useCaseService.smartExecuteUseCase(
+                useCase.id,
+                filesForExecution,
                 {} // Default parameters for now
             );
             
-            if (result.success) {
-                setUserPrompt(result.generated_query);
-                setProcessName(template.name);
-                onSendMessage('system', `✅ Applied template: ${template.name}`);
+            if (result.status === 'success') {
+                // Smart execution succeeded - update state with results
+                setProcessResults({
+                    data: result.data,
+                    total_count: result.data?.length || 0
+                });
+                setProcessId(result.process_id);
+                setUserPrompt(useCase.description || useCase.name);
+                setProcessName(useCase.name);
+                setOriginalPrompt(useCase.description || useCase.name);
+                setHasPromptChanged(false);
                 
-                // Auto-advance to next step
-                setCurrentStep('prompt_input');
+                onSendMessage('system', `✅ Use Case executed successfully! Generated ${result.data?.length || 0} result rows using ${result.execution_method} method.`);
+                
+                // Skip to results step
+                setCurrentStep('preview_process');
+                
+            } else if (result.status === 'needs_mapping') {
+                // Column mapping required - show modal
+                setColumnMappingSuggestions(result.suggestions);
+                setPendingUseCaseExecution({ useCase, files: filesForExecution });
+                setShowColumnMappingModal(true);
+                
+                onSendMessage('system', `🔧 Use Case needs column mapping - please review and confirm the mapping.`);
+                
             } else {
-                onSendMessage('system', `❌ Failed to apply template: ${result.error}`);
+                // Execution failed - fall back to prompt generation
+                const fallbackResult = await useCaseService.applyUseCase(
+                    useCase.id,
+                    getSelectedFilesArray(),
+                    {}
+                );
+                
+                if (fallbackResult.success) {
+                    setUserPrompt(fallbackResult.generated_query);
+                    setProcessName(useCase.name);
+                    onSendMessage('system', `⚠️ Use Case execution failed, generated prompt instead: ${useCase.name}`);
+                    setCurrentStep('prompt_input');
+                } else {
+                    onSendMessage('system', `❌ Failed to apply Use Case: ${result.error || fallbackResult.error}`);
+                }
             }
         } catch (error) {
-            console.error('Error applying template:', error);
-            onSendMessage('system', `❌ Error applying template: ${error.message}`);
+            console.error('Error executing useCase:', error);
+            onSendMessage('system', `❌ Error executing Use Case: ${error.message}`);
+        } finally {
+            setIsExecutingUseCase(false);
         }
     };
 
-    const handleSkipTemplate = () => {
-        setSelectedTemplate(null);
+    const handleSkipUseCase = () => {
+        setSelectedUseCase(null);
         setCurrentStep('prompt_input');
     };
 
-    const handleCreateTemplate = (queryData) => {
-        console.log('🎯 handleCreateTemplate called with:', queryData);
-        setTemplateCreationData(queryData);
-        setShowTemplateCreationModal(true);
+    const handleCreateUseCase = (queryData) => {
+        console.log('🎯 handleCreateUseCase called with:', queryData);
+        setUseCaseCreationData(queryData);
+        setShowUseCaseCreationModal(true);
     };
 
-    const handleTemplateCreated = (newTemplate) => {
-        onSendMessage('system', `✅ Template "${newTemplate.name}" created successfully!`);
-        setShowTemplateCreationModal(false);
+    const handleUseCaseCreated = (newUseCase) => {
+        onSendMessage('system', `✅ Template "${newUseCase.name}" created successfully!`);
+        setShowUseCaseCreationModal(false);
+    };
+
+    // Column mapping handlers
+    const handleColumnMappingApply = async (columnMapping) => {
+        if (!pendingUseCaseExecution) return;
+        
+        try {
+            setIsExecutingUseCase(true);
+            setShowColumnMappingModal(false);
+            
+            onSendMessage('system', `🔄 Applying column mapping and executing use case...`);
+            
+            const result = await useCaseService.executeWithUserMapping(
+                pendingUseCaseExecution.useCase.id,
+                pendingUseCaseExecution.files,
+                columnMapping,
+                {}
+            );
+            
+            if (result.status === 'success') {
+                // Execution succeeded with mapping
+                setProcessResults({
+                    data: result.data,
+                    total_count: result.data?.length || 0
+                });
+                setProcessId(result.process_id);
+                setUserPrompt(pendingUseCaseExecution.useCase.description || pendingUseCaseExecution.useCase.name);
+                setProcessName(pendingUseCaseExecution.useCase.name);
+                setOriginalPrompt(pendingUseCaseExecution.useCase.description || pendingUseCaseExecution.useCase.name);
+                setHasPromptChanged(false);
+                
+                onSendMessage('system', `✅ Use Case executed successfully with column mapping! Generated ${result.data?.length || 0} result rows.`);
+                
+                // Skip to results step
+                setCurrentStep('preview_process');
+                
+            } else {
+                onSendMessage('system', `❌ Use Case execution failed: ${result.error}`);
+            }
+            
+        } catch (error) {
+            console.error('Error applying column mapping:', error);
+            onSendMessage('system', `❌ Error applying column mapping: ${error.message}`);
+        } finally {
+            setIsExecutingUseCase(false);
+            setPendingUseCaseExecution(null);
+            setColumnMappingSuggestions(null);
+        }
+    };
+    
+    const handleColumnMappingClose = () => {
+        setShowColumnMappingModal(false);
+        setPendingUseCaseExecution(null);
+        setColumnMappingSuggestions(null);
+        setIsExecutingUseCase(false);
     };
 
     // Process data with natural language
@@ -303,6 +404,7 @@ const MiscellaneousFlow = ({
             if (response.success) {
                 setProcessId(response.process_id);
                 setGeneratedSQL(response.generated_sql);
+                console.log('Total Time taken:'+ response.processing_time_seconds);
                 setProcessingTimeSeconds(response.processing_time_seconds);
                 
                 // Get the results
@@ -313,7 +415,10 @@ const MiscellaneousFlow = ({
                 setOriginalPrompt(userPrompt);
                 setHasPromptChanged(false);
                 
-                onSendMessage('system', `✅ Processing completed! Generated ${response.row_count} result rows using AI-generated SQL in ${response.processing_time_seconds}s.`);
+                const totalCountMsg = response.total_count && response.total_count > response.row_count 
+                    ? ` (showing ${response.row_count} of ${response.total_count} total records)`
+                    : '';
+                onSendMessage('system', `✅ Processing completed! Generated ${response.row_count} result rows${totalCountMsg} using AI-generated SQL in ${response.processing_time_seconds}s.`);
             } else {
                 throw new Error(response.message || 'Processing failed');
             }
@@ -391,6 +496,22 @@ const MiscellaneousFlow = ({
         setCurrentStep('file_selection');
     };
 
+    // Open File Library in new tab
+    const openFileLibrary = () => {
+        const fileLibraryUrl = '/file-library';
+        const newWindow = window.open(
+            fileLibraryUrl,
+            'file_library',
+            'toolbar=yes,scrollbars=yes,resizable=yes,width=1600,height=1000,menubar=yes,location=yes,directories=no,status=yes'
+        );
+
+        if (newWindow) {
+            newWindow.focus();
+        } else {
+            window.open(fileLibraryUrl, '_blank');
+        }
+    };
+
     // Handle ESC key and click outside
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -423,7 +544,7 @@ const MiscellaneousFlow = ({
                     />
                 );
 
-            case 'template_selection':
+            case 'use_case_selection':
                 const fileSchemas = getSelectedFilesArray().map(file => ({
                     filename: file.filename,
                     columns: file.columns || [],
@@ -433,19 +554,19 @@ const MiscellaneousFlow = ({
                 return (
                     <div className="space-y-6">
                         <div className="text-center">
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Choose a Template</h3>
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">Choose a Use Case</h3>
                             <p className="text-gray-600">
-                                Select from pre-built templates or skip to write a custom query
+                                Select from pre-built Use Cases or skip to write a custom query
                             </p>
                         </div>
                         
-                        <TemplateGallery
-                            onTemplateSelect={handleTemplateSelect}
-                            selectedTemplate={selectedTemplate}
+                        <UseCaseGallery
+                            onUseCaseSelect={handleUseCaseSelect}
+                            selectedUseCase={selectedUseCase}
                             showCreateButton={true}
                             onCreateNew={() => {
-                                setTemplateCreationData(null); // Will use fallback data
-                                setShowTemplateCreationModal(true);
+                                setUseCaseCreationData(null); // Will use fallback data
+                                setShowUseCaseCreationModal(true);
                             }}
                             userPrompt={userPrompt}
                             fileSchemas={fileSchemas}
@@ -453,10 +574,10 @@ const MiscellaneousFlow = ({
                         
                         <div className="flex justify-center">
                             <button
-                                onClick={handleSkipTemplate}
+                                onClick={handleSkipUseCase}
                                 className="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium"
                             >
-                                Skip templates and write custom query →
+                                Skip Use Case and write custom query →
                             </button>
                         </div>
                     </div>
@@ -541,7 +662,7 @@ const MiscellaneousFlow = ({
                         onProcess={processData}
                         onDownload={downloadResults}
                         onClear={clearResults}
-                        onCreateTemplate={handleCreateTemplate}
+                        onCreateTemplate={handleCreateUseCase}
                     />
                 );
 
@@ -563,13 +684,23 @@ const MiscellaneousFlow = ({
                             <Brain className="text-white" size={24} />
                             <h1 className="text-xl font-bold text-white">Miscellaneous Data Processing</h1>
                         </div>
-                        <button
-                            onClick={onCancel}
-                            className="text-white hover:text-gray-200 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
-                            title="Close"
-                        >
-                            <X size={20} />
-                        </button>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={openFileLibrary}
+                                className="text-white hover:text-gray-200 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 flex items-center space-x-1"
+                                title="Open File Library"
+                            >
+                                <FolderOpen size={18} />
+                                <span className="text-sm font-medium">File Library</span>
+                            </button>
+                            <button
+                                onClick={onCancel}
+                                className="text-white hover:text-gray-200 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
+                                title="Close"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -586,7 +717,7 @@ const MiscellaneousFlow = ({
                                     switch(stepId) {
                                         case 'file_selection':
                                             return 'Select 1-5 CSV or Excel files to process. You can drag & drop files or upload new ones.';
-                                        case 'template_selection':
+                                        case 'use_case_selection':
                                             return 'Choose from pre-built templates to quickly apply common data operations, or skip to write a custom query.';
                                         case 'prompt_input':
                                             return 'Write a natural language query describing what you want to do with your data. The AI will convert this to SQL.';
@@ -695,6 +826,11 @@ const MiscellaneousFlow = ({
                         {processResults && (
                             <div className="text-sm text-green-600 font-medium">
                                 ✅ Processed {processResults.data?.length || 0} records
+                                {processResults.total_count && processResults.total_count > (processResults.data?.length || 0) && (
+                                    <span className="text-gray-600 ml-1">
+                                        (showing {processResults.data?.length || 0} of {processResults.total_count} total)
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>
@@ -855,13 +991,13 @@ const MiscellaneousFlow = ({
             />
 
             {/* Template Creation Modal */}
-            <TemplateCreationModal
-                isOpen={showTemplateCreationModal}
+            <UseCaseCreationModal
+                isOpen={showUseCaseCreationModal}
                 onClose={() => {
-                    setShowTemplateCreationModal(false);
-                    setTemplateCreationData(null);
+                    setShowUseCaseCreationModal(false);
+                    setUseCaseCreationData(null);
                 }}
-                queryData={templateCreationData || {
+                queryData={useCaseCreationData || {
                     user_prompt: userPrompt,
                     file_schemas: getSelectedFilesArray().map(file => ({
                         filename: file.filename,
@@ -870,11 +1006,21 @@ const MiscellaneousFlow = ({
                     })),
                     process_results: processResults
                 }}
-                onTemplateCreated={handleTemplateCreated}
+                onUseCaseCreated={handleUseCaseCreated}
                 initialValues={{
                     category: 'Custom',
                     created_by: 'User'
                 }}
+            />
+
+            {/* Column Mapping Modal */}
+            <ColumnMappingModal
+                isOpen={showColumnMappingModal}
+                onClose={handleColumnMappingClose}
+                templateData={pendingUseCaseExecution?.useCase}
+                suggestions={columnMappingSuggestions}
+                onApplyMapping={handleColumnMappingApply}
+                isExecuting={isExecutingUseCase}
             />
         </div>
     );

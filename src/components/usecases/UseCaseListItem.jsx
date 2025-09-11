@@ -1,6 +1,6 @@
 /**
- * Template List Item Component
- * Displays individual template information in list format
+ * Use Case List Item Component
+ * Displays individual use case information in list format
  */
 
 import React, { useState } from 'react';
@@ -17,10 +17,10 @@ import {
     Eye,
     ExternalLink
 } from 'lucide-react';
-import { templateService } from '../../services/templateService';
+import { useCaseService } from '../../services/useCaseService';
 
-const TemplateListItem = ({ 
-    template, 
+const UseCaseListItem = ({ 
+    useCase, 
     isSelected = false, 
     onSelect, 
     onRate = null,
@@ -43,7 +43,7 @@ const TemplateListItem = ({
             await onRate(newRating);
             setRating(newRating);
         } catch (error) {
-            console.error('Failed to rate template:', error);
+            console.error('Failed to rate use case:', error);
         } finally {
             setIsRating(false);
         }
@@ -61,7 +61,7 @@ const TemplateListItem = ({
         }
     };
 
-    const getTemplateTypeColor = (type) => {
+    const getUseCaseTypeColor = (type) => {
         const colors = {
             'reconciliation': 'bg-blue-100 text-blue-800 border-blue-200',
             'analysis': 'bg-green-100 text-green-800 border-green-200',
@@ -115,37 +115,37 @@ const TemplateListItem = ({
                 {/* Icon & Basic Info */}
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
                     <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
-                        {templateService.getTemplateTypeIcon(template.template_type)}
+                        {useCaseService.getUseCaseTypeIcon(useCase.use_case_type)}
                     </div>
                     
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                             <h3 className="font-semibold text-gray-900 text-sm truncate">
-                                {template.name}
+                                {useCase.name}
                             </h3>
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                                getTemplateTypeColor(template.template_type)
+                                getUseCaseTypeColor(useCase.use_case_type)
                             }`}>
-                                {templateService.formatTemplateTypeDisplay(template.template_type)}
+                                {useCaseService.formatUseCaseTypeDisplay(useCase.use_case_type)}
                             </span>
                         </div>
                         
                         <p className="text-sm text-gray-600 truncate">
-                            {template.description}
+                            {useCase.description}
                         </p>
                         
                         <div className="flex items-center space-x-3 mt-2">
                             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                                {template.category}
+                                {useCase.category}
                             </span>
                             
                             {/* Tags */}
-                            {template.tags && template.tags.length > 0 && (
+                            {useCase.tags && useCase.tags.length > 0 && (
                                 <div className="flex items-center space-x-1">
                                     <Tag size={10} className="text-gray-400" />
                                     <span className="text-xs text-gray-500">
-                                        {template.tags.slice(0, 2).join(', ')}
-                                        {template.tags.length > 2 && ` +${template.tags.length - 2}`}
+                                        {useCase.tags.slice(0, 2).join(', ')}
+                                        {useCase.tags.length > 2 && ` +${useCase.tags.length - 2}`}
                                     </span>
                                 </div>
                             )}
@@ -157,16 +157,16 @@ const TemplateListItem = ({
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <div className="flex items-center space-x-1">
                         <Users size={14} />
-                        <span>{template.usage_count || 0}</span>
+                        <span>{useCase.usage_count || 0}</span>
                     </div>
                     
                     <div className="flex items-center space-x-1">
-                        {renderStars(template.rating || 0, template.rating_count || 0)}
+                        {renderStars(useCase.rating || 0, useCase.rating_count || 0)}
                     </div>
                     
                     <div className="flex items-center space-x-1">
                         <Clock size={12} />
-                        <span className="text-xs">{formatDate(template.updated_at)}</span>
+                        <span className="text-xs">{formatDate(useCase.updated_at)}</span>
                     </div>
                 </div>
 
@@ -177,7 +177,7 @@ const TemplateListItem = ({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onApply(template);
+                                onApply(useCase);
                             }}
                             className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 transition-colors"
                         >
@@ -193,7 +193,7 @@ const TemplateListItem = ({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onView(template);
+                                onView(useCase);
                             }}
                             className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 transition-colors"
                         >
@@ -209,7 +209,7 @@ const TemplateListItem = ({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onDelete(template);
+                                onDelete(useCase);
                             }}
                             className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 transition-colors"
                         >
@@ -225,7 +225,7 @@ const TemplateListItem = ({
             {/* Author */}
             <div className="mt-2 flex items-center justify-between">
                 <div className="text-xs text-gray-500">
-                    {template.created_by ? `Created by ${template.created_by}` : 'Anonymous author'}
+                    {useCase.created_by ? `Created by ${useCase.created_by}` : 'Anonymous author'}
                 </div>
             </div>
 
@@ -239,4 +239,4 @@ const TemplateListItem = ({
     );
 };
 
-export default TemplateListItem;
+export default UseCaseListItem;

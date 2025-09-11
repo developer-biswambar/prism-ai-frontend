@@ -1,6 +1,6 @@
 // src/components/ChatInterface.jsx - Enhanced with Delta Generation support
 import React, {useEffect, useRef, useState} from 'react';
-import {AlertCircle, CheckCircle, Eye, Send, Settings} from 'lucide-react';
+import {AlertCircle, CheckCircle, Eye, Send, Settings, FolderOpen} from 'lucide-react';
 import ReconciliationFlow from '../recon/ReconciliationFlow.jsx';
 import DeltaGenerationFlow from '../delta/DeltaGenerationFlow.jsx';
 import TransformationFlow from "../transformation/TransformationFlow.jsx";
@@ -201,7 +201,8 @@ const ChatInterface = ({
                            files,
                            onSendMessage,
                            onDisplayDetailedResults,
-                           onFilesRefresh
+                           onFilesRefresh,
+                           onOpenFileLibrary
                        }) => {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
@@ -432,10 +433,24 @@ const ChatInterface = ({
             {/* Header */}
             <div className="p-4 border-b border-gray-200 bg-white">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-xl font-semibold text-gray-800">💼 Data Processing Platform</h1>
-                        <p className="text-sm text-gray-600">AI-powered reconciliation, delta generation, validation,
-                            and analysis</p>
+                    <div className="flex items-center space-x-4">
+                        <div>
+                            <h1 className="text-xl font-semibold text-gray-800">💼 Data Processing Platform</h1>
+                            <p className="text-sm text-gray-600">AI-powered reconciliation, delta generation, validation,
+                                and analysis</p>
+                        </div>
+                        
+                        {/* File Library Link */}
+                        {onOpenFileLibrary && (
+                            <button
+                                onClick={onOpenFileLibrary}
+                                className="flex items-center space-x-2 px-3 py-2 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                                title="Open File Library"
+                            >
+                                <FolderOpen size={16} />
+                                <span>File Library</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Process Status Indicator */}
