@@ -234,6 +234,33 @@ class UseCaseService {
         }
     }
 
+    async executeUseCaseWithAI(useCaseId, files, parameters = {}) {
+        try {
+            console.log('🤖 Executing use case with AI assistance:', useCaseId);
+            const response = await fetch(`${this.baseURL}/execute/ai-assisted`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    template_id: useCaseId,
+                    files: files,
+                    parameters: parameters
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to execute use case with AI assistance');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error executing use case with AI:', error);
+            throw error;
+        }
+    }
+
     async executeWithUserMapping(useCaseId, files, userMapping, parameters = {}) {
         try {
             const response = await fetch(`${this.baseURL}/execute/with-mapping`, {
@@ -244,7 +271,7 @@ class UseCaseService {
                 body: JSON.stringify({
                     template_id: useCaseId,
                     files: files,
-                    user_mapping: userMapping,
+                    column_mapping: userMapping,
                     parameters: parameters
                 })
             });

@@ -16,7 +16,9 @@ import {
     MoreVertical,
     Settings,
     Copy,
-    Trash2
+    Trash2,
+    Play,
+    Loader
 } from 'lucide-react';
 import { useCaseService } from '../../services/useCaseService';
 
@@ -30,7 +32,9 @@ const UseCaseCard = ({
     onDuplicate = null,
     onView = null,
     onApply = null,
-    showActions = false 
+    showActions = false,
+    isLoading = false,
+    loadingMessage = "Applying use case..."
 }) => {
     // Defensive check for useCase prop
     if (!useCase) {
@@ -253,31 +257,6 @@ const UseCaseCard = ({
                     </div>
                     
                     <div className="flex items-center space-x-1 justify-end flex-wrap relative" style={{ zIndex: 20 }}>
-                        {console.log('UseCaseCard render:', { 
-                            isSelected, 
-                            hasOnApply: !!onApply, 
-                            hasOnView: !!onView,
-                            useCaseName: useCase?.name 
-                        })}
-                        
-                        {/* Apply Button (when selected) */}
-                        {isSelected && onApply && (
-                            <button
-                                onClick={(e) => {
-                                    console.log('UseCaseCard: Apply button clicked');
-                                    e.stopPropagation();
-                                    onApply(useCase);
-                                }}
-                                className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 transition-colors"
-                                style={{ zIndex: 10 }}
-                            >
-                                <div className="flex items-center space-x-1">
-                                    <ExternalLink size={10} />
-                                    <span>Apply</span>
-                                </div>
-                            </button>
-                        )}
-                        
                         {/* View Button (when selected) */}
                         {isSelected && onView && (
                             <button
@@ -313,6 +292,42 @@ const UseCaseCard = ({
                         )}
                     </div>
                 </div>
+                
+                {/* Apply Button - Always visible at bottom right */}
+                {onApply && (
+                    <div className="flex justify-end mt-2">
+                        <button
+                            onClick={(e) => {
+                                console.log('UseCaseCard: Apply button clicked');
+                                e.stopPropagation();
+                                if (!isLoading) {
+                                    onApply(useCase);
+                                }
+                            }}
+                            disabled={isLoading}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors shadow-sm ${
+                                isLoading 
+                                    ? 'bg-gray-400 text-white border-gray-400 cursor-not-allowed' 
+                                    : 'bg-green-600 text-white hover:bg-green-700 border-green-600'
+                            }`}
+                            style={{ zIndex: 10 }}
+                        >
+                            <div className="flex items-center space-x-2">
+                                {isLoading ? (
+                                    <>
+                                        <Loader size={14} className="animate-spin" />
+                                        <span>{loadingMessage}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play size={14} />
+                                        <span>Apply Use Case</span>
+                                    </>
+                                )}
+                            </div>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Hover Overlay */}

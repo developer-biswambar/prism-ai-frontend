@@ -24,6 +24,7 @@ import IntentVerificationModal from './IntentVerificationModal.jsx';
 import UseCaseGallery from '../usecases/UseCaseGallery.jsx';
 import UseCaseCreationModal from '../usecases/UseCaseCreationModal.jsx';
 import ColumnMappingModal from '../usecases/ColumnMappingModal.jsx';
+import ExecutionErrorModal from '../usecases/ExecutionErrorModal.jsx';
 import {miscellaneousService} from '../../services/miscellaneousService.js';
 import {useCaseService} from '../../services/useCaseService.js';
 
@@ -70,6 +71,10 @@ const MiscellaneousFlow = ({
     const [columnMappingSuggestions, setColumnMappingSuggestions] = useState(null);
     const [pendingUseCaseExecution, setPendingUseCaseExecution] = useState(null);
     const [isExecutingUseCase, setIsExecutingUseCase] = useState(false);
+    
+    // Execution error state
+    const [showExecutionErrorModal, setShowExecutionErrorModal] = useState(false);
+    const [executionErrorData, setExecutionErrorData] = useState(null);
 
     // Step definitions
     const steps = [
@@ -255,11 +260,11 @@ const MiscellaneousFlow = ({
                 {} // Default parameters for now
             );
             
-            if (result.status === 'success') {
+            if (result.success === true) {
                 // Smart execution succeeded - update state with results
                 setProcessResults({
-                    data: result.data,
-                    total_count: result.data?.length || 0
+                    data: result.data || [],
+                    total_count: result.row_count || result.data?.length || 0
                 });
                 setProcessId(result.process_id);
                 setUserPrompt(useCase.description || useCase.name);
@@ -280,22 +285,22 @@ const MiscellaneousFlow = ({
                 
                 onSendMessage('system', `🔧 Use Case needs column mapping - please review and confirm the mapping.`);
                 
-            } else {
-                // Execution failed - fall back to prompt generation
-                const fallbackResult = await useCaseService.applyUseCase(
-                    useCase.id,
-                    getSelectedFilesArray(),
-                    {}
-                );
+            } else if (result.success === false && result.error_analysis) {
+                // Execution failed with detailed error analysis - show error modal
+                console.log('🚨 Use case needs user intervention:', result);
+                setExecutionErrorData({
+                    ...result,
+                    useCase,
+                    files: filesForExecution
+                });
+                setShowExecutionErrorModal(true);
                 
-                if (fallbackResult.success) {
-                    setUserPrompt(fallbackResult.generated_query);
-                    setProcessName(useCase.name);
-                    onSendMessage('system', `⚠️ Use Case execution failed, generated prompt instead: ${useCase.name}`);
-                    setCurrentStep('prompt_input');
-                } else {
-                    onSendMessage('system', `❌ Failed to apply Use Case: ${result.error || fallbackResult.error}`);
-                }
+                onSendMessage('system', `⚠️ Use Case execution failed: ${result.error_analysis?.user_hint || 'Column mismatch detected'}. Please choose how to proceed.`);
+                
+            } else {
+                // Execution failed with unknown status
+                console.error('🚨 Unknown execution status:', result.status, result);
+                onSendMessage('system', `❌ Use Case execution failed: ${result.error || result.execution_error || 'Unknown error occurred'}`);
             }
         } catch (error) {
             console.error('Error executing useCase:', error);
@@ -338,11 +343,11 @@ const MiscellaneousFlow = ({
                 {}
             );
             
-            if (result.status === 'success') {
+            if (result.success === true) {
                 // Execution succeeded with mapping
                 setProcessResults({
-                    data: result.data,
-                    total_count: result.data?.length || 0
+                    data: result.data || [],
+                    total_count: result.row_count || result.data?.length || 0
                 });
                 setProcessId(result.process_id);
                 setUserPrompt(pendingUseCaseExecution.useCase.description || pendingUseCaseExecution.useCase.name);
@@ -373,6 +378,97 @@ const MiscellaneousFlow = ({
         setShowColumnMappingModal(false);
         setPendingUseCaseExecution(null);
         setColumnMappingSuggestions(null);
+        setIsExecutingUseCase(false);
+    };
+
+    // Execution error handlers
+    const handleRetryWithAI = async () => {
+        if (!executionErrorData) return;
+        
+        try {
+            setIsExecutingUseCase(true);
+            setShowExecutionErrorModal(false);
+            
+            onSendMessage('system', `🤖 Retrying with AI assistance - adapting query to your data...`);
+            
+            const result = await useCaseService.executeUseCaseWithAI(
+                executionErrorData.useCase.id,
+                executionErrorData.files,
+                {}
+            );
+            
+            if (result.success === true) {
+                // AI execution succeeded
+                setProcessResults({
+                    data: result.data || [],
+                    total_count: result.row_count || result.data?.length || 0
+                });
+                setProcessId(result.process_id);
+                setUserPrompt(executionErrorData.useCase.description || executionErrorData.useCase.name);
+                setProcessName(executionErrorData.useCase.name);
+                setOriginalPrompt(executionErrorData.useCase.description || executionErrorData.useCase.name);
+                setHasPromptChanged(false);
+                
+                onSendMessage('system', `✅ AI-assisted execution succeeded! Generated ${result.data?.length || 0} result rows. ${result.ai_adaptations || ''}`);
+                
+                // Skip to results step
+                setCurrentStep('preview_process');
+            } else {
+                throw new Error(result.error || 'AI-assisted execution failed');
+            }
+            
+        } catch (error) {
+            console.error('AI retry failed:', error);
+            onSendMessage('system', `❌ AI-assisted execution failed: ${error.message}`);
+        } finally {
+            setIsExecutingUseCase(false);
+            setExecutionErrorData(null);
+        }
+    };
+
+    const handleManualMapping = () => {
+        if (!executionErrorData) return;
+        
+        console.log('🔧 Manual mapping - error data:', executionErrorData.error_analysis);
+        
+        // Convert error data to column mapping format
+        const suggestions = {};
+        const availableColumns = executionErrorData.error_analysis?.available_columns || [];
+        
+        console.log('🔧 Available columns for mapping:', availableColumns);
+        
+        if (executionErrorData.error_analysis?.missing_columns) {
+            executionErrorData.error_analysis.missing_columns.forEach(missingCol => {
+                // Try fuzzy matching first
+                const fuzzyMatches = availableColumns.filter(col => 
+                    col.toLowerCase().includes(missingCol.toLowerCase()) || 
+                    missingCol.toLowerCase().includes(col.toLowerCase())
+                );
+                
+                // If no fuzzy matches, include all available columns for user selection
+                const columnOptions = fuzzyMatches.length > 0 ? fuzzyMatches.slice(0, 3) : availableColumns;
+                suggestions[missingCol] = columnOptions;
+                
+                console.log(`🔧 Mapping suggestions for '${missingCol}':`, columnOptions);
+            });
+        }
+        
+        console.log('🔧 Final suggestions object:', suggestions);
+        
+        // Close error modal and open mapping modal
+        setShowExecutionErrorModal(false);
+        setColumnMappingSuggestions(suggestions);
+        setPendingUseCaseExecution({ 
+            useCase: executionErrorData.useCase, 
+            files: executionErrorData.files 
+        });
+        setShowColumnMappingModal(true);
+        setExecutionErrorData(null);
+    };
+
+    const handleExecutionErrorClose = () => {
+        setShowExecutionErrorModal(false);
+        setExecutionErrorData(null);
         setIsExecutingUseCase(false);
     };
 
@@ -1021,6 +1117,15 @@ const MiscellaneousFlow = ({
                 suggestions={columnMappingSuggestions}
                 onApplyMapping={handleColumnMappingApply}
                 isExecuting={isExecutingUseCase}
+            />
+
+            {/* Execution Error Modal */}
+            <ExecutionErrorModal
+                isOpen={showExecutionErrorModal}
+                onClose={handleExecutionErrorClose}
+                errorData={executionErrorData}
+                onRetryWithAI={handleRetryWithAI}
+                onManualMapping={handleManualMapping}
             />
         </div>
     );

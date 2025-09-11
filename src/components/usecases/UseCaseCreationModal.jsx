@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useCaseService } from '../../services/useCaseService';
 import { API_ENDPOINTS } from '../../config/environment';
+import UseCaseDetailModal from './UseCaseDetailModal.jsx';
 
 const UseCaseCreationModal = ({ 
     isOpen, 
@@ -48,6 +49,10 @@ const UseCaseCreationModal = ({
     // Prompt optimization state (reusing from PromptSaveLoad pattern)
     const [generatingIdealPrompt, setGeneratingIdealPrompt] = useState(false);
     const [idealPromptData, setIdealPromptData] = useState(null);
+    
+    // Detail view state
+    const [showDetailModal, setShowDetailModal] = useState(false);
+    const [createdUseCase, setCreatedUseCase] = useState(null);
     
     // Available options
     const [categories, setCategories] = useState([]);
@@ -401,6 +406,8 @@ const UseCaseCreationModal = ({
             );
 
             setSuccess(true);
+            setCreatedUseCase(result);
+            
             setTimeout(() => {
                 onUseCaseCreated?.(result);
                 onClose();
@@ -721,9 +728,20 @@ const UseCaseCreationModal = ({
 
                             {/* Success Message */}
                             {success && (
-                                <div className="flex items-center space-x-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                    <CheckCircle className="text-green-500 flex-shrink-0" size={16} />
-                                    <span className="text-sm text-green-700">Use case created successfully!</span>
+                                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <div className="flex items-center space-x-2">
+                                        <CheckCircle className="text-green-500 flex-shrink-0" size={16} />
+                                        <span className="text-sm text-green-700">Use case created successfully!</span>
+                                    </div>
+                                    {createdUseCase && (
+                                        <button
+                                            onClick={() => setShowDetailModal(true)}
+                                            className="flex items-center space-x-1 px-3 py-1 text-sm text-green-700 hover:text-green-800 hover:bg-green-100 rounded-lg transition-colors"
+                                        >
+                                            <Eye size={14} />
+                                            <span>View Details</span>
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </form>
@@ -777,6 +795,15 @@ const UseCaseCreationModal = ({
                     </div>
                 </div>
             </div>
+            
+            {/* Use Case Detail Modal */}
+            {createdUseCase && (
+                <UseCaseDetailModal
+                    isOpen={showDetailModal}
+                    onClose={() => setShowDetailModal(false)}
+                    useCase={createdUseCase}
+                />
+            )}
         </div>
     );
 };

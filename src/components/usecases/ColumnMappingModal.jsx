@@ -28,9 +28,13 @@ const ColumnMappingModal = ({
 
     useEffect(() => {
         if (isOpen && suggestions) {
+            console.log('🔧 ColumnMappingModal opened with suggestions:', suggestions);
+            console.log('🔧 Template data:', templateData);
+            
             // Initialize mapping with first suggestion for each column
             const initialMapping = {};
             Object.entries(suggestions).forEach(([templateCol, availableOptions]) => {
+                console.log(`🔧 Template column '${templateCol}' has ${availableOptions.length} options:`, availableOptions);
                 if (availableOptions.length > 0) {
                     initialMapping[templateCol] = availableOptions[0];
                 }
@@ -90,7 +94,17 @@ const ColumnMappingModal = ({
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col relative">
+                {/* Loading overlay */}
+                {isExecuting && (
+                    <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 rounded-xl">
+                        <div className="text-center">
+                            <Loader className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+                            <p className="text-gray-700 font-medium">Applying Column Mapping...</p>
+                            <p className="text-gray-500 text-sm mt-2">This may take a few moments</p>
+                        </div>
+                    </div>
+                )}
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
@@ -263,7 +277,7 @@ const ColumnMappingModal = ({
                             {isExecuting ? (
                                 <>
                                     <Loader className="animate-spin" size={16} />
-                                    <span>Applying & Executing...</span>
+                                    <span>Applying Column Mapping...</span>
                                 </>
                             ) : (
                                 <>

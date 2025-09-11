@@ -26,6 +26,8 @@ import {
 import { useCaseService } from '../../services/useCaseService';
 import UseCaseCard from './UseCaseCard.jsx';
 import UseCaseListItem from './UseCaseListItem.jsx';
+import UseCaseDetailModal from './UseCaseDetailModal.jsx';
+import UseCaseEditModal from './UseCaseEditModal.jsx';
 
 const UseCaseGallery = ({ 
     onUseCaseSelect, 
@@ -156,9 +158,7 @@ const UseCaseGallery = ({
     };
 
     const [localSelectedUseCase, setLocalSelectedUseCase] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editingUseCase, setEditingUseCase] = useState(null);
-    const [saving, setSaving] = useState(false);
+    const [loadingUseCases, setLoadingUseCases] = useState(new Set());
 
     const handleUseCaseSelect = (useCase) => {
         // Only update local selection, don't trigger the parent callback yet
@@ -167,12 +167,29 @@ const UseCaseGallery = ({
 
     const handleUseCaseApply = (useCase) => {
         console.log('Apply button clicked for use case:', useCase.name);
+        
+        // Set loading state for this specific use case
+        setLoadingUseCases(prev => new Set([...prev, useCase.id]));
+        
         // This will actually apply the use case and trigger navigation
         if (onUseCaseSelect) {
             console.log('Calling onUseCaseSelect with use case:', useCase.id);
-            onUseCaseSelect(useCase);
+            onUseCaseSelect(useCase).finally(() => {
+                // Remove loading state when done (whether success or failure)
+                setLoadingUseCases(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(useCase.id);
+                    return newSet;
+                });
+            });
         } else {
             console.log('No onUseCaseSelect callback provided');
+            // Remove loading state if no callback
+            setLoadingUseCases(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(useCase.id);
+                return newSet;
+            });
         }
     };
 
@@ -196,68 +213,25 @@ const UseCaseGallery = ({
     const handleUseCaseView = (useCase) => {
         console.log('View button clicked for use case:', useCase.name);
         setViewUseCase(useCase);
-        setIsEditing(false);
-        setEditingUseCase(null);
     };
 
-    const handleUseCaseEdit = () => {
-        setIsEditing(true);
-        setEditingUseCase({
-            name: viewUseCase.name,
-            description: viewUseCase.description,
-            category: viewUseCase.category,
-            tags: [...(viewUseCase.tags || [])],
-            use_case_content: viewUseCase.use_case_content || '',
-            use_case_metadata: viewUseCase.use_case_metadata ? JSON.parse(JSON.stringify(viewUseCase.use_case_metadata)) : {
-                original_prompt: '',
-                file_pattern: '',
-                improvements_made: ''
-            }
-        });
+    const [editingUseCase, setEditingUseCase] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    const handleUseCaseEdit = async (useCase) => {
+        console.log('🔧 UseCaseGallery: handleUseCaseEdit called with:', useCase.name);
+        console.log('🔧 Use case object:', useCase);
+        
+        // Set the use case to edit and open edit modal
+        setEditingUseCase(useCase);
+        setIsEditModalOpen(true);
+        
+        console.log('🔧 Edit modal state set to open');
     };
 
-    const handleEditCancel = () => {
-        setIsEditing(false);
-        setEditingUseCase(null);
-    };
-
-    const handleEditSave = async () => {
-        if (!editingUseCase) return;
-
-        try {
-            setSaving(true);
-            
-            const updateData = {
-                name: editingUseCase.name,
-                description: editingUseCase.description,
-                category: editingUseCase.category,
-                tags: editingUseCase.tags,
-                use_case_content: editingUseCase.use_case_content,
-                use_case_metadata: editingUseCase.use_case_metadata
-            };
-
-            const updatedUseCase = await useCaseService.updateUseCase(viewUseCase.id, updateData, viewUseCase.use_case_type);
-            
-            // Update the use case in our local state
-            setViewUseCase(updatedUseCase);
-            setUseCases(prev => prev.map(t => t.id === updatedUseCase.id ? updatedUseCase : t));
-            
-            // Exit edit mode
-            setIsEditing(false);
-            setEditingUseCase(null);
-            
-        } catch (error) {
-            console.error('Error updating use case:', error);
-            setError(`Failed to update use case: ${error.message}`);
-        } finally {
-            setSaving(false);
-        }
-    };
 
     const closeViewModal = () => {
         setViewUseCase(null);
-        setIsEditing(false);
-        setEditingUseCase(null);
     };
 
     const getCurrentUseCases = () => {
@@ -298,6 +272,8 @@ const UseCaseGallery = ({
                             onDelete={handleUseCaseDelete}
                             onView={handleUseCaseView}
                             onApply={handleUseCaseApply}
+                            isLoading={loadingUseCases.has(useCase.id)}
+                            loadingMessage="Applying..."
                         />
                     ))}
                 </div>
@@ -315,6 +291,8 @@ const UseCaseGallery = ({
                             onDelete={handleUseCaseDelete}
                             onView={handleUseCaseView}
                             onApply={handleUseCaseApply}
+                            isLoading={loadingUseCases.has(useCase.id)}
+                            loadingMessage="Applying..."
                         />
                     ))}
                 </div>
@@ -487,214 +465,38 @@ const UseCaseGallery = ({
             {/* Use Cases Grid/List */}
             {renderUseCaseGrid()}
 
-            {/* View Use Case Modal */}
-            {viewUseCase && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] flex flex-col">
-                        {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-xl">
-                            <div className="flex-1">
-                                {isEditing ? (
-                                    <div className="space-y-3">
-                                        <input
-                                            type="text"
-                                            value={editingUseCase?.name || ''}
-                                            onChange={(e) => setEditingUseCase(prev => ({...prev, name: e.target.value}))}
-                                            className="text-2xl font-bold text-gray-900 bg-white border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
-                                        />
-                                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
-                                                {useCaseService.formatUseCaseTypeDisplay(viewUseCase.use_case_type)}
-                                            </span>
-                                            <select
-                                                value={editingUseCase?.category || ''}
-                                                onChange={(e) => setEditingUseCase(prev => ({...prev, category: e.target.value}))}
-                                                className="bg-white border border-gray-300 rounded-full px-3 py-1 text-green-800 font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            >
-                                                <option value="">Select category</option>
-                                                {categories.map(category => (
-                                                    <option key={category} value={category}>{category}</option>
-                                                ))}
-                                            </select>
-                                            {viewUseCase.usage_count > 0 && (
-                                                <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-medium">
-                                                    Used {viewUseCase.usage_count} times
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <h3 className="text-2xl font-bold text-gray-900 mb-2">{viewUseCase.name}</h3>
-                                        <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
-                                                {useCaseService.formatUseCaseTypeDisplay(viewUseCase.use_case_type)}
-                                            </span>
-                                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
-                                                {viewUseCase.category}
-                                            </span>
-                                            {viewUseCase.usage_count > 0 && (
-                                                <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-medium">
-                                                    Used {viewUseCase.usage_count} times
-                                                </span>
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                {isEditing ? (
-                                    <>
-                                        <button 
-                                            onClick={handleEditCancel}
-                                            className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-white/50 transition-colors font-medium"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button 
-                                            onClick={handleEditSave}
-                                            disabled={saving}
-                                            className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium disabled:opacity-50"
-                                        >
-                                            {saving ? (
-                                                <Loader className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <Save size={16} />
-                                            )}
-                                            <span>{saving ? 'Saving...' : 'Save'}</span>
-                                        </button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <button 
-                                            onClick={handleUseCaseEdit}
-                                            className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-lg transition-colors font-medium"
-                                        >
-                                            <Edit size={16} />
-                                            <span>Edit</span>
-                                        </button>
-                                    </>
-                                )}
-                                <button 
-                                    onClick={closeViewModal}
-                                    className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-white/50 transition-colors"
-                                >
-                                    <X size={24} />
-                                </button>
-                            </div>
-                        </div>
-                        
-                        {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {/* Description */}
-                            <div>
-                                <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                                    <div className="w-1 h-6 bg-blue-500 rounded mr-3"></div>
-                                    Description
-                                </h4>
-                                {isEditing ? (
-                                    <textarea
-                                        value={editingUseCase?.description || ''}
-                                        onChange={(e) => setEditingUseCase(prev => ({...prev, description: e.target.value}))}
-                                        className="w-full text-gray-700 leading-relaxed bg-white border border-gray-300 p-4 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        rows={4}
-                                        placeholder="Enter use case description..."
-                                    />
-                                ) : (
-                                    <p className="text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg">
-                                        {viewUseCase.description}
-                                    </p>
-                                )}
-                            </div>
-                            
-                            {/* Use Case Content */}
-                            <div>
-                                <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                                    <div className="w-1 h-6 bg-green-500 rounded mr-3"></div>
-                                    Use Case Content
-                                    {isEditing && <FileText size={16} className="ml-2 text-blue-500" />}
-                                </h4>
-                                {isEditing ? (
-                                    <div className="space-y-2">
-                                        <textarea
-                                            value={editingUseCase?.use_case_content || ''}
-                                            onChange={(e) => setEditingUseCase(prev => ({...prev, use_case_content: e.target.value}))}
-                                            className="w-full text-sm text-gray-700 font-mono leading-relaxed bg-white border border-gray-300 p-4 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            rows={10}
-                                            placeholder="Enter the use case content (prompts, instructions, etc.)"
-                                        />
-                                        <p className="text-xs text-gray-500">This is the core use case content that will be used for processing</p>
-                                    </div>
-                                ) : (
-                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-mono leading-relaxed max-h-60 overflow-y-auto">
-                                            {viewUseCase.use_case_content || viewUseCase.description || 'No content available'}
-                                        </pre>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {/* Tags */}
-                            <div>
-                                <h4 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
-                                    <div className="w-1 h-6 bg-pink-500 rounded mr-3"></div>
-                                    Tags
-                                </h4>
-                                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                    {isEditing ? (
-                                        <div>
-                                            <input
-                                                type="text"
-                                                value={editingUseCase?.tags?.join(', ') || ''}
-                                                onChange={(e) => {
-                                                    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-                                                    setEditingUseCase(prev => ({...prev, tags}));
-                                                }}
-                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                placeholder="Enter tags separated by commas (e.g., finance, data-processing, analysis)"
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">Separate tags with commas</p>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {viewUseCase.tags && viewUseCase.tags.length > 0 ? (
-                                                <div className="flex flex-wrap gap-2">
-                                                    {viewUseCase.tags.map(tag => (
-                                                        <span key={tag} className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 px-3 py-1.5 rounded-full text-sm font-medium">
-                                                            {tag}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-500 text-sm">No tags</span>
-                                            )}
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        {/* Footer */}
-                        <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-                            <button
-                                onClick={closeViewModal}
-                                className="px-6 py-2.5 text-gray-600 hover:text-gray-800 font-medium transition-colors"
-                            >
-                                Close
-                            </button>
-                            <button
-                                onClick={() => {
-                                    handleUseCaseApply(viewUseCase);
-                                    closeViewModal();
-                                }}
-                                className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 font-medium shadow-lg hover:shadow-xl transition-all"
-                            >
-                                Apply Use Case
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Use Case Detail Modal */}
+            <UseCaseDetailModal
+                isOpen={!!viewUseCase}
+                onClose={closeViewModal}
+                useCase={viewUseCase}
+                onEdit={handleUseCaseEdit}
+                onDelete={handleUseCaseDelete}
+                onApply={(useCase) => {
+                    handleUseCaseApply(useCase);
+                    closeViewModal();
+                }}
+            />
+
+            {/* Use Case Edit Modal */}
+            <UseCaseEditModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    console.log('🔧 UseCaseGallery: Closing edit modal');
+                    setIsEditModalOpen(false);
+                    setEditingUseCase(null);
+                }}
+                useCase={editingUseCase}
+                onSave={(updatedUseCase) => {
+                    console.log('🔧 UseCaseGallery: Use case saved:', updatedUseCase.name);
+                    // Refresh the use cases list
+                    loadUseCases();
+                    // If we were viewing this use case, update the view
+                    if (viewUseCase && viewUseCase.id === updatedUseCase.id) {
+                        setViewUseCase(updatedUseCase);
+                    }
+                }}
+            />
         </div>
     );
 };
