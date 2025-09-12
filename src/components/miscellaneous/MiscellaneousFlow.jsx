@@ -551,10 +551,31 @@ const MiscellaneousFlow = ({
                     : '';
                 onSendMessage('system', `✅ Processing completed! Generated ${response.row_count} result rows${totalCountMsg} using AI-generated SQL in ${response.processing_time_seconds}s.`);
             } else {
-                throw new Error(response.message || 'Processing failed');
+                // Processing failed but we might have generated SQL and error analysis
+                console.log('🔧 Processing failed with response:', response);
+                setProcessingError(response.message || 'Processing failed');
+                
+                // Extract generated SQL even from failed response
+                if (response.generated_sql) {
+                    setGeneratedSQL(response.generated_sql);
+                    console.log('🔧 Extracted SQL from failed response');
+                }
+                
+                // Set process results to include error analysis for display
+                if (response.error_analysis) {
+                    setProcessResults({
+                        data: response.data || [],
+                        error_analysis: response.error_analysis,
+                        success: false,
+                        ...response
+                    });
+                    console.log('🔧 Set processResults with error analysis');
+                }
+                
+                onSendMessage('system', `❌ Processing failed: ${response.message || 'Unknown error'}`);
             }
         } catch (error) {
-            console.error('Processing failed:', error);
+            console.error('Processing failed with exception:', error);
             setProcessingError(error.message);
             onSendMessage('system', `❌ Processing failed: ${error.message}`);
         } finally {
