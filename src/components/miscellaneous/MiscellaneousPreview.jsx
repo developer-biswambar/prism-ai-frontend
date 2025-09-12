@@ -23,6 +23,7 @@ import {
 import { formatSQL } from '../../utils/sqlFormatter';
 import { API_ENDPOINTS } from '../../config/environment';
 import PromptSaveLoad from './PromptSaveLoad';
+import ColumnMappingModal from './ColumnMappingModal';
 
 // Save Prompt Modal Component
 const SavePromptModal = ({ idealPrompt, onSave, onCancel, saving, error, originalPrompt, processName, selectedFiles }) => {
@@ -233,6 +234,9 @@ const MiscellaneousPreview = ({
     const [savingPrompt, setSavingPrompt] = useState(false);
     const [savePromptError, setSavePromptError] = useState(null);
     const [idealPrompt, setIdealPrompt] = useState('');
+    const [showColumnMappingModal, setShowColumnMappingModal] = useState(false);
+    const [columnMappingProcessing, setColumnMappingProcessing] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
 
     // Initialize editable SQL when generatedSQL changes
     React.useEffect(() => {
@@ -400,6 +404,106 @@ const MiscellaneousPreview = ({
             return processResults.data;
         } else {
             return processResults.data.slice(0, 10);
+        }
+    };
+
+    // Column mapping functions
+    const handleOpenColumnMapping = () => {
+        setShowErrorModal(false);
+        setShowColumnMappingModal(true);
+    };
+
+    const handleColumnMappingApply = async (columnMapping) => {
+        setColumnMappingProcessing(true);
+        try {
+            // Apply the column mapping to the SQL and re-execute
+            console.log('🔧 Applying column mapping:', columnMapping);
+            
+            // Transform the SQL by replacing missing columns with mapped columns
+            let updatedSQL = generatedSQL || editableSQL;
+            Object.entries(columnMapping).forEach(([missingCol, mappedCol]) => {
+                // Replace column references in the SQL
+                const regex = new RegExp(`\\b${missingCol}\\b`, 'gi');
+                updatedSQL = updatedSQL.replace(regex, mappedCol);
+            });
+
+            console.log('📝 Updated SQL with mapping:', updatedSQL);
+            
+            // Execute the updated SQL
+            await handleExecuteSQL(updatedSQL);
+            setShowColumnMappingModal(false);
+        } catch (error) {
+            console.error('❌ Error applying column mapping:', error);
+        } finally {
+            setColumnMappingProcessing(false);
+        }
+    };
+
+    const handleColumnMappingCancel = () => {
+        // Return to the SQL execution error modal
+        setShowColumnMappingModal(false);
+        setShowErrorModal(true);
+    };
+
+    // Extract columns from error analysis for column mapping
+    const getAvailableColumns = () => {
+        if (processResults?.error_analysis?.available_columns) {
+            return processResults.error_analysis.available_columns;
+        }
+        
+        // Fallback: extract from file data if available
+        if (selectedFiles.length > 0 && selectedFiles[0].columns) {
+            return selectedFiles[0].columns;
+        }
+        
+        return [];
+    };
+
+    const getMissingColumns = () => {
+        if (processResults?.error_analysis?.missing_columns) {
+            return processResults.error_analysis.missing_columns;
+        }
+        
+        // Extract missing columns from error message if available
+        const errorMessage = processResults?.error || processResults?.errors?.[0] || '';
+        const columnMatches = errorMessage.match(/Referenced column "([^"]+)" not found/g);
+        if (columnMatches) {
+            return columnMatches.map(match => match.match(/Referenced column "([^"]+)"/)[1]);
+        }
+        
+        return [];
+    };
+
+    // Generic SQL execution function
+    const handleExecuteSQL = async (sqlQuery) => {
+        if (!sqlQuery?.trim()) return;
+        setExecutingSQL(true);
+        setExecuteError(null);
+        setExecuteResults(null);
+        try {
+            const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/execute-query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sql_query: sqlQuery,
+                    process_id: processId, // Use the same process ID to access same data
+                }),
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                setExecuteResults(data);
+                setEditableSQL(sqlQuery); // Update the editable SQL
+            } else {
+                setExecuteError(data.detail || data.error || 'Failed to execute query');
+            }
+        } catch (error) {
+            console.error('Execute SQL error:', error);
+            setExecuteError('Failed to execute query: ' + error.message);
+        } finally {
+            setExecutingSQL(false);
         }
     };
 
@@ -891,6 +995,7 @@ const MiscellaneousPreview = ({
                                         {processResults.error || 'An error occurred while executing the query'}
                                     </p>
                                     
+                                    
                                     {/* AI Error Analysis Section */}
                                     {processResults.error_analysis && (
                                         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -939,15 +1044,29 @@ const MiscellaneousPreview = ({
                                                         </div>
                                                     )}
                                                     
-                                                    <div className="flex items-center space-x-2 text-xs">
-                                                        <span className="text-blue-600">Error Type:</span>
-                                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                                            {processResults.error_analysis.error_type || 'unknown'}
-                                                        </span>
-                                                        <span className="text-blue-600">Confidence:</span>
-                                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                                            {processResults.error_analysis.confidence || 'medium'}
-                                                        </span>
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center space-x-2 text-xs">
+                                                            <span className="text-blue-600">Error Type:</span>
+                                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                                {processResults.error_analysis.error_type || 'unknown'}
+                                                            </span>
+                                                            <span className="text-blue-600">Confidence:</span>
+                                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                                {processResults.error_analysis.confidence || 'medium'}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        {/* Column Mapping Button - show only for column-related errors */}
+                                                        {(processResults.error_analysis.error_type === 'column_not_found' || 
+                                                          getMissingColumns().length > 0) && (
+                                                            <button
+                                                                onClick={handleOpenColumnMapping}
+                                                                className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 flex items-center space-x-1"
+                                                            >
+                                                                <Settings size={12} />
+                                                                <span>Fix Columns</span>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1082,6 +1201,21 @@ const MiscellaneousPreview = ({
                     }}
                     onClose={() => setShowSavePromptModal(false)}
                     defaultTab="save"
+                />
+            )}
+
+            {/* Column Mapping Modal */}
+            {showColumnMappingModal && (
+                <ColumnMappingModal
+                    isOpen={showColumnMappingModal}
+                    onClose={() => setShowColumnMappingModal(false)}
+                    onApplyMapping={handleColumnMappingApply}
+                    onReturnToError={handleColumnMappingCancel}
+                    errorData={processResults}
+                    availableColumns={getAvailableColumns()}
+                    missingColumns={getMissingColumns()}
+                    generatedSQL={generatedSQL}
+                    processing={columnMappingProcessing}
                 />
             )}
         </div>

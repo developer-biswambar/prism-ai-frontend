@@ -9,6 +9,7 @@ import {
     FileText,
     FolderOpen,
     HelpCircle,
+    Loader,
     Play,
     Save,
     Sparkles,
@@ -71,6 +72,7 @@ const MiscellaneousFlow = ({
     const [columnMappingSuggestions, setColumnMappingSuggestions] = useState(null);
     const [pendingUseCaseExecution, setPendingUseCaseExecution] = useState(null);
     const [isExecutingUseCase, setIsExecutingUseCase] = useState(false);
+    const [executionType, setExecutionType] = useState(''); // 'ai_assisted' or 'column_mapping'
     
     // Execution error state
     const [showExecutionErrorModal, setShowExecutionErrorModal] = useState(false);
@@ -332,6 +334,7 @@ const MiscellaneousFlow = ({
         if (!pendingUseCaseExecution) return;
         
         try {
+            setExecutionType('column_mapping');
             setIsExecutingUseCase(true);
             setShowColumnMappingModal(false);
             
@@ -371,6 +374,7 @@ const MiscellaneousFlow = ({
             onSendMessage('system', `❌ Error applying column mapping: ${error.message}`);
         } finally {
             setIsExecutingUseCase(false);
+            setExecutionType('');
             setPendingUseCaseExecution(null);
             setColumnMappingSuggestions(null);
         }
@@ -383,11 +387,21 @@ const MiscellaneousFlow = ({
         setIsExecutingUseCase(false);
     };
 
+    const handleReturnToError = () => {
+        console.log('🔧 Returning to ExecutionErrorModal');
+        setShowColumnMappingModal(false);
+        setColumnMappingSuggestions(null);
+        setPendingUseCaseExecution(null);
+        // Restore the ExecutionErrorModal with preserved error data
+        setShowExecutionErrorModal(true);
+    };
+
     // Execution error handlers
     const handleRetryWithAI = async () => {
         if (!executionErrorData) return;
         
         try {
+            setExecutionType('ai_assisted');
             setIsExecutingUseCase(true);
             setShowExecutionErrorModal(false);
             
@@ -425,6 +439,7 @@ const MiscellaneousFlow = ({
             onSendMessage('system', `❌ AI-assisted execution failed: ${error.message}`);
         } finally {
             setIsExecutingUseCase(false);
+            setExecutionType('');
             setExecutionErrorData(null);
         }
     };
@@ -432,33 +447,50 @@ const MiscellaneousFlow = ({
     const handleManualMapping = () => {
         if (!executionErrorData) return;
         
-        console.log('🔧 Manual mapping - error data:', executionErrorData.error_analysis);
+        console.log('🔧 Manual mapping - FULL error data:', executionErrorData);
+        console.log('🔧 Manual mapping - error_analysis:', executionErrorData.error_analysis);
+        console.log('🔧 Manual mapping - execution_error:', executionErrorData.execution_error);
         
         // Convert error data to column mapping format
         const suggestions = {};
         const availableColumns = executionErrorData.error_analysis?.available_columns || [];
+        const missingColumns = executionErrorData.error_analysis?.missing_columns || [];
+        const backendSuggestions = executionErrorData.error_analysis?.suggestions || [];
         
         console.log('🔧 Available columns for mapping:', availableColumns);
+        console.log('🔧 Missing columns:', missingColumns);
+        console.log('🔧 Backend suggestions (detailed):', backendSuggestions);
         
-        if (executionErrorData.error_analysis?.missing_columns) {
-            executionErrorData.error_analysis.missing_columns.forEach(missingCol => {
-                // Try fuzzy matching first
-                const fuzzyMatches = availableColumns.filter(col => 
-                    col.toLowerCase().includes(missingCol.toLowerCase()) || 
-                    missingCol.toLowerCase().includes(col.toLowerCase())
-                );
-                
-                // If no fuzzy matches, include all available columns for user selection
-                const columnOptions = fuzzyMatches.length > 0 ? fuzzyMatches.slice(0, 3) : availableColumns;
-                suggestions[missingCol] = columnOptions;
-                
-                console.log(`🔧 Mapping suggestions for '${missingCol}':`, columnOptions);
+        // Log each suggestion individually to see its structure
+        backendSuggestions.forEach((suggestion, index) => {
+            console.log(`🔧 Suggestion ${index}:`, suggestion, typeof suggestion);
+        });
+        
+        if (missingColumns.length > 0) {
+            // Use missing columns when available
+            missingColumns.forEach(missingCol => {
+                suggestions[missingCol] = availableColumns;
+                console.log(`🔧 Available columns for missing '${missingCol}':`, availableColumns);
             });
+        } else if (backendSuggestions.length > 0) {
+            // Use backend suggestions when no specific missing columns
+            backendSuggestions.forEach(suggestion => {
+                if (typeof suggestion === 'string') {
+                    suggestions[suggestion] = availableColumns;
+                } else if (suggestion && suggestion.column) {
+                    suggestions[suggestion.column] = availableColumns;
+                }
+                console.log(`🔧 Available columns for suggested '${suggestion}':`, availableColumns);
+            });
+        } else {
+            console.log('🔧 No missing columns or backend suggestions available - backend needs to provide missing column names');
         }
         
         console.log('🔧 Final suggestions object:', suggestions);
         
-        // Close error modal and open mapping modal
+        console.log('🔧 Opening column mapping modal with suggestions:', suggestions);
+        
+        // Close error modal and open mapping modal - but preserve error data for returning
         setShowExecutionErrorModal(false);
         setColumnMappingSuggestions(suggestions);
         setPendingUseCaseExecution({ 
@@ -466,7 +498,7 @@ const MiscellaneousFlow = ({
             files: executionErrorData.files 
         });
         setShowColumnMappingModal(true);
-        setExecutionErrorData(null);
+        // Keep executionErrorData for returning to error modal - don't clear it
     };
 
     const handleExecutionErrorClose = () => {
@@ -776,6 +808,24 @@ const MiscellaneousFlow = ({
             onClick={handleOverlayClick}
         >
             <div className="bg-white w-full h-full overflow-hidden flex flex-col relative">
+                {/* Use Case Execution Loading Overlay */}
+                {isExecutingUseCase && (
+                    <div className="absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50">
+                        <div className="text-center">
+                            <Loader className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
+                            <p className="text-lg font-semibold text-gray-800 mb-2">
+                                {executionType === 'ai_assisted' ? 'AI Analyzing Your Data...' :
+                                 executionType === 'column_mapping' ? 'Applying Column Mapping...' :
+                                 'Executing Use Case...'}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                                {executionType === 'ai_assisted' ? 'AI is adapting the query to work with your data structure' :
+                                 executionType === 'column_mapping' ? 'Running the query with your column mappings' :
+                                 'This may take a few moments'}
+                            </p>
+                        </div>
+                    </div>
+                )}
                 {/* Header */}
                 <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3">
                     <div className="flex items-center justify-between">
@@ -1113,6 +1163,11 @@ const MiscellaneousFlow = ({
             />
 
             {/* Column Mapping Modal */}
+            {console.log('🔧 Rendering ColumnMappingModal with props:', {
+                isOpen: showColumnMappingModal,
+                suggestions: columnMappingSuggestions,
+                templateData: pendingUseCaseExecution?.useCase
+            })}
             <ColumnMappingModal
                 isOpen={showColumnMappingModal}
                 onClose={handleColumnMappingClose}
@@ -1120,6 +1175,7 @@ const MiscellaneousFlow = ({
                 suggestions={columnMappingSuggestions}
                 onApplyMapping={handleColumnMappingApply}
                 isExecuting={isExecutingUseCase}
+                onReturnToError={executionErrorData ? handleReturnToError : null}
             />
 
             {/* Execution Error Modal */}

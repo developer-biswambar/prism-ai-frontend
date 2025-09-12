@@ -9,7 +9,6 @@ import {
     ArrowRight,
     CheckCircle,
     X,
-    RefreshCw,
     Info,
     Play,
     Loader
@@ -21,26 +20,31 @@ const ColumnMappingModal = ({
     templateData,
     suggestions,
     onApplyMapping,
-    isExecuting = false
+    isExecuting = false,
+    onReturnToError = null
 }) => {
     const [columnMapping, setColumnMapping] = useState({});
     const [validationErrors, setValidationErrors] = useState({});
 
     useEffect(() => {
+        console.log('🔧 ColumnMappingModal useEffect - isOpen:', isOpen, 'suggestions:', suggestions);
         if (isOpen && suggestions) {
             console.log('🔧 ColumnMappingModal opened with suggestions:', suggestions);
             console.log('🔧 Template data:', templateData);
+            console.log('🔧 Suggestions keys:', Object.keys(suggestions));
+            console.log('🔧 Suggestions entries:', Object.entries(suggestions));
             
-            // Initialize mapping with first suggestion for each column
+            // Initialize mapping with empty selections for manual mapping
             const initialMapping = {};
             Object.entries(suggestions).forEach(([templateCol, availableOptions]) => {
-                console.log(`🔧 Template column '${templateCol}' has ${availableOptions.length} options:`, availableOptions);
-                if (availableOptions.length > 0) {
-                    initialMapping[templateCol] = availableOptions[0];
-                }
+                console.log(`🔧 Template column '${templateCol}' has ${availableOptions?.length || 0} options:`, availableOptions);
+                initialMapping[templateCol] = '';
             });
+            console.log('🔧 Initial mapping created:', initialMapping);
             setColumnMapping(initialMapping);
             setValidationErrors({});
+        } else {
+            console.log('🔧 ColumnMappingModal useEffect - conditions not met. isOpen:', isOpen, 'suggestions exists:', !!suggestions);
         }
     }, [isOpen, suggestions]);
 
@@ -77,18 +81,6 @@ const ColumnMappingModal = ({
         }
     };
 
-    const handleAutoMap = () => {
-        // Auto-map based on similarity scores (if available) or first suggestions
-        const autoMapping = {};
-        Object.entries(suggestions).forEach(([templateCol, options]) => {
-            if (options.length > 0) {
-                // Pick the first option (usually highest similarity)
-                autoMapping[templateCol] = options[0];
-            }
-        });
-        setColumnMapping(autoMapping);
-        setValidationErrors({});
-    };
 
     if (!isOpen) return null;
 
@@ -121,7 +113,7 @@ const ColumnMappingModal = ({
                         </div>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={onReturnToError || onClose}
                         disabled={isExecuting}
                         className="text-gray-400 hover:text-gray-600 p-1"
                     >
@@ -150,21 +142,14 @@ const ColumnMappingModal = ({
                             Please map each template column to the appropriate column in your data.
                         </p>
                         
-                        <div className="flex items-center space-x-2 mb-4">
-                            <button
-                                onClick={handleAutoMap}
-                                disabled={isExecuting}
-                                className="flex items-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
-                            >
-                                <RefreshCw size={14} />
-                                <span>Auto-map Best Matches</span>
-                            </button>
-                        </div>
                     </div>
 
                     {/* Column Mapping Grid */}
                     <div className="space-y-4">
-                        {Object.entries(suggestions).map(([templateColumn, availableColumns]) => (
+                        {console.log('🔧 Rendering suggestions:', suggestions, 'Object.entries(suggestions):', Object.entries(suggestions || {}))}
+                        {Object.entries(suggestions || {}).map(([templateColumn, availableColumns]) => {
+                            console.log(`🔧 Rendering template column: ${templateColumn}, available columns:`, availableColumns);
+                            return (
                             <div 
                                 key={templateColumn}
                                 className={`border rounded-lg p-4 ${
@@ -204,12 +189,15 @@ const ColumnMappingModal = ({
                                                 disabled={isExecuting}
                                             >
                                                 <option value="">Select a column...</option>
-                                                {availableColumns.map((column, index) => (
-                                                    <option key={index} value={column}>
-                                                        {column}
-                                                        {index === 0 ? ' (best match)' : ''}
-                                                    </option>
-                                                ))}
+                                                {console.log(`🔧 Mapping options for ${templateColumn}:`, availableColumns)}
+                                                {(availableColumns || []).map((column, index) => {
+                                                    console.log(`🔧 Rendering option ${index}: ${column}`);
+                                                    return (
+                                                        <option key={index} value={column}>
+                                                            {column}
+                                                        </option>
+                                                    );
+                                                })}
                                             </select>
                                         </div>
                                     </div>
@@ -231,7 +219,8 @@ const ColumnMappingModal = ({
                                     </div>
                                 )}
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Preview of Mapping */}
@@ -262,11 +251,11 @@ const ColumnMappingModal = ({
                     
                     <div className="flex items-center space-x-3">
                         <button
-                            onClick={onClose}
+                            onClick={onReturnToError || onClose}
                             disabled={isExecuting}
                             className="px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
                         >
-                            Cancel
+                            {onReturnToError ? 'Back to Error' : 'Cancel'}
                         </button>
                         
                         <button
