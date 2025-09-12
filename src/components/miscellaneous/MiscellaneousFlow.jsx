@@ -639,7 +639,7 @@ const MiscellaneousFlow = ({
                         selectedFiles={selectedFilesForProcessing}
                         onSelectionChange={setSelectedFilesForProcessing}
                         onFilesRefresh={onFilesRefresh}
-                        maxFiles={5}
+                        maxFiles={10}
                     />
                 );
 

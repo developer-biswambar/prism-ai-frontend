@@ -890,6 +890,70 @@ const MiscellaneousPreview = ({
                                     <p className="text-sm text-red-700 mt-1">
                                         {processResults.error || 'An error occurred while executing the query'}
                                     </p>
+                                    
+                                    {/* AI Error Analysis Section */}
+                                    {processResults.error_analysis && (
+                                        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                            <div className="flex items-start space-x-2">
+                                                <Sparkles className="text-blue-600 mt-0.5" size={16} />
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-medium text-blue-800 mb-2">🤖 AI Error Analysis</p>
+                                                    
+                                                    {processResults.error_analysis.user_friendly_message && (
+                                                        <div className="mb-3">
+                                                            <p className="text-sm text-blue-700">
+                                                                {processResults.error_analysis.user_friendly_message}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {processResults.error_analysis.technical_details && (
+                                                        <div className="mb-3">
+                                                            <p className="text-xs font-medium text-blue-800 mb-1">Technical Details:</p>
+                                                            <p className="text-xs text-blue-700 bg-white p-2 rounded border">
+                                                                {processResults.error_analysis.technical_details}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {processResults.error_analysis.suggested_fixes && processResults.error_analysis.suggested_fixes.length > 0 && (
+                                                        <div className="mb-3">
+                                                            <p className="text-xs font-medium text-blue-800 mb-2">💡 Suggested Fixes:</p>
+                                                            <ul className="text-xs text-blue-700 space-y-1">
+                                                                {processResults.error_analysis.suggested_fixes.map((fix, index) => (
+                                                                    <li key={index} className="flex items-start space-x-2">
+                                                                        <span className="text-blue-600 mt-0.5">•</span>
+                                                                        <span>{fix}</span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {processResults.error_analysis.prevention_tip && (
+                                                        <div className="mb-2">
+                                                            <p className="text-xs font-medium text-blue-800 mb-1">💭 Prevention Tip:</p>
+                                                            <p className="text-xs text-blue-700 italic bg-white p-2 rounded border">
+                                                                {processResults.error_analysis.prevention_tip}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className="flex items-center space-x-2 text-xs">
+                                                        <span className="text-blue-600">Error Type:</span>
+                                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                            {processResults.error_analysis.error_type || 'unknown'}
+                                                        </span>
+                                                        <span className="text-blue-600">Confidence:</span>
+                                                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                            {processResults.error_analysis.confidence || 'medium'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
                                     {processResults.errors && processResults.errors.length > 0 && (
                                         <div className="mt-2">
                                             <p className="text-xs font-medium text-red-800 mb-1">Error Details:</p>

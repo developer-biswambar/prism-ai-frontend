@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import {
     AlertCircle,
     Check,
@@ -19,7 +19,7 @@ const MiscellaneousFileSelection = ({
     selectedFiles,
     onSelectionChange,
     onFilesRefresh, // Callback to refresh file list after upload
-    maxFiles = 5
+    maxFiles = 10
 }) => {
     
     // Drag & drop state
@@ -40,6 +40,9 @@ const MiscellaneousFileSelection = ({
     const [searchTerm, setSearchTerm] = useState('');
     
     const fileInputRef = useRef(null);
+    useEffect(() => {
+        handleRefresh()
+    },[])
     
     // Drag & drop handlers
     const handleDragEnter = (e) => {
@@ -95,8 +98,8 @@ const MiscellaneousFileSelection = ({
         setUploadError('');
         
         // Check file count limit
-        if (selectedFiles.length > 5) {
-            setUploadError('You can upload a maximum of 5 files at once.');
+        if (selectedFiles.length > 10) {
+            setUploadError('You can upload a maximum of 10 files at once.');
             return;
         }
 
@@ -302,40 +305,55 @@ const MiscellaneousFileSelection = ({
         return sorted;
     }, [files]);
 
-    // Format date for display with detailed relative times
+    // Format date for display with relative time for recent items, exact date/time for older items
     const formatDate = (file) => {
         const date = file.last_modified || 
                     file.upload_time || 
                     file.uploadTime || 
                     file._storage_metadata?.created_at;
+        
         if (!date) return 'Unknown';
         
-        // Parse UTC timestamp and convert to local time for comparison
-        const dateObj = new Date(date + (date.includes('Z') ? '' : 'Z')); // Ensure UTC parsing
+        // Parse date with fallback approaches for different timezone formats
+        let dateObj;
+        try {
+            // First try direct parsing (handles ISO strings with timezone info)
+            dateObj = new Date(date);
+            
+            // If invalid and no timezone info, assume UTC and add Z suffix
+            if (isNaN(dateObj.getTime()) && !date.includes('Z') && !date.includes('+')) {
+                dateObj = new Date(date + 'Z');
+            }
+            
+        } catch (error) {
+            return 'Invalid date';
+        }
+        
+        // Check if date is valid
+        if (isNaN(dateObj.getTime())) {
+            return 'Invalid date';
+        }
+        
         const now = new Date();
         const diffTime = now - dateObj;
         
-        // Calculate different time units
+        // Calculate time units
         const diffMinutes = Math.floor(diffTime / (1000 * 60));
         const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        const diffWeeks = Math.floor(diffDays / 7);
-        const diffMonths = Math.floor(diffDays / 30);
         
-        // Return detailed relative time for recent uploads
+        // Return detailed relative time for items within 24 hours
         if (diffMinutes < 1) return 'Just now';
         if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
         if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-        if (diffDays === 1) return 'Yesterday';
-        if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-        if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`;
-        if (diffMonths < 12) return `${diffMonths} month${diffMonths !== 1 ? 's' : ''} ago`;
         
-        // For very old files, show actual date
-        return dateObj.toLocaleDateString('en-US', {
+        // For items older than 1 day, show exact date and time
+        return dateObj.toLocaleString('en-US', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric'
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
         });
     };
 
@@ -412,7 +430,7 @@ const MiscellaneousFileSelection = ({
                     <div className="flex items-center justify-center space-x-3 text-xs text-gray-500 mt-2">
                         <span>CSV, Excel</span>
                         <span>•</span>
-                        <span>Max 5 files</span>
+                        <span>Max 10 files at once</span>
                     </div>
                     
                     <input
