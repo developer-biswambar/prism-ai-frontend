@@ -985,7 +985,7 @@ const MiscellaneousPreview = ({
                                 </div>
                             )}
                         </div>
-                    ) : processResults && !processResults.success ? (
+                    ) : processResults && processResults.error ? (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                             <div className="flex items-start space-x-3">
                                 <XCircle className="text-red-600 mt-0.5" size={20} />

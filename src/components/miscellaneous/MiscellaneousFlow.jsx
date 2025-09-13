@@ -21,7 +21,7 @@ import {
 import MiscellaneousFileSelection from './MiscellaneousFileSelection.jsx';
 import MiscellaneousPromptInput from './MiscellaneousPromptInput.jsx';
 import MiscellaneousPreview from './MiscellaneousPreview.jsx';
-import IntentVerificationModal from './IntentVerificationModal.jsx';
+import EnhancedIntentVerificationModal from './EnhancedIntentVerificationModal.jsx';
 import UseCaseGallery from '../usecases/UseCaseGallery.jsx';
 import UseCaseCreationModal from '../usecases/UseCaseCreationModal.jsx';
 import ColumnMappingModal from '../usecases/ColumnMappingModal.jsx';
@@ -176,8 +176,14 @@ const MiscellaneousFlow = ({
     // Intent verification methods
     const verifyIntent = async () => {
         if (!canProceedToNext()) return;
+        await verifyIntentWithPrompt(userPrompt);
+    };
 
+    const verifyIntentWithPrompt = async (promptToVerify) => {
+        console.log('🔍 Starting intent verification - setting loading states');
         setIsVerifyingIntent(true);
+        setShowIntentModal(true);
+        console.log('🔍 Modal opened immediately with isVerifyingIntent=true');
         try {
             onSendMessage('system', '🔍 Analyzing your query intent...');
             
@@ -189,29 +195,55 @@ const MiscellaneousFlow = ({
             }));
 
             const response = await miscellaneousService.verifyIntent({
-                user_prompt: userPrompt,
+                user_prompt: promptToVerify,
                 files: fileReferences
             });
 
+            console.log('🔍 Intent Verification API Response:', response);
+            console.log('🔍 Response structure keys:', Object.keys(response));
+            
             if (response.success) {
-                setIntentData(response.intent_summary);
-                setShowIntentModal(true);
-                onSendMessage('system', '✅ Intent analysis complete! Please review before execution.');
+                // Enhanced API returns verification_results instead of intent_summary
+                const verificationData = {
+                    verification_results: response.verification_results
+                };
+                console.log('🔍 Setting intent data:', verificationData);
+                console.log('🔍 Verification results keys:', Object.keys(response.verification_results || {}));
+                
+                // Show results after delay (modal already opened above)
+                setTimeout(() => {
+                    setIntentData(verificationData);
+                    setIsVerifyingIntent(false);
+                    console.log('🔍 Loading state cleared after delay - showing results');
+                    onSendMessage('system', '✅ Intent analysis complete! Please review before execution.');
+                }, 800);
             } else {
+                console.error('❌ Intent verification failed:', response);
+                setIsVerifyingIntent(false);
+                setShowIntentModal(false);
                 throw new Error(response.message || 'Intent verification failed');
             }
         } catch (error) {
             console.error('Intent verification failed:', error);
+            setIsVerifyingIntent(false);
+            setShowIntentModal(false);
             onSendMessage('system', `❌ Intent verification failed: ${error.message}`);
             // Fall back to proceeding without verification
             setCurrentStep('preview_process');
-        } finally {
-            setIsVerifyingIntent(false);
         }
     };
 
-    const handleIntentConfirm = () => {
+    const handleIntentConfirm = (selectedSuggestions = {}) => {
+        console.log('🔧 Intent confirmed with suggestions:', selectedSuggestions);
         setShowIntentModal(false);
+        
+        // Store the selected suggestions for use during processing
+        if (Object.keys(selectedSuggestions).length > 0) {
+            console.log('💡 User accepted column suggestions:', selectedSuggestions);
+            // You could store these suggestions in state if needed for the actual processing
+            // For now, we'll proceed with the understanding that the user has confirmed the intent
+        }
+        
         // Move to next step with verified intent and immediately trigger processing
         setCurrentStep('preview_process');
         
@@ -225,6 +257,35 @@ const MiscellaneousFlow = ({
         // Trigger processing after a brief delay to ensure UI updates
         setTimeout(() => {
             processData();
+        }, 100);
+    };
+
+    const handleApplyToPrompt = (enhancedPrompt, selectedSuggestions) => {
+        console.log('🎯 MiscellaneousFlow.handleApplyToPrompt called');
+        console.log('📝 Received enhanced prompt:', enhancedPrompt);
+        console.log('💡 Received selected suggestions:', selectedSuggestions);
+        console.log('🔍 Current userPrompt before update:', userPrompt);
+        
+        // Update the user prompt with the enhanced version
+        setUserPrompt(enhancedPrompt);
+        console.log('✅ setUserPrompt called with:', enhancedPrompt);
+        
+        // Close current modal and go back to prompt input step
+        setShowIntentModal(false);
+        setIntentData(null);
+        console.log('🚪 Modal closed, intentData cleared');
+        
+        // Go back to prompt input step so user can see and edit the enhanced prompt
+        setCurrentStep('prompt_input');
+        console.log('🔄 Current step set to: prompt_input');
+        
+        onSendMessage('system', '📝 Suggestions applied to your prompt! You can now review and modify before proceeding.');
+        console.log('💬 System message sent');
+        
+        // Add a delay to ensure state updates, then log the new prompt
+        setTimeout(() => {
+            console.log('⏰ After timeout - checking userPrompt state');
+            console.log('📝 userPrompt should now be:', enhancedPrompt);
         }, 100);
     };
 
@@ -762,38 +823,16 @@ const MiscellaneousFlow = ({
                                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                                     Intent Verification
                                 </h3>
-                                <p className="text-gray-600 mb-4">
-                                    AI is analyzing your query to show you exactly what will happen before execution.
-                                    This helps ensure accuracy and lets you review the planned operations.
+                                <p className="text-gray-600 mb-6">
+                                    Get AI-powered verification of your query before execution to ensure accuracy and see exactly what will happen.
                                 </p>
                                 
-                                {isVerifyingIntent ? (
-                                    <div className="flex items-center justify-center space-x-3">
-                                        <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                        <span className="text-blue-600 font-medium">Analyzing intent...</span>
-                                    </div>
-                                ) : intentData ? (
-                                    <div className="text-green-600 font-medium">
-                                        ✅ Intent analysis complete! Review the details in the modal.
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={verifyIntent}
-                                        className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                                    >
-                                        Start Intent Verification
-                                    </button>
-                                )}
-                            </div>
-                            
-                            <div className="text-sm text-gray-500">
-                                This step analyzes your natural language query and shows you:
-                                <ul className="mt-2 space-y-1 text-left">
-                                    <li>• Visual data flow diagram</li>
-                                    <li>• Sample data previews</li>
-                                    <li>• Expected results summary</li>
-                                    <li>• Plain language explanation</li>
-                                </ul>
+                                <button
+                                    onClick={verifyIntent}
+                                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                >
+                                    Verify Intent with AI
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1149,15 +1188,16 @@ const MiscellaneousFlow = ({
                 </div>
             </div>
 
-            {/* Intent Verification Modal */}
-            <IntentVerificationModal
+            {/* Enhanced Intent Verification Modal */}
+            <EnhancedIntentVerificationModal
                 isOpen={showIntentModal}
                 onClose={handleIntentModalClose}
-                intentData={intentData}
+                verificationData={intentData?.verification_results}
                 originalPrompt={userPrompt}
                 onConfirm={handleIntentConfirm}
-                onClarify={handleIntentClarify}
-                isLoading={isProcessing}
+                onModifyQuery={handleIntentClarify}
+                onApplyToPrompt={handleApplyToPrompt}
+                isLoading={isVerifyingIntent || isProcessing}
             />
 
             {/* Template Creation Modal */}
