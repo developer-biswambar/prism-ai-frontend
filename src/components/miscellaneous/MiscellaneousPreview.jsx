@@ -634,7 +634,8 @@ const MiscellaneousPreview = ({
             {processResults && (
                 <div className="space-y-4">
                     {/* Success Header */}
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    {processResults.success !== false && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                                 <CheckCircle className="text-green-600" size={20} />
@@ -677,6 +678,33 @@ const MiscellaneousPreview = ({
                             </div>
                         )}
                     </div>
+                    )}
+
+                    {/* Error Header */}
+                    {processResults.success === false && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <XCircle className="text-red-600" size={20} />
+                                    <span className="text-sm font-medium text-red-800">Processing Failed</span>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    {processResults.message && (
+                                        <span className="text-sm text-red-700">
+                                            {processResults.message}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            {processResults.error_analysis && (
+                                <div className="mt-3 p-3 bg-red-100 rounded-md">
+                                    <p className="text-sm font-medium text-red-800 mb-2">Error Analysis:</p>
+                                    <p className="text-sm text-red-700">{processResults.error_analysis}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* SQL Editor - Available when we have processId (success or failure) */}
                     {processId && (
