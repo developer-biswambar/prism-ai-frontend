@@ -1197,7 +1197,11 @@ const MiscellaneousFlow = ({
                                 <div className="group relative">
                                     <button
                                         onClick={() => {
+                                            // Set processing state first to show loading immediately
+                                            setIsProcessing(true);
+                                            // Switch to preview step
                                             setCurrentStep('preview_process');
+                                            // Start processing after a short delay to ensure UI updates
                                             setTimeout(() => processData(), 100);
                                         }}
                                         disabled={!canProceedToNext() || isProcessing}
