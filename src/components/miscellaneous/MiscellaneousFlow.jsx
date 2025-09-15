@@ -123,7 +123,7 @@ const MiscellaneousFlow = ({
     const canProceedToNext = () => {
         switch(currentStep) {
             case 'file_selection':
-                return getSelectedFilesArray().length >= 1 && getSelectedFilesArray().length <= 5;
+                return getSelectedFilesArray().length >= 1 && getSelectedFilesArray().length <= 10;
             case 'use_case_selection':
                 return true; // Use Case selection is optional - users can skip to write custom prompt
             case 'prompt_input':

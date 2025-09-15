@@ -723,8 +723,8 @@ const MiscellaneousPreview = ({
                         )}
                     </div>
 
-                    {/* Generated SQL Display */}
-                    {generatedSQL && (
+                    {/* SQL Editor - Available when we have processId (success or failure) */}
+                    {processId && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg">
                             <div 
                                 className="flex items-center justify-between p-3 cursor-pointer"
