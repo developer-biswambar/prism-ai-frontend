@@ -261,6 +261,12 @@ const MiscellaneousPreview = ({
     const executeSQL = async () => {
         if (!editableSQL.trim()) return;
 
+        console.log('🔍 executeSQL called with:', {
+            processId, 
+            editableSQL: editableSQL?.substring(0, 50) + '...',
+            processingError
+        });
+
         setExecutingSQL(true);
         setExecuteError(null);
         setExecuteResults(null);
@@ -477,6 +483,10 @@ const MiscellaneousPreview = ({
     // Generic SQL execution function
     const handleExecuteSQL = async (sqlQuery) => {
         if (!sqlQuery?.trim()) return;
+        
+        // processId should always be available when this function is called
+        console.log('🔍 handleExecuteSQL: processId:', processId);
+        
         setExecutingSQL(true);
         setExecuteError(null);
         setExecuteResults(null);
@@ -583,10 +593,70 @@ const MiscellaneousPreview = ({
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-start space-x-2">
                         <XCircle className="text-red-600 mt-0.5" size={16} />
-                        <div>
+                        <div className="flex-1">
                             <span className="text-sm font-medium text-red-800">Processing Failed</span>
                             <p className="text-sm text-red-700 mt-1">{processingError}</p>
+                            {processId && (
+                                <div className="mt-3 bg-blue-50 border border-blue-200 rounded p-3">
+                                    <div className="flex items-start space-x-2">
+                                        <Database className="text-blue-600 mt-0.5" size={14} />
+                                        <div>
+                                            <p className="text-xs font-medium text-blue-800">Manual Data Exploration Available</p>
+                                            <p className="text-xs text-blue-700 mt-1">
+                                                Your raw data is still available for custom SQL queries. 
+                                                Use table names: <code className="bg-blue-100 px-1 rounded">file_1</code>, <code className="bg-blue-100 px-1 rounded">file_2</code>, etc.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Manual SQL Query for Failed Processing */}
+            {processingError && processId && (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium text-gray-900 flex items-center space-x-2">
+                            <Database className="text-gray-600" size={16} />
+                            <span>Manual Data Exploration</span>
+                        </h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        <p className="text-xs text-gray-600">
+                            Write custom SQL queries to explore your uploaded data. 
+                            Your files are available as: <code className="bg-gray-100 px-1 rounded">file_1</code>, <code className="bg-gray-100 px-1 rounded">file_2</code>, etc.
+                        </p>
+                        
+                        <div className="relative">
+                            <textarea
+                                value={editableSQL}
+                                onChange={(e) => setEditableSQL(e.target.value)}
+                                placeholder="SELECT * FROM file_1 LIMIT 10;"
+                                className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm font-mono bg-gray-900 text-green-400 resize-none"
+                            />
+                        </div>
+                        
+                        <button
+                            onClick={executeSQL}
+                            disabled={executingSQL || !editableSQL.trim()}
+                            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded text-sm flex items-center space-x-2 disabled:cursor-not-allowed"
+                        >
+                            {executingSQL ? (
+                                <>
+                                    <RefreshCw className="animate-spin" size={14} />
+                                    <span>Executing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Play size={14} />
+                                    <span>Execute SQL</span>
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
             )}
@@ -692,7 +762,7 @@ const MiscellaneousPreview = ({
                                                         }}
                                                         disabled={executingSQL}
                                                         className="text-xs text-gray-400 hover:text-green-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors disabled:opacity-50"
-                                                        title="Execute SQL"
+                                                        title={!processId ? "Process your data first to execute SQL" : "Execute SQL"}
                                                     >
                                                         {executingSQL ? (
                                                             <RefreshCw className="animate-spin" size={12} />

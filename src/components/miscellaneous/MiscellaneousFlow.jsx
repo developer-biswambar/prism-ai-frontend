@@ -593,8 +593,15 @@ const MiscellaneousFlow = ({
                 output_format: outputFormat
             });
 
+            // Store process ID even if processing failed (allows manual SQL exploration)
+            console.log('🔍 Processing response:', {
+                success: response.success,
+                process_id: response.process_id,
+                message: response.message
+            });
+            setProcessId(response.process_id);
+            
             if (response.success) {
-                setProcessId(response.process_id);
                 setGeneratedSQL(response.generated_sql);
                 console.log('Total Time taken:'+ response.processing_time_seconds);
                 setProcessingTimeSeconds(response.processing_time_seconds);
