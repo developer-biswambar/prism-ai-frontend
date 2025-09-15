@@ -1173,21 +1173,54 @@ const MiscellaneousFlow = ({
                                 </div>
                             </div>
                         ) : (
-                            // For prompt_input step, show a subtle next button as alternative
-                            <div className="group relative">
-                                <button
-                                    onClick={nextStep}
-                                    disabled={!canProceedToNext()}
-                                    className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
-                                >
-                                    <span>Verify Intent</span>
-                                    <ChevronRight size={14} />
-                                </button>
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
-                                    {!canProceedToNext() 
-                                        ? 'Complete your query and process name first'
-                                        : 'Proceed to intent verification step'
-                                    }
+                            // For prompt_input step, show both verify intent and direct process options
+                            <div className="flex items-center space-x-3">
+                                <div className="group relative">
+                                    <button
+                                        onClick={nextStep}
+                                        disabled={!canProceedToNext()}
+                                        className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                                    >
+                                        <Brain size={14} />
+                                        <span>Verify Intent</span>
+                                    </button>
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                        {!canProceedToNext() 
+                                            ? 'Complete your query and process name first'
+                                            : 'Verify intent with AI before processing'
+                                        }
+                                    </div>
+                                </div>
+                                
+                                <div className="text-xs text-gray-500">or</div>
+                                
+                                <div className="group relative">
+                                    <button
+                                        onClick={() => {
+                                            setCurrentStep('preview_process');
+                                            setTimeout(() => processData(), 100);
+                                        }}
+                                        disabled={!canProceedToNext() || isProcessing}
+                                        className="flex items-center space-x-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-100 disabled:cursor-not-allowed text-sm"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                                                <span>Processing...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Play size={14} />
+                                                <span>Process Directly</span>
+                                            </>
+                                        )}
+                                    </button>
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                                        {!canProceedToNext() 
+                                            ? 'Complete your query and process name first'
+                                            : 'Skip verification and process data directly'
+                                        }
+                                    </div>
                                 </div>
                             </div>
                         )}

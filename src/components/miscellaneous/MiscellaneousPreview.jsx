@@ -615,51 +615,6 @@ const MiscellaneousPreview = ({
                 </div>
             )}
 
-            {/* Manual SQL Query for Failed Processing */}
-            {processingError && processId && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-medium text-gray-900 flex items-center space-x-2">
-                            <Database className="text-gray-600" size={16} />
-                            <span>Manual Data Exploration</span>
-                        </h3>
-                    </div>
-                    
-                    <div className="space-y-3">
-                        <p className="text-xs text-gray-600">
-                            Write custom SQL queries to explore your uploaded data. 
-                            Your files are available as: <code className="bg-gray-100 px-1 rounded">file_1</code>, <code className="bg-gray-100 px-1 rounded">file_2</code>, etc.
-                        </p>
-                        
-                        <div className="relative">
-                            <textarea
-                                value={editableSQL}
-                                onChange={(e) => setEditableSQL(e.target.value)}
-                                placeholder="SELECT * FROM file_1 LIMIT 10;"
-                                className="w-full h-32 p-3 border border-gray-300 rounded-lg text-sm font-mono bg-gray-900 text-green-400 resize-none"
-                            />
-                        </div>
-                        
-                        <button
-                            onClick={executeSQL}
-                            disabled={executingSQL || !editableSQL.trim()}
-                            className="bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white px-4 py-2 rounded text-sm flex items-center space-x-2 disabled:cursor-not-allowed"
-                        >
-                            {executingSQL ? (
-                                <>
-                                    <RefreshCw className="animate-spin" size={14} />
-                                    <span>Executing...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Play size={14} />
-                                    <span>Execute SQL</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* Process Button */}
             {!processResults && !isProcessing && (
@@ -804,7 +759,7 @@ const MiscellaneousPreview = ({
                                                     }}
                                                     value={editableSQL}
                                                     onChange={(e) => setEditableSQL(e.target.value)}
-                                                    className="w-full h-64 bg-gray-900 text-green-400 p-4 rounded text-sm font-mono leading-relaxed border border-gray-700 resize-none focus:outline-none focus:border-blue-500"
+                                                    className="w-full h-96 bg-gray-900 text-green-400 p-4 rounded text-sm font-mono leading-relaxed border border-gray-700 resize-none focus:outline-none focus:border-blue-500"
                                                     placeholder="Edit your query here..."
                                                     spellCheck={false}
                                                     onKeyDown={(e) => {
@@ -1055,7 +1010,7 @@ const MiscellaneousPreview = ({
                                 </div>
                             )}
                         </div>
-                    ) : processResults && processResults.error ? (
+                    ) : processResults && processResults.error && !processingError ? (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                             <div className="flex items-start space-x-3">
                                 <XCircle className="text-red-600 mt-0.5" size={20} />
