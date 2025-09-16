@@ -730,8 +730,8 @@ const MiscellaneousPreview = ({
                         </div>
                     )}
 
-                    {/* SQL Editor - Available when we have processId (success or failure) */}
-                    {processId && (
+                    {/* SQL Editor - Available when we have processId or generatedSQL (success or failure) */}
+                    {(processId || generatedSQL) && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg">
                             <div 
                                 className="flex items-center justify-between p-3 cursor-pointer"
@@ -769,7 +769,7 @@ const MiscellaneousPreview = ({
                                                         }}
                                                         disabled={executingSQL}
                                                         className="text-xs text-gray-400 hover:text-green-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors disabled:opacity-50"
-                                                        title={!processId ? "Process your data first to execute SQL" : "Execute SQL"}
+                                                        title="Execute SQL"
                                                     >
                                                         {executingSQL ? (
                                                             <RefreshCw className="animate-spin" size={12} />
