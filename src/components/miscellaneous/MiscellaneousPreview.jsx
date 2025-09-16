@@ -700,7 +700,31 @@ const MiscellaneousPreview = ({
                             {processResults.error_analysis && (
                                 <div className="mt-3 p-3 bg-red-100 rounded-md">
                                     <p className="text-sm font-medium text-red-800 mb-2">Error Analysis:</p>
-                                    <p className="text-sm text-red-700">{processResults.error_analysis}</p>
+                                    {typeof processResults.error_analysis === 'string' ? (
+                                        <p className="text-sm text-red-700">{processResults.error_analysis}</p>
+                                    ) : (
+                                        <div className="text-sm text-red-700 space-y-2">
+                                            {processResults.error_analysis.user_friendly_message && (
+                                                <p><strong>Issue:</strong> {processResults.error_analysis.user_friendly_message}</p>
+                                            )}
+                                            {processResults.error_analysis.root_cause && (
+                                                <p><strong>Root Cause:</strong> {processResults.error_analysis.root_cause}</p>
+                                            )}
+                                            {processResults.error_analysis.suggested_fixes && Array.isArray(processResults.error_analysis.suggested_fixes) && (
+                                                <div>
+                                                    <p><strong>Suggested Fixes:</strong></p>
+                                                    <ul className="list-disc list-inside ml-2">
+                                                        {processResults.error_analysis.suggested_fixes.map((fix, index) => (
+                                                            <li key={index}>{fix}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {processResults.error_analysis.prevention_tip && (
+                                                <p><strong>Prevention Tip:</strong> {processResults.error_analysis.prevention_tip}</p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
