@@ -16,7 +16,9 @@ import {
     Loader,
     ArrowRight,
     Copy,
-    CheckCircle2
+    CheckCircle2,
+    Maximize2,
+    Save
 } from 'lucide-react';
 import { API_ENDPOINTS } from '../../config/environment';
 import PromptSaveLoad from './PromptSaveLoad';
@@ -26,8 +28,6 @@ const MiscellaneousPromptInput = ({
     onPromptChange,
     processName,
     onProcessNameChange,
-    outputFormat,
-    onOutputFormatChange,
     selectedFiles,
     hasExistingResults = false,
     hasPromptChanged = false,
@@ -48,7 +48,12 @@ const MiscellaneousPromptInput = ({
     const [improvementData, setImprovementData] = useState(null);
     const [improvementError, setImprovementError] = useState('');
     
+    // Expanded modal state
+    const [showExpandedModal, setShowExpandedModal] = useState(false);
+    const [expandedPrompt, setExpandedPrompt] = useState('');
+    
     const textareaRef = useRef(null);
+    const expandedTextareaRef = useRef(null);
 
     const examplePrompts = [
         {
@@ -214,8 +219,44 @@ const MiscellaneousPromptInput = ({
         }
     };
 
+    // Expanded modal handlers
+    const openExpandedModal = () => {
+        setExpandedPrompt(userPrompt || '');
+        setShowExpandedModal(true);
+        // Focus the textarea after modal opens
+        setTimeout(() => {
+            expandedTextareaRef.current?.focus();
+        }, 100);
+    };
+
+    const closeExpandedModal = () => {
+        setShowExpandedModal(false);
+        setExpandedPrompt('');
+    };
+
+    const saveExpandedPrompt = () => {
+        onPromptChange(expandedPrompt);
+        setShowExpandedModal(false);
+        setExpandedPrompt('');
+    };
+
+    const handleExpandedPromptChange = (e) => {
+        setExpandedPrompt(e.target.value);
+    };
+
+    // Handle keyboard shortcuts in expanded modal
+    const handleExpandedKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            closeExpandedModal();
+        } else if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            saveExpandedPrompt();
+        }
+    };
+
     const getCharacterCount = () => userPrompt ? userPrompt.length : 0;
     const isPromptValid = () => userPrompt && userPrompt.trim().length >= 10;
+
 
     return (
         <div className="space-y-6">
@@ -337,15 +378,23 @@ const MiscellaneousPromptInput = ({
                         <button
                             onClick={improvePrompt}
                             disabled={isImprovingPrompt || !isPromptValid() || !selectedFiles || selectedFiles.length === 0}
-                            className="flex items-center space-x-1 px-2 py-1 text-xs text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+                            className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 disabled:transform-none"
                             title="Get AI suggestions to improve your prompt"
                         >
                             {isImprovingPrompt ? (
-                                <Loader size={14} className="animate-spin" />
+                                <Loader size={18} className="animate-spin" />
                             ) : (
-                                <Brain size={14} />
+                                <Brain size={18} />
                             )}
-                            <span>{isImprovingPrompt ? 'Improving...' : 'Improve'}</span>
+                            <span>{isImprovingPrompt ? 'Improving...' : '✨ Improve with AI'}</span>
+                        </button>
+                        <button
+                            onClick={openExpandedModal}
+                            className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300"
+                            title="Expand to full screen for easier editing"
+                        >
+                            <Maximize2 size={14} />
+                            <span>Expand</span>
                         </button>
                         <button
                             onClick={() => setShowExamples(!showExamples)}
@@ -357,6 +406,7 @@ const MiscellaneousPromptInput = ({
                     </div>
                 </div>
 
+
                 <div className="relative">
                     <textarea
                         ref={textareaRef}
@@ -365,9 +415,13 @@ const MiscellaneousPromptInput = ({
                         className={`w-full px-4 py-4 border-2 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 resize-y transition-all duration-200 bg-gradient-to-br from-white to-gray-50/30 shadow-sm hover:shadow-md font-medium text-gray-800 leading-relaxed ${
                             isPromptValid() ? 'border-gray-200' : 'border-red-300'
                         }`}
-                        placeholder="✨ Describe what you want to do with your data in detail...
+                        placeholder="Describe what you want to do with your data in plain English...
 
-Start typing your natural language query here. Be as specific as possible about your requirements, conditions, and expected results."
+Examples:
+• Compare file_1 and file_2 to find missing records
+• Find duplicates in customer_email column  
+• Count total sales by region
+• Show customers who spent more than $1000"
                         rows={12}
                         maxLength={50000}
                         style={{
@@ -461,34 +515,6 @@ Start typing your natural language query here. Be as specific as possible about 
                 )}
             </div>
 
-            {/* Output Format Selection */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Output Format
-                </label>
-                <div className="flex space-x-4">
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="radio"
-                            value="json"
-                            checked={outputFormat === 'json'}
-                            onChange={(e) => onOutputFormatChange(e.target.value)}
-                            className="text-blue-600"
-                        />
-                        <span className="text-sm text-gray-700">JSON (for viewing)</span>
-                    </label>
-                    <label className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                            type="radio"
-                            value="csv"
-                            checked={outputFormat === 'csv'}
-                            onChange={(e) => onOutputFormatChange(e.target.value)}
-                            className="text-blue-600"
-                        />
-                        <span className="text-sm text-gray-700">CSV (for download)</span>
-                    </label>
-                </div>
-            </div>
 
 
             {/* Examples Panel */}
@@ -714,6 +740,107 @@ Start typing your natural language query here. Be as specific as possible about 
                                 >
                                     <Sparkles size={16} />
                                     <span>Use Improved Prompt</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Expanded Prompt Modal */}
+            {showExpandedModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white w-full max-w-7xl mx-auto rounded-xl shadow-2xl flex flex-col" 
+                         style={{height: 'min(90vh, 800px)'}}>
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                            <div className="flex items-center space-x-3">
+                                <MessageSquare className="text-blue-600" size={24} />
+                                <h2 className="text-xl font-semibold text-gray-900">Expanded Prompt Editor</h2>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                                <span className="text-sm text-gray-500">
+                                    {expandedPrompt ? expandedPrompt.length : 0} characters
+                                </span>
+                                <button
+                                    onClick={closeExpandedModal}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                                    title="Close (Esc)"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="flex-1 p-6 flex flex-col overflow-hidden">
+                            <div className="mb-4">
+                                <p className="text-sm text-gray-600">
+                                    ✨ Write your natural language query here. Be as detailed as possible about your requirements.
+                                    <span className="block mt-1 text-xs text-gray-500">
+                                        💡 <strong>Tip:</strong> Use Ctrl+Enter to save, or Esc to cancel
+                                    </span>
+                                </p>
+                            </div>
+                            
+                            <div className="flex-1 relative">
+                                <textarea
+                                    ref={expandedTextareaRef}
+                                    value={expandedPrompt}
+                                    onChange={handleExpandedPromptChange}
+                                    onKeyDown={handleExpandedKeyDown}
+                                    className="w-full h-full resize-none border-2 border-gray-200 rounded-lg px-4 py-4 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 bg-gradient-to-br from-white to-gray-50/30 shadow-sm font-medium text-gray-800 leading-relaxed"
+                                    placeholder="✨ Describe what you want to do with your data in detail...
+
+For example:
+• Compare file_1 and file_2 to find records missing from file_2
+• Find mismatches between sales data and inventory data based on product_id
+• Show customers who made purchases in Q1 but not in Q2
+• Calculate total revenue by region and product category
+• Identify duplicate records based on email address and merge them
+
+Be as specific as possible about:
+• Which files or data sources to use
+• What columns/fields to compare or analyze
+• Any filtering conditions or date ranges
+• Expected output format and columns
+• Business rules or logic to apply"
+                                    maxLength={50000}
+                                    style={{
+                                        lineHeight: '1.7',
+                                        fontSize: '15px'
+                                    }}
+                                />
+                                
+                                {/* Floating character count */}
+                                <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-500 border border-gray-200">
+                                    {expandedPrompt ? expandedPrompt.length : 0} / 50,000
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                            <div className="text-xs text-gray-500">
+                                <span className="inline-flex items-center space-x-1">
+                                    <span>💡 <strong>Keyboard shortcuts:</strong></span>
+                                </span>
+                                <span className="ml-2">Ctrl+Enter to save • Esc to cancel</span>
+                            </div>
+                            
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={closeExpandedModal}
+                                    className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={saveExpandedPrompt}
+                                    className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                >
+                                    <Save size={16} />
+                                    <span>Save Query</span>
                                 </button>
                             </div>
                         </div>

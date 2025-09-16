@@ -43,7 +43,7 @@ const MiscellaneousFlow = ({
     const [selectedFilesForProcessing, setSelectedFilesForProcessing] = useState({});
     const [userPrompt, setUserPrompt] = useState('');
     const [processName, setProcessName] = useState('Data Analysis');
-    const [outputFormat, setOutputFormat] = useState('json');
+    const [outputFormat] = useState('json'); // Fixed to JSON format
     
     // Processing state
     const [isProcessing, setIsProcessing] = useState(false);
@@ -810,8 +810,6 @@ const MiscellaneousFlow = ({
                         onPromptChange={handlePromptChange}
                         processName={processName}
                         onProcessNameChange={setProcessName}
-                        outputFormat={outputFormat}
-                        onOutputFormatChange={setOutputFormat}
                         selectedFiles={getSelectedFilesArray()}
                         hasExistingResults={!!processResults}
                         hasPromptChanged={hasPromptChanged}
