@@ -252,7 +252,7 @@ const EnhancedIntentVerificationModal = ({
                 <span className="font-medium text-green-800">Found Columns ({foundColumns.length})</span>
               </div>
               <div className="space-y-1">
-                {foundColumns.map(column => (
+                {foundColumns && foundColumns.map(column => (
                   <span key={column} className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded mr-2 mb-1">
                     {column}
                   </span>
@@ -269,7 +269,7 @@ const EnhancedIntentVerificationModal = ({
                 <span className="font-medium text-red-800">Missing Columns ({missingColumns.length})</span>
               </div>
               <div className="space-y-1">
-                {missingColumns.map(column => (
+                {missingColumns && missingColumns.map(column => (
                   <span key={column} className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded mr-2 mb-1">
                     {column}
                   </span>
@@ -298,7 +298,7 @@ const EnhancedIntentVerificationModal = ({
           </p>
           
           <div className="space-y-4">
-            {intelligentSuggestions.map((suggestion, index) => (
+            {intelligentSuggestions && intelligentSuggestions.map((suggestion, index) => (
               <div key={index} className="bg-white border border-purple-200 rounded-lg p-3">
                 <div className="flex items-start justify-between mb-2">
                   <div>
@@ -309,7 +309,7 @@ const EnhancedIntentVerificationModal = ({
                 </div>
                 
                 <div className="space-y-2">
-                  {suggestion.suggestions.map((sug, sugIndex) => (
+                  {suggestion.suggestions && suggestion.suggestions.map((sug, sugIndex) => (
                     <div key={sugIndex} className="border border-gray-200 rounded p-2">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -430,7 +430,7 @@ const EnhancedIntentVerificationModal = ({
         </div>
         
         <div className="space-y-3">
-          {displayIssues.map((issue, index) => (
+          {displayIssues && displayIssues.map((issue, index) => (
             <div
               key={index}
               className={`border rounded-lg p-3 ${
@@ -528,7 +528,7 @@ const EnhancedIntentVerificationModal = ({
                 Derived Columns Detected
               </h3>
               <div className="space-y-3">
-                {verificationData.derived_columns_detected.map((derivedCol, index) => (
+                {verificationData.derived_columns_detected && verificationData.derived_columns_detected.map((derivedCol, index) => (
                   <div key={index} className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
                     <div className="font-medium text-indigo-900">{derivedCol.requested}</div>
                     <div className="text-sm text-indigo-700 mt-1">{derivedCol.calculation}</div>
