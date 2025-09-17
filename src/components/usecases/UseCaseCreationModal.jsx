@@ -151,14 +151,19 @@ const UseCaseCreationModal = ({
         // Create a more generic description - remove the 100 character limit
         let description = `Use case created from: "${prompt}"`;
         
-        // Add file context
+        // Add file context with role mappings
         if (queryData.file_schemas?.length > 0) {
             const fileCount = queryData.file_schemas.length;
-            description += `\n\nDesigned for ${fileCount} file${fileCount > 1 ? 's' : ''} with columns: `;
+            description += `\n\nRequires ${fileCount} file${fileCount > 1 ? 's' : ''}:`;
+            
+            queryData.file_schemas.forEach((schema, index) => {
+                const fileRole = `file${index + 1}`;
+                description += `\n- ${fileRole}: ${schema.filename} (${(schema.columns || []).length} columns)`;
+            });
             
             const allColumns = queryData.file_schemas.flatMap(schema => schema.columns || []);
             const uniqueColumns = [...new Set(allColumns)];
-            description += uniqueColumns.slice(0, 5).join(', ');
+            description += `\n\nExpected columns: ${uniqueColumns.slice(0, 5).join(', ')}`;
             if (uniqueColumns.length > 5) {
                 description += ` and ${uniqueColumns.length - 5} more`;
             }
@@ -383,6 +388,33 @@ const UseCaseCreationModal = ({
                     // File schema information
                     file_schemas: queryData?.file_schemas || [],
                     
+                    // NEW: File requirements and mappings
+                    file_requirements: {
+                        required_file_count: queryData?.file_schemas?.length || 0,
+                        file_role_mappings: (queryData?.file_schemas || []).map((schema, index) => ({
+                            role: `file${index + 1}`,
+                            original_filename: schema.filename,
+                            expected_columns: schema.columns || [],
+                            column_count: (schema.columns || []).length,
+                            sample_data_structure: Object.keys(schema.sample_data || {}),
+                            description: `File ${index + 1} used in the original query (${schema.filename})`
+                        })),
+                        // File usage patterns for AI matching
+                        file_usage_patterns: (queryData?.file_schemas || []).map((schema, index) => {
+                            const role = `file${index + 1}`;
+                            const prompt = queryData?.user_prompt || '';
+                            return {
+                                role: role,
+                                usage_in_prompt: prompt.includes(role) ? `Referenced as "${role}" in prompt` : `Implicitly used as ${role}`,
+                                data_characteristics: {
+                                    has_headers: true, // assume CSV/Excel files have headers
+                                    estimated_row_count: schema.totalRows || 0,
+                                    key_columns: (schema.columns || []).slice(0, 3) // first 3 columns as likely keys
+                                }
+                            };
+                        })
+                    },
+                    
                     // Processing context
                     processing_context: {
                         query_type: queryData?.process_results?.metadata?.processing_info?.query_type || 'unknown',
@@ -401,7 +433,7 @@ const UseCaseCreationModal = ({
                     // Smart execution compatibility
                     smart_execution_compatible: true,
                     created_for_smart_execution: true,
-                    version: '2.0' // Version for tracking template format evolution
+                    version: '2.1' // Updated version for file requirements support
                 }
             };
             
@@ -620,6 +652,41 @@ const UseCaseCreationModal = ({
                                             />
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* File Requirements Preview */}
+                            {queryData?.file_schemas?.length > 0 && (
+                                <div className="space-y-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                    <div className="flex items-center space-x-2 mb-3">
+                                        <FileText className="text-green-500" size={16} />
+                                        <h4 className="font-medium text-green-900">File Requirements (Will be saved)</h4>
+                                    </div>
+                                    
+                                    <div className="text-sm text-green-800">
+                                        <p className="font-medium mb-2">This use case requires {queryData.file_schemas.length} file{queryData.file_schemas.length > 1 ? 's' : ''}:</p>
+                                        
+                                        <div className="space-y-2">
+                                            {queryData.file_schemas.map((schema, index) => (
+                                                <div key={index} className="flex items-start space-x-2 bg-white p-2 rounded border border-green-200">
+                                                    <div className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                                        {index + 1}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="font-medium">file{index + 1}: {schema.filename}</div>
+                                                        <div className="text-xs text-green-600">
+                                                            {(schema.columns || []).length} columns: {(schema.columns || []).slice(0, 3).join(', ')}
+                                                            {(schema.columns || []).length > 3 && '...'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        <div className="mt-3 text-xs text-green-600 bg-white p-2 rounded border border-green-200">
+                                            <strong>Note:</strong> When applying this use case, users will be asked to map their files to these exact roles (file1, file2, etc.)
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

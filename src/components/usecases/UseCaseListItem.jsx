@@ -104,7 +104,7 @@ const UseCaseListItem = ({
 
     return (
         <div 
-            className={`group relative bg-white rounded-lg border p-4 transition-all duration-200 hover:shadow-md cursor-pointer ${
+            className={`group relative bg-white rounded-lg border p-4 transition-all duration-200 hover:shadow-md cursor-pointer w-full max-w-full overflow-hidden ${
                 isSelected 
                     ? 'border-blue-500 shadow-md ring-2 ring-blue-100' 
                     : 'border-gray-200 hover:border-gray-300'

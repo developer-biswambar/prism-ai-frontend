@@ -330,17 +330,7 @@ const LeftSidebar = ({
                 )}
 
                 {/* Header */}
-                <div className="p-4 border-b border-slate-200 bg-white/80 backdrop-blur-sm flex-shrink-0">
-                    <div className="flex items-center space-x-3">
-                        <div
-                            className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                            <FileText className="text-white" size={16}/>
-                        </div>
-                        <div>
-                            <h2 className="text-base font-bold text-slate-800">Setup & Configuration</h2>
-                            <p className="text-xs text-slate-600">Choose process and upload files</p>
-                        </div>
-                    </div>
+                <div className="border-b border-slate-200 bg-white/80 backdrop-blur-sm flex-shrink-0">
                 </div>
 
                 {/* Dynamic Content Area */}
@@ -349,13 +339,6 @@ const LeftSidebar = ({
                     <div className={`border-b border-slate-200 bg-white/30 flex-shrink-0 ${
                         selectedTemplate ? 'p-3' : 'p-4 max-h-64'
                     }`}>
-                        <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center">
-                                <span className="text-orange-600 text-xs font-bold">1</span>
-                            </div>
-                            <h3 className="text-sm font-semibold text-slate-700">Select Process</h3>
-                        </div>
-
                         {selectedTemplate ? (
                             <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
                                 <div className="flex items-center space-x-2 mb-1">
@@ -424,12 +407,9 @@ const LeftSidebar = ({
                         )}
                     </div>
 
-                    {/* Step 2: File Upload */}
+                    {/* File Upload */}
                     <div className="p-3 border-b border-slate-200 bg-white/30 flex-shrink-0">
                         <div className="flex items-center space-x-2 mb-2">
-                            <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
-                                <span className="text-blue-600 text-xs font-bold">2</span>
-                            </div>
                             <h3 className="text-sm font-semibold text-slate-700">Upload Files</h3>
                         </div>
 
@@ -487,16 +467,12 @@ const LeftSidebar = ({
                         </div>
                     </div>
 
-                    {/* Step 4: File Assignment */}
+                    {/* File Assignment */}
                     {selectedTemplate && selectedTemplate.category !== 'miscellaneous' && selectedTemplate.category !== 'data-analysis' && (
                         <div
                             className="border-t border-slate-200 bg-white/50 flex-shrink-0 max-h-52 overflow-hidden flex flex-col">
                             <div className="p-3 pb-2 flex-shrink-0">
                                 <div className="flex items-center space-x-2">
-                                    <div
-                                        className="w-5 h-5 bg-purple-100 rounded-full flex items-center justify-center">
-                                        <span className="text-purple-600 text-xs font-bold">4</span>
-                                    </div>
                                     <h3 className="text-sm font-semibold text-slate-700">Assign Files</h3>
                                     <div className="ml-auto">
                                         {status.complete ? (
@@ -552,14 +528,11 @@ const LeftSidebar = ({
                         </div>
                     )}
 
-                    {/* Step 3: File Library */}
+                    {/* File Library */}
                     <div className={`flex-1 min-h-0 overflow-hidden flex flex-col ${selectedTemplate ? 'max-h-64' : ''}`}>
                         <div className="p-3 pb-2 flex-shrink-0">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                    <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
-                                        <span className="text-green-600 text-xs font-bold">3</span>
-                                    </div>
                                     <h3 className="text-sm font-semibold text-slate-700">File Library</h3>
                                 </div>
                                 {onOpenFileLibrary && files.length > 0 && (

@@ -12,8 +12,10 @@ import {
     useTemplateManagement
 } from './hooks/useAppState';
 import LeftSidebar from './components/core/LeftSideBar.jsx';
-import ChatInterface from './components/core/ChatInterface.jsx';
-import RightSidebar from './components/core/RightSideBar.jsx';
+import ProcessAnalyticsRightSideBar from './components/core/ProcessAnalyticsRightSideBar.jsx';
+import AppHeader from './components/core/AppHeader.jsx';
+import UseCaseGallery from './components/usecases/UseCaseGallery.jsx';
+import MiscellaneousFlow from './components/miscellaneous/MiscellaneousFlow.jsx';
 import ViewerPage from './pages/ViewerPage';
 import FileLibraryPage from './pages/FileLibraryPage';
 import RecentResultsPage from './pages/RecentResultsPage';
@@ -57,6 +59,16 @@ const MainApp = () => {
         isResizing,
         setIsResizing
     } = usePanelResize();
+
+    // New UI state management
+    const [currentView, setCurrentView] = React.useState('gallery'); // 'gallery' or 'miscellaneous'
+    const [selectedUseCase, setSelectedUseCase] = React.useState(null);
+    const [miscellaneousData, setMiscellaneousData] = React.useState({
+        userPrompt: '',
+        selectedFiles: [],
+        processId: null,
+        results: null
+    });
 
     // Set document title based on current state
     useDocumentTitle(isProcessing, activeProcess, uploadProgress, selectedFiles);
@@ -401,72 +413,132 @@ const MainApp = () => {
         }
     };
 
+    // New UI handler functions
+    const handleUseCaseSelect = async (useCase) => {
+        console.log('Use case selected:', useCase);
+        setSelectedUseCase(useCase);
+        setCurrentView('miscellaneous');
+        
+        // Pre-populate miscellaneous data if it's a saved use case
+        if (useCase && useCase.id !== 'start_fresh') {
+            setMiscellaneousData({
+                userPrompt: useCase.user_prompt || '',
+                selectedFiles: [], // Will be populated after file selection
+                processId: null,
+                results: null
+            });
+        } else {
+            // Start fresh - blank state
+            setMiscellaneousData({
+                userPrompt: '',
+                selectedFiles: [],
+                processId: null,
+                results: null
+            });
+        }
+        
+        return Promise.resolve();
+    };
+
+    const handleBackToGallery = () => {
+        setCurrentView('gallery');
+        setSelectedUseCase(null);
+        setMiscellaneousData({
+            userPrompt: '',
+            selectedFiles: [],
+            processId: null,
+            results: null
+        });
+    };
+
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
-            <LeftSidebar
-                files={files}
-                templates={templates}
-                selectedFiles={selectedFiles}
-                setSelectedFiles={setSelectedFiles}
-                selectedTemplate={selectedTemplate}
-                requiredFiles={requiredFiles}
-                currentInput={currentInput || ''}
-                uploadProgress={uploadProgress}
-                onFileUpload={handleFileUpload}
-                onTemplateSelect={onTemplateSelect}
-                onRefreshFiles={loadFiles}
-                onOpenFileLibrary={openFileLibrary}
-                width={leftPanelWidth}
-            />
+            {/* Conditional rendering based on current view */}
+            {currentView === 'miscellaneous' ? (
+                /* Full screen Miscellaneous Flow */
+                <MiscellaneousFlow
+                    selectedFiles={miscellaneousData.selectedFiles}
+                    setSelectedFiles={(files) => setMiscellaneousData(prev => ({ ...prev, selectedFiles: files }))}
+                    userPrompt={miscellaneousData.userPrompt}
+                    setUserPrompt={(prompt) => setMiscellaneousData(prev => ({ ...prev, userPrompt: prompt }))}
+                    processResults={miscellaneousData.results}
+                    processId={miscellaneousData.processId}
+                    setProcessResults={(results) => setMiscellaneousData(prev => ({ ...prev, results: results }))}
+                    setProcessId={(id) => setMiscellaneousData(prev => ({ ...prev, processId: id }))}
+                    files={files}
+                    onBackToGallery={handleBackToGallery}
+                    selectedUseCase={selectedUseCase}
+                    onRefreshFiles={loadFiles}
+                    onCancel={handleBackToGallery}
+                />
+            ) : (
+                /* Three-panel layout for Gallery view */
+                <div className="flex flex-col h-full">
+                    {/* Header */}
+                    <AppHeader
+                        title="Prism AI - Data Processing Platform"
+                        subtitle="Select a use case or start fresh with miscellaneous data processing"
+                        showBackButton={false}
+                        showCloseButton={false}
+                        showFileLibrary={true}
+                        onFileLibraryClick={openFileLibrary}
+                    />
+                    
+                    {/* Main Content Area */}
+                    <div className="flex flex-1 overflow-hidden">
+                        <LeftSidebar
+                            files={files}
+                            templates={[]} // Remove templates for new flow
+                            selectedFiles={selectedFiles}
+                            setSelectedFiles={setSelectedFiles}
+                            selectedTemplate={null}
+                            requiredFiles={0}
+                            currentInput={''}
+                            uploadProgress={uploadProgress}
+                            onFileUpload={handleFileUpload}
+                            onTemplateSelect={() => {}} // No template selection
+                            onRefreshFiles={loadFiles}
+                            onOpenFileLibrary={openFileLibrary}
+                            width={leftPanelWidth}
+                        />
 
-            <div
-                className="w-1 bg-gray-300 hover:bg-blue-400 cursor-col-resize transition-colors duration-200 relative group"
-                onMouseDown={() => setIsResizing('left')}
-            >
-                <div className="absolute inset-0 w-2 -translate-x-0.5"></div>
-                <div
-                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-gray-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-            </div>
+                        <div
+                            className="w-1 bg-gray-300 hover:bg-blue-400 cursor-col-resize transition-colors duration-200 relative group"
+                            onMouseDown={() => setIsResizing('left')}
+                        >
+                            <div className="absolute inset-0 w-2 -translate-x-0.5"></div>
+                            <div
+                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-gray-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        </div>
 
-            <ChatInterface
-                messages={messages}
-                currentInput={currentInput || ''}
-                setCurrentInput={setCurrentInput}
-                isProcessing={isProcessing}
-                isAnalyzingColumns={false}
-                selectedFiles={selectedFiles}
-                selectedTemplate={selectedTemplate}
-                requiredFiles={requiredFiles}
-                onStartReconciliationInApp={handleReconciliation}
-                onStartDeltaGenerationInApp={handleDeltaGeneration}
-                onFileTransformationInApp={handleStartTransformation}
-                isTyping={isTyping}
-                typingMessage={typingMessage}
-                files={files}
-                onSendMessage={sendMessage}
-                onDisplayDetailedResults={displayDetailedResults}
-                onFilesRefresh={loadFiles}
-                onOpenFileLibrary={openFileLibrary}
-            />
+                        {/* Center Panel - Use Case Gallery */}
+                        <div className="flex-1 min-w-0 overflow-hidden bg-white" data-debug="center-panel">
+                            <div className="h-full overflow-y-auto p-6" data-debug="center-panel-inner">
+                                <UseCaseGallery
+                                    onUseCaseSelect={handleUseCaseSelect}
+                                    selectedUseCase={selectedUseCase}
+                                    showCreateButton={true}
+                                    userPrompt=""
+                                    fileSchemas={files.map(f => ({ filename: f.filename, columns: f.columns || [] }))}
+                                />
+                            </div>
+                        </div>
 
-            <div
-                className="w-1 bg-gray-300 hover:bg-blue-400 cursor-col-resize transition-colors duration-200 relative group"
-                onMouseDown={() => setIsResizing('right')}
-            >
-                <div className="absolute inset-0 w-2 -translate-x-0.5"></div>
-                <div
-                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-gray-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-            </div>
+                        <div
+                            className="w-1 bg-gray-300 hover:bg-blue-400 cursor-col-resize transition-colors duration-200 relative group"
+                            onMouseDown={() => setIsResizing('right')}
+                        >
+                            <div className="absolute inset-0 w-2 -translate-x-0.5"></div>
+                            <div
+                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-gray-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        </div>
 
-            <RightSidebar
-                processedFiles={allProcessedFiles}
-                autoRefreshInterval={null}
-                onRefreshProcessedFiles={loadProcessedFiles}
-                onDownloadResults={handleDownloadResults}
-                onDisplayDetailedResults={displayDetailedResults}
-                onOpenRecentResults={openRecentResults}
-                width={rightPanelWidth}
-            />
+                        <ProcessAnalyticsRightSideBar
+                            width={rightPanelWidth}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

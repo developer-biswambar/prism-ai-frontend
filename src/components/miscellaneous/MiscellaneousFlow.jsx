@@ -18,7 +18,9 @@ import {
     Wand2,
     X
 } from 'lucide-react';
+import AppHeader from '../core/AppHeader.jsx';
 import MiscellaneousFileSelection from './MiscellaneousFileSelection.jsx';
+import UseCaseFileSelection from './UseCaseFileSelection.jsx';
 import MiscellaneousPromptInput from './MiscellaneousPromptInput.jsx';
 import MiscellaneousPreview from './MiscellaneousPreview.jsx';
 import EnhancedIntentVerificationModal from './EnhancedIntentVerificationModal.jsx';
@@ -32,23 +34,28 @@ import {useCaseService} from '../../services/useCaseService.js';
 const MiscellaneousFlow = ({
     files,
     selectedFiles,
+    setSelectedFiles,
+    userPrompt,
+    setUserPrompt,
+    processResults,
+    processId,
+    setProcessResults,
+    setProcessId,
+    onBackToGallery,
+    selectedUseCase,
+    onRefreshFiles,
     flowData,
     onComplete,
-    onCancel,
-    onSendMessage,
-    onFilesRefresh // Callback to refresh file list
+    onCancel
 }) => {
     // State management
     const [currentStep, setCurrentStep] = useState('file_selection');
     const [selectedFilesForProcessing, setSelectedFilesForProcessing] = useState({});
-    const [userPrompt, setUserPrompt] = useState('');
     const [processName, setProcessName] = useState('Data Analysis');
     const [outputFormat] = useState('json'); // Fixed to JSON format
     
     // Processing state
     const [isProcessing, setIsProcessing] = useState(false);
-    const [processResults, setProcessResults] = useState(null);
-    const [processId, setProcessId] = useState(null);
     const [generatedSQL, setGeneratedSQL] = useState('');
     const [processingError, setProcessingError] = useState(null);
     const [processingTimeSeconds, setProcessingTimeSeconds] = useState(null);
@@ -63,7 +70,6 @@ const MiscellaneousFlow = ({
     const [isVerifyingIntent, setIsVerifyingIntent] = useState(false);
     
     // Template state
-    const [selectedUseCase, setSelectedUseCase] = useState(null);
     const [showUseCaseCreationModal, setShowUseCaseCreationModal] = useState(false);
     const [useCaseCreationData, setUseCaseCreationData] = useState(null);
     
@@ -79,13 +85,27 @@ const MiscellaneousFlow = ({
     const [executionErrorData, setExecutionErrorData] = useState(null);
 
     // Step definitions
-    const steps = [
-        {id: 'file_selection', title: 'Select Files', icon: FileText},
-        {id: 'use_case_selection', title: 'Choose Your Use Case', icon: Sparkles},
-        {id: 'prompt_input', title: 'Natural Language Query', icon: Wand2},
-        {id: 'intent_verification', title: 'Verify Intent', icon: Brain},
-        {id: 'preview_process', title: 'Process & View Results', icon: Database}
-    ];
+    const getStepsForFlow = () => {
+        const isUseCaseFlow = selectedUseCase && selectedUseCase.id !== 'start_fresh';
+        
+        if (isUseCaseFlow) {
+            // For use case flow: Skip prompt input step since query is saved
+            return [
+                {id: 'file_selection', title: 'Select Files', icon: FileText},
+                {id: 'preview_process', title: 'Process & View Results', icon: Database}
+            ];
+        } else {
+            // For "Start Fresh" flow: Show all steps including prompt input
+            return [
+                {id: 'file_selection', title: 'Select Files', icon: FileText},
+                {id: 'prompt_input', title: 'Natural Language Query', icon: Wand2},
+                {id: 'intent_verification', title: 'Verify Intent', icon: Brain},
+                {id: 'preview_process', title: 'Process & View Results', icon: Database}
+            ];
+        }
+    };
+
+    const steps = getStepsForFlow();
 
     // Helper functions
     const getCurrentStepIndex = () => steps.findIndex(step => step.id === currentStep);
@@ -123,9 +143,19 @@ const MiscellaneousFlow = ({
     const canProceedToNext = () => {
         switch(currentStep) {
             case 'file_selection':
-                return getSelectedFilesArray().length >= 1 && getSelectedFilesArray().length <= 10;
-            case 'use_case_selection':
-                return true; // Use Case selection is optional - users can skip to write custom prompt
+                const hasUseCaseFileRequirements = selectedUseCase && 
+                    selectedUseCase.id !== 'start_fresh' && 
+                    selectedUseCase.use_case_metadata?.file_requirements?.required_file_count > 0;
+
+                if (hasUseCaseFileRequirements) {
+                    // For use cases, check if exact number of required files are selected
+                    const requiredCount = selectedUseCase.use_case_metadata.file_requirements.required_file_count;
+                    const selectedCount = getSelectedFilesArray().length;
+                    return selectedCount === requiredCount;
+                } else {
+                    // For "Start Fresh", use the original validation
+                    return getSelectedFilesArray().length >= 1 && getSelectedFilesArray().length <= 10;
+                }
             case 'prompt_input':
                 return userPrompt && userPrompt.trim().length > 10 && processName && processName.trim().length > 0;
             case 'intent_verification':
@@ -142,6 +172,19 @@ const MiscellaneousFlow = ({
         const currentIndex = getCurrentStepIndex();
         if (currentIndex < steps.length - 1) {
             const nextStepId = steps[currentIndex + 1].id;
+            const isUseCaseFlow = selectedUseCase && selectedUseCase.id !== 'start_fresh';
+            
+            // For use case flow: skip from file_selection directly to processing
+            if (isUseCaseFlow && currentStep === 'file_selection' && nextStepId === 'preview_process') {
+                setCurrentStep(nextStepId);
+                // Automatically trigger use case execution
+                setTimeout(() => {
+                    if (selectedUseCase) {
+                        handleUseCaseSelect(selectedUseCase);
+                    }
+                }, 100);
+                return;
+            }
             
             // If moving from prompt_input to intent_verification, trigger intent verification
             if (currentStep === 'prompt_input' && nextStepId === 'intent_verification') {
@@ -185,7 +228,7 @@ const MiscellaneousFlow = ({
         setShowIntentModal(true);
         console.log('🔍 Modal opened immediately with isVerifyingIntent=true');
         try {
-            onSendMessage('system', '🔍 Analyzing your query intent...');
+            console.log('🔍 Analyzing your query intent...');
             
             const filesArray = getSelectedFilesArray();
             const fileReferences = filesArray.map((file, index) => ({
@@ -215,7 +258,7 @@ const MiscellaneousFlow = ({
                     setIntentData(verificationData);
                     setIsVerifyingIntent(false);
                     console.log('🔍 Loading state cleared after delay - showing results');
-                    onSendMessage('system', '✅ Intent analysis complete! Please review before execution.');
+                    console.log('✅ Intent analysis complete! Please review before execution.');
                 }, 800);
             } else {
                 console.error('❌ Intent verification failed:', response);
@@ -227,7 +270,7 @@ const MiscellaneousFlow = ({
             console.error('Intent verification failed:', error);
             setIsVerifyingIntent(false);
             setShowIntentModal(false);
-            onSendMessage('system', `❌ Intent verification failed: ${error.message}`);
+            console.log(`❌ Intent verification failed: ${error.message}`);
             // Fall back to proceeding without verification
             setCurrentStep('preview_process');
         }
@@ -279,7 +322,7 @@ const MiscellaneousFlow = ({
         setCurrentStep('prompt_input');
         console.log('🔄 Current step set to: prompt_input');
         
-        onSendMessage('system', '📝 Suggestions applied to your prompt! You can now review and modify before proceeding.');
+        console.log('📝 Suggestions applied to your prompt! You can now review and modify before proceeding.');
         console.log('💬 System message sent');
         
         // Add a delay to ensure state updates, then log the new prompt
@@ -304,10 +347,9 @@ const MiscellaneousFlow = ({
     // User Case handling functions
     const handleUseCaseSelect = async (useCase) => {
         try {
-            setSelectedUseCase(useCase);
             setIsExecutingUseCase(true);
             
-            onSendMessage('system', `🔄 Executing Use Case: ${useCase.name}...`);
+            console.log(`🔄 Executing Use Case: ${useCase.name}...`);
             
             // Prepare files for smart execution
             const filesForExecution = getSelectedFilesArray().map(file => ({
@@ -316,6 +358,9 @@ const MiscellaneousFlow = ({
                 columns: file.columns || [],
                 total_rows: file.total_rows || 0
             }));
+            
+            // First try: Use saved query directly without prompting
+            console.log('🚀 Attempting automatic execution with saved query...');
             
             const result = await useCaseService.smartExecuteUseCase(
                 useCase.id,
@@ -330,15 +375,18 @@ const MiscellaneousFlow = ({
                     total_count: result.row_count || result.data?.length || 0
                 });
                 setProcessId(result.process_id);
-                setGeneratedSQL(result.generated_sql || ''); // Add this line to show the query
-                setUserPrompt(useCase.description || useCase.name);
+                setGeneratedSQL(result.generated_sql || '');
+                
+                // Use saved query content as prompt, not just description
+                const savedPrompt = useCase.use_case_content || useCase.ideal_prompt || useCase.description || useCase.name;
+                setUserPrompt(savedPrompt);
                 setProcessName(useCase.name);
-                setOriginalPrompt(useCase.description || useCase.name);
+                setOriginalPrompt(savedPrompt);
                 setHasPromptChanged(false);
                 
-                onSendMessage('system', `✅ Use Case executed successfully! Generated ${result.data?.length || 0} result rows using ${result.execution_method} method.`);
+                console.log(`✅ Use Case executed automatically! Generated ${result.data?.length || 0} result rows using ${result.execution_method} method.`);
                 
-                // Skip to results step
+                // Skip directly to results step - no prompting needed
                 setCurrentStep('preview_process');
                 
             } else if (result.status === 'needs_mapping') {
@@ -347,36 +395,68 @@ const MiscellaneousFlow = ({
                 setPendingUseCaseExecution({ useCase, files: filesForExecution });
                 setShowColumnMappingModal(true);
                 
-                onSendMessage('system', `🔧 Use Case needs column mapping - please review and confirm the mapping.`);
+                console.log(`🔧 Use Case needs column mapping - please review and confirm the mapping.`);
                 
             } else if (result.success === false && result.error_analysis) {
-                // Execution failed with detailed error analysis - show error modal
-                console.log('🚨 Use case needs user intervention:', result);
-                setExecutionErrorData({
-                    ...result,
-                    useCase,
-                    files: filesForExecution
-                });
-                setShowExecutionErrorModal(true);
+                // Execution failed with detailed error analysis
+                console.log('🚨 Automatic execution failed, checking if fallback to manual prompt is needed...');
                 
-                onSendMessage('system', `⚠️ Use Case execution failed: ${result.error_analysis?.user_hint || 'Column mismatch detected'}. Please choose how to proceed.`);
+                // Check if the error is due to query issues that could be resolved manually
+                const shouldFallbackToPrompt = result.error_analysis?.needs_manual_prompt || 
+                                             result.error_analysis?.query_adaptation_failed;
+                
+                if (shouldFallbackToPrompt) {
+                    console.log('🔄 Falling back to manual prompt input...');
+                    
+                    // Set the saved prompt and allow user to modify if needed
+                    const savedPrompt = useCase.use_case_content || useCase.ideal_prompt || useCase.description || useCase.name;
+                    setUserPrompt(savedPrompt);
+                    setProcessName(useCase.name);
+                    
+                    // Go to prompt input step for manual adjustment
+                    setCurrentStep('prompt_input');
+                    console.log('📝 Please review and adjust the query as needed, then proceed with verification.');
+                } else {
+                    // Show error modal for other types of failures
+                    setExecutionErrorData({
+                        ...result,
+                        useCase,
+                        files: filesForExecution
+                    });
+                    setShowExecutionErrorModal(true);
+                    
+                    console.log(`⚠️ Use Case execution failed: ${result.error_analysis?.user_hint || 'Column mismatch detected'}. Please choose how to proceed.`);
+                }
                 
             } else {
-                // Execution failed with unknown status
-                console.error('🚨 Unknown execution status:', result.status, result);
-                onSendMessage('system', `❌ Use Case execution failed: ${result.error || result.execution_error || 'Unknown error occurred'}`);
+                // Execution failed with unknown status - fallback to manual prompt
+                console.error('🚨 Unknown execution status, falling back to manual prompt:', result.status, result);
+                
+                // Set the saved prompt and allow user to modify
+                const savedPrompt = useCase.use_case_content || useCase.ideal_prompt || useCase.description || useCase.name;
+                setUserPrompt(savedPrompt);
+                setProcessName(useCase.name);
+                
+                // Go to prompt input step for manual adjustment
+                setCurrentStep('prompt_input');
+                console.log(`⚠️ Automatic execution failed: ${result.error || result.execution_error || 'Unknown error occurred'}. Please review the query and try again.`);
             }
         } catch (error) {
             console.error('Error executing useCase:', error);
-            onSendMessage('system', `❌ Error executing Use Case: ${error.message}`);
+            
+            // Fallback to manual prompt on any exception
+            console.log('🔄 Exception occurred, falling back to manual prompt...');
+            
+            const savedPrompt = useCase.use_case_content || useCase.ideal_prompt || useCase.description || useCase.name;
+            setUserPrompt(savedPrompt);
+            setProcessName(useCase.name);
+            
+            // Go to prompt input step for manual adjustment
+            setCurrentStep('prompt_input');
+            console.log(`❌ Error executing Use Case: ${error.message}. Please review the query and try again.`);
         } finally {
             setIsExecutingUseCase(false);
         }
-    };
-
-    const handleSkipUseCase = () => {
-        setSelectedUseCase(null);
-        setCurrentStep('prompt_input');
     };
 
     const handleCreateUseCase = (queryData) => {
@@ -386,7 +466,7 @@ const MiscellaneousFlow = ({
     };
 
     const handleUseCaseCreated = (newUseCase) => {
-        onSendMessage('system', `✅ Template "${newUseCase.name}" created successfully!`);
+        console.log( `✅ Template "${newUseCase.name}" created successfully!`);
         setShowUseCaseCreationModal(false);
     };
 
@@ -399,7 +479,7 @@ const MiscellaneousFlow = ({
             setIsExecutingUseCase(true);
             setShowColumnMappingModal(false);
             
-            onSendMessage('system', `🔄 Applying column mapping and executing use case...`);
+            console.log( `🔄 Applying column mapping and executing use case...`);
             
             const result = await useCaseService.executeWithUserMapping(
                 pendingUseCaseExecution.useCase.id,
@@ -421,18 +501,18 @@ const MiscellaneousFlow = ({
                 setOriginalPrompt(pendingUseCaseExecution.useCase.description || pendingUseCaseExecution.useCase.name);
                 setHasPromptChanged(false);
                 
-                onSendMessage('system', `✅ Use Case executed successfully with column mapping! Generated ${result.data?.length || 0} result rows.`);
+                console.log( `✅ Use Case executed successfully with column mapping! Generated ${result.data?.length || 0} result rows.`);
                 
                 // Skip to results step
                 setCurrentStep('preview_process');
                 
             } else {
-                onSendMessage('system', `❌ Use Case execution failed: ${result.error}`);
+                console.log( `❌ Use Case execution failed: ${result.error}`);
             }
             
         } catch (error) {
             console.error('Error applying column mapping:', error);
-            onSendMessage('system', `❌ Error applying column mapping: ${error.message}`);
+            console.log( `❌ Error applying column mapping: ${error.message}`);
         } finally {
             setIsExecutingUseCase(false);
             setExecutionType('');
@@ -466,7 +546,7 @@ const MiscellaneousFlow = ({
             setIsExecutingUseCase(true);
             setShowExecutionErrorModal(false);
             
-            onSendMessage('system', `🤖 Retrying with AI assistance - adapting query to your data...`);
+            console.log( `🤖 Retrying with AI assistance - adapting query to your data...`);
             
             const result = await useCaseService.executeUseCaseWithAI(
                 executionErrorData.useCase.id,
@@ -487,7 +567,7 @@ const MiscellaneousFlow = ({
                 setOriginalPrompt(executionErrorData.useCase.description || executionErrorData.useCase.name);
                 setHasPromptChanged(false);
                 
-                onSendMessage('system', `✅ AI-assisted execution succeeded! Generated ${result.data?.length || 0} result rows. ${result.ai_adaptations || ''}`);
+                console.log( `✅ AI-assisted execution succeeded! Generated ${result.data?.length || 0} result rows. ${result.ai_adaptations || ''}`);
                 
                 // Skip to results step
                 setCurrentStep('preview_process');
@@ -497,7 +577,7 @@ const MiscellaneousFlow = ({
             
         } catch (error) {
             console.error('AI retry failed:', error);
-            onSendMessage('system', `❌ AI-assisted execution failed: ${error.message}`);
+            console.log( `❌ AI-assisted execution failed: ${error.message}`);
         } finally {
             setIsExecutingUseCase(false);
             setExecutionType('');
@@ -576,7 +656,7 @@ const MiscellaneousFlow = ({
         setProcessingError(null);
         
         try {
-            onSendMessage('system', '🔄 Starting data processing with natural language query...');
+            console.log( '🔄 Starting data processing with natural language query...');
             
             const filesArray = getSelectedFilesArray();
             const fileReferences = filesArray.map((file, index) => ({
@@ -617,7 +697,7 @@ const MiscellaneousFlow = ({
                 const totalCountMsg = response.total_count && response.total_count > response.row_count 
                     ? ` (showing ${response.row_count} of ${response.total_count} total records)`
                     : '';
-                onSendMessage('system', `✅ Processing completed! Generated ${response.row_count} result rows${totalCountMsg} using AI-generated SQL in ${response.processing_time_seconds}s.`);
+                console.log( `✅ Processing completed! Generated ${response.row_count} result rows${totalCountMsg} using AI-generated SQL in ${response.processing_time_seconds}s.`);
             } else {
                 // Processing failed but we might have generated SQL and error analysis
                 console.log('🔧 Processing failed with response:', response);
@@ -640,12 +720,12 @@ const MiscellaneousFlow = ({
                     console.log('🔧 Set processResults with error analysis');
                 }
                 
-                onSendMessage('system', `❌ Processing failed: ${response.message || 'Unknown error'}`);
+                console.log( `❌ Processing failed: ${response.message || 'Unknown error'}`);
             }
         } catch (error) {
             console.error('Processing failed with exception:', error);
             setProcessingError(error.message);
-            onSendMessage('system', `❌ Processing failed: ${error.message}`);
+            console.log( `❌ Processing failed: ${error.message}`);
         } finally {
             setIsProcessing(false);
         }
@@ -656,12 +736,12 @@ const MiscellaneousFlow = ({
         if (!processId) return;
         
         try {
-            onSendMessage('system', `📁 Downloading results as ${format.toUpperCase()}...`);
+            console.log( `📁 Downloading results as ${format.toUpperCase()}...`);
             await miscellaneousService.downloadResults(processId, format);
-            onSendMessage('system', `✅ Download started successfully!`);
+            console.log( `✅ Download started successfully!`);
         } catch (error) {
             console.error('Download failed:', error);
-            onSendMessage('system', `❌ Download failed: ${error.message}`);
+            console.log( `❌ Download failed: ${error.message}`);
         }
     };
 
@@ -744,64 +824,49 @@ const MiscellaneousFlow = ({
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [onCancel]);
 
-    const handleOverlayClick = (e) => {
-        if (e.target === e.currentTarget) {
-            onCancel();
-        }
-    };
 
     // Render step content
     const renderStepContent = () => {
         switch (currentStep) {
             case 'file_selection':
-                return (
-                    <MiscellaneousFileSelection
-                        files={files}
-                        selectedFiles={selectedFilesForProcessing}
-                        onSelectionChange={setSelectedFilesForProcessing}
-                        onFilesRefresh={onFilesRefresh}
-                        maxFiles={10}
-                    />
-                );
+                // Use specialized file selection for use cases, regular selection for "Start Fresh"
+                const hasUseCaseFileRequirements = selectedUseCase && 
+                    selectedUseCase.id !== 'start_fresh' && 
+                    selectedUseCase.use_case_metadata?.file_requirements?.required_file_count > 0;
 
-            case 'use_case_selection':
-                const fileSchemas = getSelectedFilesArray().map(file => ({
-                    filename: file.filename,
-                    columns: file.columns || [],
-                    sample_data: file.sample_data || {}
-                }));
-                
-                return (
-                    <div className="space-y-6">
-                        <div className="text-center">
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">Choose a Use Case</h3>
-                            <p className="text-gray-600">
-                                Select from pre-built Use Cases or skip to write a custom query
-                            </p>
-                        </div>
-                        
-                        <UseCaseGallery
-                            onUseCaseSelect={handleUseCaseSelect}
-                            selectedUseCase={selectedUseCase}
-                            showCreateButton={true}
-                            onCreateNew={() => {
-                                setUseCaseCreationData(null); // Will use fallback data
-                                setShowUseCaseCreationModal(true);
+                if (hasUseCaseFileRequirements) {
+                    return (
+                        <UseCaseFileSelection
+                            useCase={selectedUseCase}
+                            files={files}
+                            selectedFiles={selectedFilesForProcessing}
+                            onFileSelection={(mappings) => {
+                                // Convert file role mappings back to the expected format
+                                const convertedFiles = {};
+                                Object.values(mappings).forEach((file, index) => {
+                                    convertedFiles[file.file_id] = file;
+                                });
+                                setSelectedFilesForProcessing(convertedFiles);
                             }}
-                            userPrompt={userPrompt}
-                            fileSchemas={fileSchemas}
+                            onRefreshFiles={onRefreshFiles}
+                            onFileUpload={(event) => {
+                                // Handle file upload here if needed
+                                console.log('File upload from UseCaseFileSelection:', event);
+                            }}
                         />
-                        
-                        <div className="flex justify-center">
-                            <button
-                                onClick={handleSkipUseCase}
-                                className="px-4 py-2 text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                                Skip Use Case and write custom query →
-                            </button>
-                        </div>
-                    </div>
-                );
+                    );
+                } else {
+                    return (
+                        <MiscellaneousFileSelection
+                            files={files}
+                            selectedFiles={selectedFilesForProcessing}
+                            onSelectionChange={setSelectedFilesForProcessing}
+                            onFilesRefresh={onRefreshFiles}
+                            maxFiles={10}
+                        />
+                    );
+                }
+
 
             case 'prompt_input':
                 return (
@@ -868,11 +933,7 @@ const MiscellaneousFlow = ({
     };
 
     return (
-        <div 
-            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50"
-            onClick={handleOverlayClick}
-        >
-            <div className="bg-white w-full h-full overflow-hidden flex flex-col relative">
+        <div className="bg-white w-full h-full overflow-hidden flex flex-col relative">
                 {/* Use Case Execution Loading Overlay */}
                 {isExecutingUseCase && (
                     <div className="absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50">
@@ -892,31 +953,18 @@ const MiscellaneousFlow = ({
                     </div>
                 )}
                 {/* Header */}
-                <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                            <Brain className="text-white" size={24} />
-                            <h1 className="text-xl font-bold text-white">Miscellaneous Data Processing</h1>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                            <button
-                                onClick={openFileLibrary}
-                                className="text-white hover:text-gray-200 p-2 rounded-lg hover:bg-white hover:bg-opacity-20 flex items-center space-x-1"
-                                title="Open File Library"
-                            >
-                                <FolderOpen size={18} />
-                                <span className="text-sm font-medium">File Library</span>
-                            </button>
-                            <button
-                                onClick={onCancel}
-                                className="text-white hover:text-gray-200 p-1 rounded-full hover:bg-white hover:bg-opacity-20"
-                                title="Close"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <AppHeader
+                    title="Prism AI - Data Processing Platform"
+                    subtitle={selectedUseCase && selectedUseCase.id !== 'start_fresh' 
+                        ? `Processing: ${selectedUseCase.name}`
+                        : 'Miscellaneous Data Processing'}
+                    showBackButton={!!onBackToGallery}
+                    onBackClick={onBackToGallery}
+                    showCloseButton={!!onBackToGallery}
+                    onCloseClick={onBackToGallery}
+                    showFileLibrary={true}
+                    onFileLibraryClick={() => window.open('/file-library', '_blank')}
+                />
 
                 {/* Progress Steps */}
                 <div className="bg-gray-50 px-6 lg:px-8 xl:px-10 py-4 lg:py-5 border-b border-gray-200">
@@ -931,8 +979,6 @@ const MiscellaneousFlow = ({
                                     switch(stepId) {
                                         case 'file_selection':
                                             return 'Select 1-5 CSV or Excel files to process. You can drag & drop files or upload new ones.';
-                                        case 'use_case_selection':
-                                            return 'Choose from pre-built templates to quickly apply common data operations, or skip to write a custom query.';
                                         case 'prompt_input':
                                             return 'Write a natural language query describing what you want to do with your data. The AI will convert this to SQL.';
                                         case 'intent_verification':
@@ -1228,7 +1274,6 @@ const MiscellaneousFlow = ({
                         )}
                     </div>
                 </div>
-            </div>
 
             {/* Enhanced Intent Verification Modal */}
             <EnhancedIntentVerificationModal

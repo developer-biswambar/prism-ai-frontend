@@ -57,6 +57,42 @@ const UseCaseGallery = ({
     
     // View states
     const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+    
+    // Debug: Log viewMode changes
+    useEffect(() => {
+        console.log('🔍 viewMode changed to:', viewMode);
+        
+        // Debug layout measurements after a small delay
+        setTimeout(() => {
+            const gallery = document.querySelector('[data-debug="use-case-gallery"]');
+            const listContainer = document.querySelector('[data-debug="list-container"]');
+            const gridContainer = document.querySelector('[data-debug="grid-container"]');
+            const startFreshItem = document.querySelector('[data-debug="start-fresh-item"]');
+            const centerPanel = document.querySelector('[data-debug="center-panel"]');
+            const centerPanelInner = document.querySelector('[data-debug="center-panel-inner"]');
+            
+            console.log('🔍 === LAYOUT DEBUG MEASUREMENTS ===');
+            if (centerPanel) {
+                console.log('🔍 Center Panel width:', centerPanel.offsetWidth, 'scrollWidth:', centerPanel.scrollWidth);
+            }
+            if (centerPanelInner) {
+                console.log('🔍 Center Panel Inner width:', centerPanelInner.offsetWidth, 'scrollWidth:', centerPanelInner.scrollWidth);
+            }
+            if (gallery) {
+                console.log('🔍 Gallery container width:', gallery.offsetWidth, 'scrollWidth:', gallery.scrollWidth);
+            }
+            if (gridContainer) {
+                console.log('🔍 Grid container width:', gridContainer.offsetWidth, 'scrollWidth:', gridContainer.scrollWidth);
+            }
+            if (listContainer) {
+                console.log('🔍 List container width:', listContainer.offsetWidth, 'scrollWidth:', listContainer.scrollWidth);
+            }
+            if (startFreshItem) {
+                console.log('🔍 Start Fresh item width:', startFreshItem.offsetWidth, 'scrollWidth:', startFreshItem.scrollWidth);
+            }
+            console.log('🔍 === END LAYOUT DEBUG ===');
+        }, 100);
+    }, [viewMode]);
 
     // Load initial data
     useEffect(() => {
@@ -255,23 +291,55 @@ const UseCaseGallery = ({
     const renderUseCaseGrid = () => {
         const currentUseCases = getCurrentUseCases();
         
-        if (currentUseCases.length === 0) {
-            return (
-                <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Search className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 text-lg mb-2">No use cases found</p>
-                    <p className="text-gray-400 text-sm">
-                        {searchQuery ? 'Try adjusting your search terms' : 'Try changing your filters'}
-                    </p>
-                </div>
-            );
-        }
-
+        console.log('🔍 renderUseCaseGrid - viewMode:', viewMode);
+        console.log('🔍 renderUseCaseGrid - currentUseCases length:', currentUseCases.length);
+        
         if (viewMode === 'grid') {
+            console.log('🔍 Rendering GRID mode');
             return (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-max" data-debug="grid-container">
+                    {/* Start Fresh Card - Always first */}
+                    <div 
+                        className="relative group bg-white rounded-lg border-2 border-dashed border-blue-300 hover:border-blue-400 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden h-[280px] flex flex-col"
+                        onClick={() => handleUseCaseApply({ id: 'start_fresh', name: 'Start Fresh', description: 'Begin with a blank prompt' })}
+                    >
+                        {/* Background gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 group-hover:from-blue-100/80 group-hover:to-indigo-100/80 transition-all duration-200" />
+                        
+                        {/* Content */}
+                        <div className="relative flex-1 p-4 flex flex-col text-center">
+                            {/* Icon */}
+                            <div className="flex justify-center mb-3">
+                                <div className="w-12 h-12 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors duration-200">
+                                    <Plus className="w-6 h-6 text-blue-600" />
+                                </div>
+                            </div>
+                            
+                            {/* Title */}
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Start Fresh</h3>
+                            
+                            {/* Description */}
+                            <p className="text-xs text-gray-600 mb-3 flex-1">
+                                Begin with a blank prompt for custom data processing
+                            </p>
+                            
+                            {/* Badge */}
+                            <div className="flex justify-center mb-3">
+                                <span className="inline-flex items-center px-2 py-1 bg-blue-100 group-hover:bg-blue-200 text-blue-700 text-xs font-medium rounded-full transition-colors duration-200">
+                                    New Process
+                                </span>
+                            </div>
+                            
+                            {/* Action Button */}
+                            <div className="flex justify-center mt-auto">
+                                <button className="px-4 py-2 bg-blue-600 group-hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm">
+                                    Get Started
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Saved Use Cases */}
                     {currentUseCases.map(useCase => (
                         <UseCaseCard
                             useCase={useCase}
@@ -286,11 +354,52 @@ const UseCaseGallery = ({
                             loadingMessage="Applying..."
                         />
                     ))}
+                    
+                    {/* No use cases message - only show if no saved use cases */}
+                    {currentUseCases.length === 0 && (
+                        <div className="col-span-full text-center py-12">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Search className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-gray-500 text-lg mb-2">No saved use cases found</p>
+                            <p className="text-gray-400 text-sm">
+                                {searchQuery ? 'Try adjusting your search terms' : 'Create your first use case by using "Start Fresh"'}
+                            </p>
+                        </div>
+                    )}
                 </div>
             );
         } else {
+            console.log('🔍 Rendering LIST mode');
             return (
-                <div className="space-y-2">
+                <div className="space-y-2 w-full overflow-x-hidden" style={{maxWidth: '100%', width: '100%', boxSizing: 'border-box', minWidth: 0, flex: 'none'}} data-debug="list-container">
+                    {/* Start Fresh List Item */}
+                    <div 
+                        className="flex items-center justify-between p-4 md:p-6 border-2 border-dashed border-blue-300 rounded-xl hover:border-blue-400 hover:bg-blue-50/30 hover:shadow-lg transition-all duration-200 cursor-pointer group bg-gradient-to-r from-blue-50/50 to-indigo-50/50 min-w-0 w-full overflow-hidden"
+                        style={{maxWidth: '100%', width: '100%', boxSizing: 'border-box'}}
+                        data-debug="start-fresh-item"
+                        onClick={() => handleUseCaseApply({ id: 'start_fresh', name: 'Start Fresh', description: 'Begin with a blank prompt' })}
+                    >
+                        <div className="flex items-center space-x-3 md:space-x-4 flex-1 min-w-0">
+                            <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:bg-blue-200 transition-colors flex-shrink-0">
+                                <Plus className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <h4 className="font-bold text-base md:text-lg text-gray-900 truncate">Start Fresh</h4>
+                                <p className="text-xs md:text-sm text-gray-600 truncate">Begin with a blank prompt for custom data processing and analysis</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-2 md:space-x-3 flex-shrink-0">
+                            <span className="hidden sm:inline-flex items-center px-2 md:px-3 py-1 md:py-1.5 bg-blue-100 group-hover:bg-blue-200 text-blue-700 text-xs font-medium rounded-full transition-colors">
+                                ✨ New Process
+                            </span>
+                            <button className="px-3 md:px-4 py-1.5 md:py-2 bg-blue-600 group-hover:bg-blue-700 text-white text-xs md:text-sm font-medium rounded-lg transition-colors shadow-sm">
+                                Get Started
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Saved Use Cases */}
                     {currentUseCases.map(useCase => (
                         <UseCaseListItem
                             key={useCase.id}
@@ -305,6 +414,19 @@ const UseCaseGallery = ({
                             loadingMessage="Applying..."
                         />
                     ))}
+                    
+                    {/* No use cases message - only show if no saved use cases */}
+                    {currentUseCases.length === 0 && (
+                        <div className="text-center py-12">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Search className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <p className="text-gray-500 text-lg mb-2">No saved use cases found</p>
+                            <p className="text-gray-400 text-sm">
+                                {searchQuery ? 'Try adjusting your search terms' : 'Create your first use case by using "Start Fresh"'}
+                            </p>
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -340,9 +462,9 @@ const UseCaseGallery = ({
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 w-full max-w-full overflow-hidden" style={{maxWidth: '100%', width: '100%'}} data-debug="use-case-gallery">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full max-w-full" style={{maxWidth: '100%'}}>
                 <div>
                     <h2 className="text-2xl font-bold text-gray-900">Use Case Gallery</h2>
                     <p className="text-gray-600">Choose from pre-built use cases or create your own</p>
@@ -350,7 +472,7 @@ const UseCaseGallery = ({
             </div>
 
             {/* Search and Controls */}
-            <div className="flex items-center justify-between space-x-4">
+            <div className="flex items-center justify-between space-x-4 w-full max-w-full overflow-hidden">
                 {/* Search */}
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -383,14 +505,20 @@ const UseCaseGallery = ({
 
                     {/* View Mode Toggle */}
                     <button
-                        onClick={() => setViewMode('grid')}
+                        onClick={() => {
+                            console.log('🔍 Grid mode button clicked');
+                            setViewMode('grid');
+                        }}
                         className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
                         title="Grid view"
                     >
                         <Grid size={16} />
                     </button>
                     <button
-                        onClick={() => setViewMode('list')}
+                        onClick={() => {
+                            console.log('🔍 List mode button clicked');
+                            setViewMode('list');
+                        }}
                         className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600 hover:bg-gray-100'}`}
                         title="List view"
                     >
@@ -487,7 +615,9 @@ const UseCaseGallery = ({
             </div>
 
             {/* Use Cases Grid/List */}
-            {renderUseCaseGrid()}
+            <div className="w-full max-w-full overflow-hidden">
+                {renderUseCaseGrid()}
+            </div>
 
             {/* Use Case Detail Modal */}
             <UseCaseDetailModal

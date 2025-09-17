@@ -87,6 +87,11 @@ export const API_ENDPOINTS = {
     // Use Cases  
     USE_CASES: `${ENV_CONFIG.API_BASE_URL}/use-cases`,
     SAVED_USE_CASES: `${ENV_CONFIG.API_BASE_URL}/saved-use-cases`,
+    
+    // Analytics
+    ANALYTICS: `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous/analytics`,
+    ANALYTICS_SUMMARY: `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous/analytics/summary`,
+    ANALYTICS_PROCESSES: `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous/analytics/processes`,
 };
 
 /**

@@ -18,7 +18,8 @@ import {
     Copy,
     Trash2,
     Play,
-    Loader
+    Loader,
+    FileText
 } from 'lucide-react';
 import { useCaseService } from '../../services/useCaseService';
 
@@ -116,35 +117,45 @@ const UseCaseCard = ({
 
     return (
         <div
-            className={`relative group bg-white rounded-lg shadow-sm border transition-all duration-200 overflow-hidden ${
+            className={`relative group bg-white rounded-lg border transition-all duration-200 overflow-hidden h-[280px] flex flex-col ${
                 isSelected 
                     ? 'border-blue-500 shadow-md ring-2 ring-blue-100' 
-                    : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                    : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
             }`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
             {/* Header */}
-            <div className="p-4 pb-2">
+            <div className="p-3 flex-1 flex flex-col">
                 <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                            <span className="text-lg">
-                                {useCaseService.getUseCaseTypeIcon(useCase?.use_case_type || 'data_processing')}
-                            </span>
-                            <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">
+                        {/* Icon and Title in same row */}
+                        <div className="flex items-center space-x-3 mb-2">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center">
+                                <span className="text-sm">
+                                    {useCaseService.getUseCaseTypeIcon(useCase?.use_case_type || 'data_processing')}
+                                </span>
+                            </div>
+                            <h3 className="font-bold text-sm text-gray-900 leading-tight line-clamp-2 flex-1">
                                 {useCase?.name || 'Unnamed Use Case'}
                             </h3>
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
+                        
+                        {/* Type badges and File Requirements */}
+                        <div className="flex items-center space-x-1 mb-2 flex-wrap">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                                 getUseCaseTypeColor(useCase?.use_case_type || 'data_processing')
                             }`}>
                                 {useCaseService.formatUseCaseTypeDisplay(useCase?.use_case_type)}
                             </span>
-                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                                {useCase?.category}
-                            </span>
+                            
+                            {/* File Requirements Badge */}
+                            {useCase?.use_case_metadata?.file_requirements?.required_file_count > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border-amber-200">
+                                    <FileText size={10} className="mr-1" />
+                                    {useCase.use_case_metadata.file_requirements.required_file_count} file{useCase.use_case_metadata.file_requirements.required_file_count > 1 ? 's' : ''}
+                                </span>
+                            )}
                         </div>
                     </div>
                     
@@ -205,37 +216,15 @@ const UseCaseCard = ({
                 </div>
 
                 {/* Description */}
-                <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                    {useCase?.description}
+                <p className="text-xs text-gray-600 line-clamp-2 mb-2 flex-1">
+                    {useCase?.description || 'No description available'}
                 </p>
 
-                {/* Tags */}
-                {useCase?.tags && useCase?.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-3">
-                        {useCase?.tags.slice(0, 3).map(tag => (
-                            <span
-                                key={tag}
-                                className="inline-flex items-center text-xs text-gray-600 bg-gray-50 px-2 py-1 rounded"
-                            >
-                                <Tag size={10} className="mr-1" />
-                                {tag}
-                            </span>
-                        ))}
-                        {useCase?.tags.length > 3 && (
-                            <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                                +{useCase?.tags.length - 3} more
-                            </span>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Stats */}
-            <div className="px-4 pb-3">
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                    <div className="flex items-center space-x-3">
+                {/* Stats row */}
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                    <div className="flex items-center space-x-2">
                         <div className="flex items-center space-x-1">
-                            <Users size={12} />
+                            <Users size={10} />
                             <span>{useCase?.usage_count || 0}</span>
                         </div>
                         <div className="flex items-center space-x-1">
@@ -243,18 +232,10 @@ const UseCaseCard = ({
                         </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                        <Clock size={12} />
+                        <Clock size={10} />
                         <span>{formatDate(useCase?.updated_at)}</span>
                     </div>
                 </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-4 pb-4">
-                <div className="flex items-center justify-between">
-                    <div className="text-xs text-gray-500">
-                        {useCase?.created_by ? `by ${useCase?.created_by}` : 'Anonymous'}
-                    </div>
                     
                     <div className="flex items-center space-x-1 justify-end flex-wrap relative" style={{ zIndex: 20 }}>
                         {/* View Button (when selected) */}
@@ -291,11 +272,10 @@ const UseCaseCard = ({
                             </button>
                         )}
                     </div>
-                </div>
                 
-                {/* Apply Button - Always visible at bottom right */}
+                {/* Apply Button - Always at bottom */}
                 {onApply && (
-                    <div className="flex justify-end mt-2">
+                    <div className="px-3 pb-3 mt-auto pt-2 relative" style={{ zIndex: 20 }}>
                         <button
                             onClick={(e) => {
                                 console.log('UseCaseCard: Apply button clicked');
@@ -305,22 +285,21 @@ const UseCaseCard = ({
                                 }
                             }}
                             disabled={isLoading}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors shadow-sm ${
+                            className={`w-full py-2 rounded-md text-sm font-medium transition-colors shadow-sm ${
                                 isLoading 
-                                    ? 'bg-gray-400 text-white border-gray-400 cursor-not-allowed' 
-                                    : 'bg-green-600 text-white hover:bg-green-700 border-green-600'
+                                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
                             }`}
-                            style={{ zIndex: 10 }}
                         >
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center justify-center space-x-1.5">
                                 {isLoading ? (
                                     <>
-                                        <Loader size={14} className="animate-spin" />
+                                        <Loader size={12} className="animate-spin" />
                                         <span>{loadingMessage}</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Play size={14} />
+                                        <Play size={12} />
                                         <span>Apply Use Case</span>
                                     </>
                                 )}
@@ -342,9 +321,11 @@ const UseCaseCard = ({
                 </div>
             )}
 
-            {/* Click overlay for selection - positioned behind buttons */}
+            {/* Click overlay for selection - positioned behind buttons, exclude Apply button area */}
             <div 
-                className="absolute inset-0 cursor-pointer"
+                className={`absolute cursor-pointer ${
+                    onApply ? 'inset-0 bottom-16' : 'inset-0'
+                }`}
                 style={{ zIndex: 1 }}
                 onClick={onSelect}
             />
