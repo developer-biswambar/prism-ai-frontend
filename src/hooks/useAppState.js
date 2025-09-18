@@ -321,43 +321,16 @@ export const useFileSelection = () => {
 };
 
 export const usePanelResize = () => {
-    const [leftPanelWidth, setLeftPanelWidth] = useState(320);
-    const [rightPanelWidth, setRightPanelWidth] = useState(320);
-    const [isResizing, setIsResizing] = useState(null);
-
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!isResizing) return;
-
-            if (isResizing === 'left') {
-                const newWidth = Math.max(250, Math.min(600, e.clientX));
-                setLeftPanelWidth(newWidth);
-            } else if (isResizing === 'right') {
-                const newWidth = Math.max(250, Math.min(600, window.innerWidth - e.clientX));
-                setRightPanelWidth(newWidth);
-            }
-        };
-
-        const handleMouseUp = () => {
-            setIsResizing(null);
-        };
-
-        if (isResizing) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-        }
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-        };
-    }, [isResizing]);
-
+    // Fixed panel widths - no resizing functionality
+    const leftPanelWidth = 320;
+    const rightPanelWidth = 320;
+    
     return {
         leftPanelWidth,
         rightPanelWidth,
-        isResizing,
-        setIsResizing
+        isResizing: null,
+        setIsResizing: () => {}, // No-op function for compatibility
+        isInitialized: true
     };
 };
 

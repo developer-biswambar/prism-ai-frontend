@@ -57,8 +57,56 @@ const MainApp = () => {
         leftPanelWidth,
         rightPanelWidth,
         isResizing,
-        setIsResizing
+        setIsResizing,
+        isInitialized
     } = usePanelResize();
+    
+    // Debug logging for panel resize hook
+    React.useEffect(() => {
+        console.log('🏠 App.jsx: usePanelResize hook state changed:', {
+            leftPanelWidth,
+            rightPanelWidth,
+            isResizing,
+            isInitialized,
+            timestamp: new Date().toISOString()
+        });
+    }, [leftPanelWidth, rightPanelWidth, isResizing, isInitialized]);
+
+    // Monitor the main grid container
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            const gridContainer = document.querySelector('[data-debug="grid-container"]');
+            if (gridContainer) {
+                console.log('🏠 App.jsx: Grid container measurement:', {
+                    containerWidth: gridContainer.offsetWidth,
+                    containerHeight: gridContainer.offsetHeight,
+                    computedGrid: window.getComputedStyle(gridContainer).gridTemplateColumns,
+                    computedDisplay: window.getComputedStyle(gridContainer).display,
+                    timestamp: new Date().toISOString()
+                });
+
+                // Set up ResizeObserver for main container
+                const containerObserver = new ResizeObserver((entries) => {
+                    for (const entry of entries) {
+                        const { width: containerWidth } = entry.contentRect;
+                        console.log('🔍 RESIZE OBSERVER - Main grid container changed:', {
+                            containerWidth,
+                            timestamp: new Date().toISOString(),
+                            trigger: 'MainContainerResize'
+                        });
+                    }
+                });
+
+                containerObserver.observe(gridContainer);
+
+                return () => {
+                    containerObserver.disconnect();
+                };
+            }
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     // New UI state management
     const [currentView, setCurrentView] = React.useState('gallery'); // 'gallery' or 'miscellaneous'
@@ -453,6 +501,32 @@ const MainApp = () => {
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
+            {/* Prevent layout shifts during loading */}
+            <style jsx>{`
+                * {
+                    box-sizing: border-box;
+                }
+                .layout-stable {
+                    min-height: 100vh;
+                    height: 100vh;
+                    max-height: 100vh;
+                }
+                /* Minimal CSS to prevent layout shifts without overriding grid */
+                [data-debug="grid-container"] {
+                    min-height: calc(100vh - 120px); /* Account for header height */
+                }
+                [data-debug="center-panel"] {
+                    background: white;
+                    overflow: hidden;
+                }
+                [data-debug="center-panel-inner"] {
+                    overflow-y: auto;
+                }
+                /* Prevent content from collapsing during loading */
+                [data-debug="use-case-gallery"] {
+                    min-height: calc(100vh - 200px); /* Prevent collapse during loading */
+                }
+            `}</style>
             {/* Conditional rendering based on current view */}
             {currentView === 'miscellaneous' ? (
                 /* Full screen Miscellaneous Flow */
@@ -473,19 +547,28 @@ const MainApp = () => {
                 />
             ) : (
                 /* Three-panel layout for Gallery view */
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full layout-stable">
                     {/* Header */}
                     <AppHeader
-                        title="Prism AI - Data Processing Platform"
-                        subtitle="Select a use case or start fresh with miscellaneous data processing"
+                        title="Forte AI - Data Processing Platform"
+                        subtitle="Select a use case or start fresh with AI based data processing"
                         showBackButton={false}
                         showCloseButton={false}
                         showFileLibrary={true}
                         onFileLibraryClick={openFileLibrary}
                     />
                     
-                    {/* Main Content Area */}
-                    <div className="flex flex-1 overflow-hidden">
+                    {/* Main Content Area - CSS Grid for stable layout */}
+                    <div 
+                        className="flex-1 min-h-0 overflow-hidden"
+                        data-debug="grid-container"
+                        style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: '320px 1fr 320px',
+                            gridTemplateRows: '1fr'
+                        }}
+                    >
+                        {/* Left Sidebar - Grid Column 1 */}
                         <LeftSidebar
                             files={files}
                             templates={[]} // Remove templates for new flow
@@ -499,43 +582,27 @@ const MainApp = () => {
                             onTemplateSelect={() => {}} // No template selection
                             onRefreshFiles={loadFiles}
                             onOpenFileLibrary={openFileLibrary}
-                            width={leftPanelWidth}
                         />
 
-                        <div
-                            className="w-1 bg-gray-300 hover:bg-blue-400 cursor-col-resize transition-colors duration-200 relative group"
-                            onMouseDown={() => setIsResizing('left')}
-                        >
-                            <div className="absolute inset-0 w-2 -translate-x-0.5"></div>
-                            <div
-                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-gray-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-                        </div>
 
-                        {/* Center Panel - Use Case Gallery */}
-                        <div className="flex-1 min-w-0 overflow-hidden bg-white" data-debug="center-panel">
-                            <div className="h-full overflow-y-auto p-6" data-debug="center-panel-inner">
-                                <UseCaseGallery
-                                    onUseCaseSelect={handleUseCaseSelect}
-                                    selectedUseCase={selectedUseCase}
-                                    showCreateButton={true}
-                                    userPrompt=""
-                                    fileSchemas={files.map(f => ({ filename: f.filename, columns: f.columns || [] }))}
-                                />
+                        {/* Center Panel - Grid Column 2 */}
+                        <div className="overflow-hidden bg-white h-full" data-debug="center-panel">
+                            <div className="h-full min-h-0 overflow-y-auto p-6" data-debug="center-panel-inner">
+                                <div className="min-h-full">
+                                    <UseCaseGallery
+                                        onUseCaseSelect={handleUseCaseSelect}
+                                        selectedUseCase={selectedUseCase}
+                                        showCreateButton={true}
+                                        userPrompt=""
+                                        fileSchemas={files.map(f => ({ filename: f.filename, columns: f.columns || [] }))}
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        <div
-                            className="w-1 bg-gray-300 hover:bg-blue-400 cursor-col-resize transition-colors duration-200 relative group"
-                            onMouseDown={() => setIsResizing('right')}
-                        >
-                            <div className="absolute inset-0 w-2 -translate-x-0.5"></div>
-                            <div
-                                className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-8 bg-gray-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
-                        </div>
 
-                        <ProcessAnalyticsRightSideBar
-                            width={rightPanelWidth}
-                        />
+                        {/* Right Sidebar - Grid Column 3 */}
+                        <ProcessAnalyticsRightSideBar />
                     </div>
                 </div>
             )}

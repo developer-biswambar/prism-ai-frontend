@@ -150,8 +150,88 @@ const UseCaseListItem = ({
                                 </div>
                             )}
                         </div>
+                        
+                        {/* File Roles Display */}
+                        {useCase?.use_case_metadata?.file_requirements?.file_roles && (
+                            <div className="mt-2">
+                                <div className="text-xs text-gray-500 mb-1">Required Files:</div>
+                                <div className="flex flex-wrap gap-1">
+                                    {Object.entries(useCase.use_case_metadata.file_requirements.file_roles).map(([role, label]) => (
+                                        <span 
+                                            key={role}
+                                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200"
+                                        >
+                                            {label || role}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {/* Actions Menu */}
+                {(showActions || isSelected) && (
+                    <div className="relative ml-2">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMenu(!showMenu);
+                            }}
+                            className={`p-1 text-gray-400 hover:text-gray-600 transition-opacity ${
+                                isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            }`}
+                        >
+                            <MoreVertical size={16} />
+                        </button>
+                        {showMenu && (
+                            <div className="absolute right-0 top-6 w-48 bg-white rounded-md shadow-lg z-20 border">
+                                <div className="py-1">
+                                    {onEdit && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onEdit(useCase);
+                                                setShowMenu(false);
+                                            }}
+                                            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            <Settings size={14} />
+                                            <span>Edit</span>
+                                        </button>
+                                    )}
+                                    {onDuplicate && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDuplicate(useCase);
+                                                setShowMenu(false);
+                                            }}
+                                            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                        >
+                                            <Copy size={14} />
+                                            <span>Duplicate</span>
+                                        </button>
+                                    )}
+                                    {(onEdit || onDuplicate) && onDelete && <hr className="my-1" />}
+                                    {onDelete && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDelete(useCase);
+                                                setShowMenu(false);
+                                            }}
+                                            className="flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                                        >
+                                            <Trash2 size={14} />
+                                            <span>Delete</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Stats */}
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -204,21 +284,6 @@ const UseCaseListItem = ({
                         </button>
                     )}
                     
-                    {/* Delete Button (when selected) */}
-                    {isSelected && onDelete && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(useCase);
-                            }}
-                            className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 transition-colors"
-                        >
-                            <div className="flex items-center space-x-1">
-                                <Trash2 size={10} />
-                                <span>Delete</span>
-                            </div>
-                        </button>
-                    )}
                 </div>
             </div>
 

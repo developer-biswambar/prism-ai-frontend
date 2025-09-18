@@ -27,9 +27,10 @@ const LeftSidebar = ({
                          onFileUpload,
                          onTemplateSelect,
                          onRefreshFiles,
-                         onOpenFileLibrary,
-                         width = 320
+                         onOpenFileLibrary
                      }) => {
+    // Fixed width - no resizing functionality
+    const width = 320;
     const fileInputRef = useRef(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [fileToDelete, setFileToDelete] = useState(null);
@@ -305,8 +306,8 @@ const LeftSidebar = ({
     return (
         <>
             <div
-                className="w-80 bg-gradient-to-br from-slate-50 to-blue-50 border-r border-slate-200 flex flex-col shadow-lg h-screen"
-                style={{width: `${width}px`}}
+                className="w-80 bg-gradient-to-br from-slate-50 to-blue-50 border-r border-slate-200 flex flex-col shadow-lg h-screen flex-shrink-0"
+                style={{width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px`}}
             >
                 {/* Upload Progress Indicator */}
                 {uploadProgress && (

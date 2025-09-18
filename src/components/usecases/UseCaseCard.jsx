@@ -157,17 +157,38 @@ const UseCaseCard = ({
                                 </span>
                             )}
                         </div>
+
+                        {/* File Roles Display */}
+                        {useCase?.use_case_metadata?.file_requirements?.file_roles && (
+                            <div className="mb-2">
+                                <div className="text-xs text-gray-500 mb-1">Required Files:</div>
+                                <div className="flex flex-wrap gap-1">
+                                    {Object.entries(useCase.use_case_metadata.file_requirements.file_roles).map(([role, label]) => (
+                                        <span 
+                                            key={role}
+                                            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200"
+                                        >
+                                            {label || role}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        </div>
                     </div>
+                </div>
                     
-                    {/* Actions Menu */}
-                    {showActions && (
+                {/* Actions Menu */}
+                    {(showActions || isSelected) && (
                         <div className="relative">
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setShowMenu(!showMenu);
                                 }}
-                                className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className={`p-1 text-gray-400 hover:text-gray-600 transition-opacity ${
+                                    isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                }`}
                             >
                                 <MoreVertical size={16} />
                             </button>
@@ -213,8 +234,7 @@ const UseCaseCard = ({
                             )}
                         </div>
                     )}
-                </div>
-
+                
                 {/* Description */}
                 <p className="text-xs text-gray-600 line-clamp-2 mb-2 flex-1">
                     {useCase?.description || 'No description available'}
@@ -227,9 +247,6 @@ const UseCaseCard = ({
                             <Users size={10} />
                             <span>{useCase?.usage_count || 0}</span>
                         </div>
-                        <div className="flex items-center space-x-1">
-                            {renderStars(useCase?.rating || 0, useCase?.rating_count || 0)}
-                        </div>
                     </div>
                     <div className="flex items-center space-x-1">
                         <Clock size={10} />
@@ -237,45 +254,47 @@ const UseCaseCard = ({
                     </div>
                 </div>
                     
-                    <div className="flex items-center space-x-1 justify-end flex-wrap relative" style={{ zIndex: 20 }}>
-                        {/* View Button (when selected) */}
-                        {isSelected && onView && (
-                            <button
-                                onClick={(e) => {
-                                    console.log('UseCaseCard: View button clicked');
-                                    e.stopPropagation();
-                                    onView(useCase);
-                                }}
-                                className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 transition-colors"
-                                style={{ zIndex: 10 }}
-                            >
-                                <div className="flex items-center space-x-1">
-                                    <Eye size={10} />
-                                    <span>View</span>
-                                </div>
-                            </button>
-                        )}
-                        
-                        {/* Delete Button (when selected) */}
-                        {isSelected && onDelete && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDelete(useCase);
-                                }}
-                                className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 transition-colors"
-                            >
-                                <div className="flex items-center space-x-1">
-                                    <Trash2 size={10} />
-                                    <span>Delete</span>
-                                </div>
-                            </button>
-                        )}
-                    </div>
+                    {/* Action Buttons (when selected) */}
+                    {isSelected && (
+                        <div className="flex items-center space-x-2 mt-2 relative px-3" style={{ zIndex: 30 }}>
+                            {onView && (
+                                <button
+                                    onClick={(e) => {
+                                        console.log('UseCaseCard: View button clicked');
+                                        e.stopPropagation();
+                                        onView(useCase);
+                                    }}
+                                    className="flex-1 py-1.5 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 transition-colors relative"
+                                    style={{ zIndex: 40 }}
+                                >
+                                    <div className="flex items-center justify-center space-x-1">
+                                        <Eye size={10} />
+                                        <span>View</span>
+                                    </div>
+                                </button>
+                            )}
+                            
+                            {onDelete && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDelete(useCase);
+                                    }}
+                                    className="flex-1 py-1.5 rounded text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 transition-colors relative"
+                                    style={{ zIndex: 40 }}
+                                >
+                                    <div className="flex items-center justify-center space-x-1">
+                                        <Trash2 size={10} />
+                                        <span>Delete</span>
+                                    </div>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 
                 {/* Apply Button - Always at bottom */}
                 {onApply && (
-                    <div className="px-3 pb-3 mt-auto pt-2 relative" style={{ zIndex: 20 }}>
+                    <div className="p-3 mt-auto" style={{ zIndex: 20 }}>
                         <button
                             onClick={(e) => {
                                 console.log('UseCaseCard: Apply button clicked');
@@ -285,7 +304,7 @@ const UseCaseCard = ({
                                 }
                             }}
                             disabled={isLoading}
-                            className={`w-full py-2 rounded-md text-sm font-medium transition-colors shadow-sm ${
+                            className={`w-full py-3 rounded-md text-sm font-medium transition-colors shadow-sm ${
                                 isLoading 
                                     ? 'bg-gray-400 text-white cursor-not-allowed' 
                                     : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
@@ -307,7 +326,6 @@ const UseCaseCard = ({
                         </button>
                     </div>
                 )}
-            </div>
 
             {/* Hover Overlay */}
             {isHovered && !isSelected && (
@@ -324,7 +342,9 @@ const UseCaseCard = ({
             {/* Click overlay for selection - positioned behind buttons, exclude Apply button area */}
             <div 
                 className={`absolute cursor-pointer ${
-                    onApply ? 'inset-0 bottom-16' : 'inset-0'
+                    isSelected && (onView || onDelete) 
+                        ? (onApply ? 'inset-0 bottom-16 right-0' : 'inset-0 bottom-12') 
+                        : (onApply ? 'inset-0 bottom-16' : 'inset-0')
                 }`}
                 style={{ zIndex: 1 }}
                 onClick={onSelect}

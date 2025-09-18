@@ -954,10 +954,10 @@ const MiscellaneousFlow = ({
                 )}
                 {/* Header */}
                 <AppHeader
-                    title="Prism AI - Data Processing Platform"
+                    title="Forte AI - Data Processing Platform"
                     subtitle={selectedUseCase && selectedUseCase.id !== 'start_fresh' 
                         ? `Processing: ${selectedUseCase.name}`
-                        : 'Miscellaneous Data Processing'}
+                        : 'AI based Data Processing'}
                     showBackButton={!!onBackToGallery}
                     onBackClick={onBackToGallery}
                     showCloseButton={!!onBackToGallery}

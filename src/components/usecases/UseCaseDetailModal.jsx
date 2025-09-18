@@ -722,15 +722,6 @@ const UseCaseDetailModal = ({
                             </button>
                         )}
                         
-                        {onDelete && (
-                            <button
-                                onClick={() => onDelete(useCase)}
-                                className="flex items-center space-x-2 px-4 py-2 text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
-                            >
-                                <Trash2 size={16} />
-                                <span>Delete</span>
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>

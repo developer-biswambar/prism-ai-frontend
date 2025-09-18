@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 const AppHeader = ({
-    title = "Miscellaneous Data Processing",
+    title = "AI based Data Processing",
     subtitle = null,
     showBackButton = false,
     onBackClick = null,
