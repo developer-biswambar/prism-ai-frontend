@@ -1,5 +1,5 @@
 // Miscellaneous Data Processing Service
-import { ENV_CONFIG } from '../config/environment.js';
+import {ENV_CONFIG} from '../config/environment.js';
 
 class MiscellaneousService {
     constructor() {
@@ -85,30 +85,30 @@ class MiscellaneousService {
             }
 
             const blob = await response.blob();
-            
+
             // Create download link
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            
+
             // Get filename from response headers or use default
             const contentDisposition = response.headers.get('Content-Disposition');
             let filename = `miscellaneous_${processId}.${format}`;
-            
+
             if (contentDisposition) {
                 const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
                 if (filenameMatch) {
                     filename = filenameMatch[1];
                 }
             }
-            
+
             a.download = filename;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
 
-            return { success: true, filename };
+            return {success: true, filename};
         } catch (error) {
             console.error('Error downloading results:', error);
             throw error;
@@ -330,7 +330,7 @@ class MiscellaneousService {
         const dangerousKeywords = ['drop', 'delete', 'truncate', 'alter', 'create table'];
         const lowerPrompt = prompt.toLowerCase();
         const foundDangerous = dangerousKeywords.filter(kw => lowerPrompt.includes(kw));
-        
+
         if (foundDangerous.length > 0) {
             warnings.push(`Your query contains keywords that might not work: ${foundDangerous.join(', ')}. The system only supports read-only operations.`);
         }

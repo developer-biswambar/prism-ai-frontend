@@ -3,7 +3,7 @@
  * Handles API communication for use case management
  */
 
-import { API_ENDPOINTS } from '../config/environment';
+import {API_ENDPOINTS} from '../config/environment';
 
 class UseCaseService {
     constructor() {
@@ -41,7 +41,7 @@ class UseCaseService {
             }
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 if (response.status === 404) {
                     throw new Error('Template not found');
@@ -111,7 +111,7 @@ class UseCaseService {
     async listTemplates(filters = {}) {
         try {
             const url = new URL(this.baseURL);
-            
+
             // Add filter parameters
             if (filters.template_type) url.searchParams.append('template_type', filters.template_type);
             if (filters.category) url.searchParams.append('category', filters.category);
@@ -121,7 +121,7 @@ class UseCaseService {
             if (filters.offset) url.searchParams.append('offset', filters.offset);
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to list templates');
@@ -138,7 +138,7 @@ class UseCaseService {
         try {
             const url = new URL(`${this.baseURL}/search/query`);
             url.searchParams.append('q', query);
-            
+
             // Add filter parameters
             if (filters.template_type) url.searchParams.append('template_type', filters.template_type);
             if (filters.category) url.searchParams.append('category', filters.category);
@@ -147,7 +147,7 @@ class UseCaseService {
             }
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to search templates');
@@ -167,7 +167,7 @@ class UseCaseService {
             if (templateType) url.searchParams.append('template_type', templateType);
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to get popular templates');
@@ -249,7 +249,7 @@ class UseCaseService {
                     tags: templateMetadata.tags || [],
                     is_public: templateMetadata.is_public || false,
                     created_by: templateMetadata.created_by,
-                    
+
                     // Enhanced template data
                     template_content: templateMetadata.template_content,
                     template_metadata: templateMetadata.template_metadata
@@ -308,7 +308,7 @@ class UseCaseService {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ rating })
+                body: JSON.stringify({rating})
             });
 
             if (!response.ok) {
@@ -330,7 +330,7 @@ class UseCaseService {
             if (templateType) url.searchParams.append('template_type', templateType);
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to get categories');
@@ -346,7 +346,7 @@ class UseCaseService {
     async getTemplateTypes() {
         try {
             const response = await fetch(`${this.baseURL}/types/list`);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to get template types');
@@ -365,7 +365,7 @@ class UseCaseService {
             return await response.json();
         } catch (error) {
             console.error('Error checking template service health:', error);
-            return { status: 'unhealthy', error: error.message };
+            return {status: 'unhealthy', error: error.message};
         }
     }
 

@@ -1,31 +1,33 @@
-import React, {useState, useRef, useEffect} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     AlertCircle,
     Check,
+    Eye,
     File,
     FileSpreadsheet,
     FileText,
-    X,
-    Upload,
     HelpCircle,
     RefreshCw,
-    Search
+    Search,
+    Upload,
+    X
 } from 'lucide-react';
-import { apiService } from '../../services/defaultApi.js';
+import {apiService} from '../../services/defaultApi.js';
+import {fileManagementService} from '../../services/fileManagementService.js';
 import FileUploadModal from '../../fileManagement/FileUploadModal.jsx';
 
 const MiscellaneousFileSelection = ({
-    files,
-    selectedFiles,
-    onSelectionChange,
-    onFilesRefresh, // Callback to refresh file list after upload
-    maxFiles = 10
-}) => {
-    
+                                        files,
+                                        selectedFiles,
+                                        onSelectionChange,
+                                        onFilesRefresh, // Callback to refresh file list after upload
+                                        maxFiles = 10
+                                    }) => {
+
     // Drag & drop state
     const [isDragOver, setIsDragOver] = useState(false);
     const [dragCounter, setDragCounter] = useState(0);
-    
+
     // File upload state
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [currentUploadFile, setCurrentUploadFile] = useState(null);
@@ -35,15 +37,15 @@ const MiscellaneousFileSelection = ({
     const [uploadSuccess, setUploadSuccess] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    
+
     // Search state
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     const fileInputRef = useRef(null);
     useEffect(() => {
         handleRefresh()
-    },[])
-    
+    }, [])
+
     // Drag & drop handlers
     const handleDragEnter = (e) => {
         e.preventDefault();
@@ -72,33 +74,48 @@ const MiscellaneousFileSelection = ({
     };
 
     const handleDrop = (e) => {
+        console.log('🎯 [MiscellaneousFileSelection] handleDrop called');
         e.preventDefault();
         e.stopPropagation();
         setIsDragOver(false);
         setDragCounter(0);
-        
+
         const droppedFiles = Array.from(e.dataTransfer.files);
+        console.log('📁 [MiscellaneousFileSelection] Dropped files count:', droppedFiles.length);
+        console.log('📁 [MiscellaneousFileSelection] Dropped files:', droppedFiles.map(f => f.name));
+        
         if (droppedFiles.length > 0) {
             handleFilesSelected(droppedFiles);
+        } else {
+            console.log('⚠️ [MiscellaneousFileSelection] No files dropped');
         }
     };
 
     // File selection handlers (from FileLibraryPage)
     const handleFileInputChange = (event) => {
+        console.log('🔄 [MiscellaneousFileSelection] handleFileInputChange called');
         const selectedFiles = Array.from(event.target.files);
-        if (selectedFiles.length === 0) return;
+        console.log('📁 [MiscellaneousFileSelection] Selected files count:', selectedFiles.length);
+        console.log('📁 [MiscellaneousFileSelection] Selected files:', selectedFiles.map(f => f.name));
         
+        if (selectedFiles.length === 0) {
+            console.log('⚠️ [MiscellaneousFileSelection] No files selected, returning');
+            return;
+        }
+
         // Clear the input
         event.target.value = '';
-        
+
         handleFilesSelected(selectedFiles);
     };
 
     const handleFilesSelected = (selectedFiles) => {
+        console.log('🔄 [MiscellaneousFileSelection] handleFilesSelected called with:', selectedFiles.length, 'files');
         setUploadError('');
-        
+
         // Check file count limit
         if (selectedFiles.length > 10) {
+            console.log('❌ [MiscellaneousFileSelection] Too many files:', selectedFiles.length);
             setUploadError('You can upload a maximum of 10 files at once.');
             return;
         }
@@ -109,15 +126,20 @@ const MiscellaneousFileSelection = ({
         );
 
         if (invalidFiles.length > 0) {
+            console.log('❌ [MiscellaneousFileSelection] Invalid file types:', invalidFiles.map(f => f.name));
             setUploadError(`Invalid file types: ${invalidFiles.map(f => f.name).join(', ')}. Only CSV and Excel files are supported.`);
             return;
         }
 
+        console.log('✅ [MiscellaneousFileSelection] File validation passed');
+
         // If single file, show modal immediately
         if (selectedFiles.length === 1) {
+            console.log('📄 [MiscellaneousFileSelection] Single file upload, showing modal for:', selectedFiles[0].name);
             setCurrentUploadFile(selectedFiles[0]);
             setShowUploadModal(true);
         } else {
+            console.log('📄 [MiscellaneousFileSelection] Multiple files upload, setting up queue');
             // Multiple files - set up queue
             setUploadQueue(selectedFiles);
             setCurrentUploadIndex(0);
@@ -127,23 +149,41 @@ const MiscellaneousFileSelection = ({
     };
 
     const handleUploadConfirm = async (uploadConfig) => {
+        console.log('🚀 [MiscellaneousFileSelection] handleUploadConfirm called with config:', {
+            fileName: uploadConfig.file.name,
+            fileSize: uploadConfig.file.size,
+            sheetName: uploadConfig.sheetName,
+            customName: uploadConfig.customName
+        });
+        
         setShowUploadModal(false);
         setIsUploading(true);
         setUploadError('');
 
         try {
+            console.log('🔄 [MiscellaneousFileSelection] Starting upload via apiService.uploadFileWithOptions...');
+            
+            // Use fileManagementService to maintain consistency and handle caching properly
             const response = await apiService.uploadFileWithOptions(
                 uploadConfig.file,
                 uploadConfig.sheetName,
                 uploadConfig.customName
             );
 
+            console.log('📤 [MiscellaneousFileSelection] Upload response:', response);
+
             if (response.success) {
+                console.log('✅ [MiscellaneousFileSelection] Upload successful!', response.data);
                 setUploadSuccess(response.data);
                 setTimeout(() => setUploadSuccess(null), 4000);
 
+                // Invalidate cache to ensure fresh data
+                console.log('🗑️ [MiscellaneousFileSelection] Invalidating file cache...');
+                fileManagementService.invalidateCache('files');
+
                 // If there are more files in queue, process next
                 if (uploadQueue.length > 1 && currentUploadIndex < uploadQueue.length - 1) {
+                    console.log('🔄 [MiscellaneousFileSelection] More files in queue, processing next...');
                     const nextIndex = currentUploadIndex + 1;
                     setCurrentUploadIndex(nextIndex);
                     setCurrentUploadFile(uploadQueue[nextIndex]);
@@ -153,17 +193,25 @@ const MiscellaneousFileSelection = ({
                         setShowUploadModal(true);
                     }, 500);
                 } else {
+                    console.log('✅ [MiscellaneousFileSelection] All files processed, clearing queue');
                     // All files processed, clear queue
                     setUploadQueue([]);
                     setCurrentUploadIndex(0);
                     setCurrentUploadFile(null);
                 }
 
-                // Refresh file list
+                // Refresh file list after a small delay to ensure backend processing is complete
                 if (onFilesRefresh) {
-                    onFilesRefresh();
+                    console.log('🔄 [MiscellaneousFileSelection] Refreshing file list in 500ms...');
+                    setTimeout(() => {
+                        console.log('🔄 [MiscellaneousFileSelection] Calling onFilesRefresh now...');
+                        onFilesRefresh();
+                    }, 500);
+                } else {
+                    console.log('⚠️ [MiscellaneousFileSelection] onFilesRefresh callback not provided');
                 }
             } else {
+                console.log('❌ [MiscellaneousFileSelection] Upload failed:', response.message);
                 setUploadError(response.message || 'Upload failed');
                 // Stop processing queue on error
                 setUploadQueue([]);
@@ -171,12 +219,14 @@ const MiscellaneousFileSelection = ({
                 setCurrentUploadFile(null);
             }
         } catch (err) {
+            console.error('❌ [MiscellaneousFileSelection] Upload error:', err);
             setUploadError(err.message || 'Upload failed');
             // Stop processing queue on error
             setUploadQueue([]);
             setCurrentUploadIndex(0);
             setCurrentUploadFile(null);
         } finally {
+            console.log('🏁 [MiscellaneousFileSelection] Upload process finished, setting isUploading to false');
             setIsUploading(false);
         }
     };
@@ -213,22 +263,22 @@ const MiscellaneousFileSelection = ({
     const handleFileToggle = (file) => {
         const currentSelected = Object.keys(selectedFiles).length;
         const isCurrentlySelected = isFileSelected(file);
-        
+
         if (isCurrentlySelected) {
             // Remove file
-            const newSelection = { ...selectedFiles };
+            const newSelection = {...selectedFiles};
             const fileKey = Object.keys(newSelection).find(key => newSelection[key]?.file_id === file.file_id);
             if (fileKey) {
                 delete newSelection[fileKey];
             }
-            
+
             // Reorder remaining files
             const remainingFiles = Object.values(newSelection).filter(f => f);
             const reorderedSelection = {};
             remainingFiles.forEach((f, index) => {
                 reorderedSelection[`file_${index}`] = f;
             });
-            
+
             onSelectionChange(reorderedSelection);
         } else {
             // Add file if under limit
@@ -248,7 +298,7 @@ const MiscellaneousFileSelection = ({
 
     const handleRefresh = async () => {
         if (isRefreshing || !onFilesRefresh) return;
-        
+
         setIsRefreshing(true);
         try {
             await onFilesRefresh();
@@ -259,18 +309,32 @@ const MiscellaneousFileSelection = ({
         }
     };
 
+    const openFileViewer = (fileId) => {
+        const viewerUrl = `/viewer/${fileId}`;
+        const newWindow = window.open(
+            viewerUrl,
+            `viewer_${fileId}`,
+            'toolbar=yes,scrollbars=yes,resizable=yes,width=1400,height=900,menubar=yes,location=yes,directories=no,status=yes'
+        );
+        if (newWindow) {
+            newWindow.focus();
+        } else {
+            window.open(viewerUrl, '_blank');
+        }
+    };
+
     const getFileIcon = (filename) => {
         const ext = filename.toLowerCase().split('.').pop();
-        switch(ext) {
+        switch (ext) {
             case 'csv':
-                return <FileSpreadsheet className="text-green-500" size={20} />;
+                return <FileSpreadsheet className="text-green-500" size={20}/>;
             case 'xlsx':
             case 'xls':
-                return <FileSpreadsheet className="text-blue-500" size={20} />;
+                return <FileSpreadsheet className="text-blue-500" size={20}/>;
             case 'json':
-                return <FileText className="text-orange-500" size={20} />;
+                return <FileText className="text-orange-500" size={20}/>;
             default:
-                return <File className="text-gray-500" size={20} />;
+                return <File className="text-gray-500" size={20}/>;
         }
     };
 
@@ -281,71 +345,71 @@ const MiscellaneousFileSelection = ({
         if (!files || !Array.isArray(files) || files.length === 0) {
             return [];
         }
-        
+
         const getFileDate = (file) => {
-            const dateStr = file.last_modified || 
-                           file.upload_time || 
-                           file.uploadTime || 
-                           file._storage_metadata?.created_at;
-            
+            const dateStr = file.last_modified ||
+                file.upload_time ||
+                file.uploadTime ||
+                file._storage_metadata?.created_at;
+
             if (!dateStr) return new Date(0); // Fallback to epoch
-            
+
             const date = new Date(dateStr);
             return isNaN(date.getTime()) ? new Date(0) : date;
         };
-        
+
         // Create a new array and sort by date (newest first)
         const sorted = [...files].sort((a, b) => {
             const dateA = getFileDate(a);
             const dateB = getFileDate(b);
             return dateB.getTime() - dateA.getTime();
         });
-        
-        
+
+
         return sorted;
     }, [files]);
 
     // Format date for display with relative time for recent items, exact date/time for older items
     const formatDate = (file) => {
-        const date = file.last_modified || 
-                    file.upload_time || 
-                    file.uploadTime || 
-                    file._storage_metadata?.created_at;
-        
+        const date = file.last_modified ||
+            file.upload_time ||
+            file.uploadTime ||
+            file._storage_metadata?.created_at;
+
         if (!date) return 'Unknown';
-        
+
         // Parse date with fallback approaches for different timezone formats
         let dateObj;
         try {
             // First try direct parsing (handles ISO strings with timezone info)
             dateObj = new Date(date);
-            
+
             // If invalid and no timezone info, assume UTC and add Z suffix
             if (isNaN(dateObj.getTime()) && !date.includes('Z') && !date.includes('+')) {
                 dateObj = new Date(date + 'Z');
             }
-            
+
         } catch (error) {
             return 'Invalid date';
         }
-        
+
         // Check if date is valid
         if (isNaN(dateObj.getTime())) {
             return 'Invalid date';
         }
-        
+
         const now = new Date();
         const diffTime = now - dateObj;
-        
+
         // Calculate time units
         const diffMinutes = Math.floor(diffTime / (1000 * 60));
         const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-        
+
         // Return detailed relative time for items within 24 hours
         if (diffMinutes < 1) return 'Just now';
         if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
         if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-        
+
         // For items older than 1 day, show exact date and time
         return dateObj.toLocaleString('en-US', {
             year: 'numeric',
@@ -360,10 +424,10 @@ const MiscellaneousFileSelection = ({
     // Filter sorted files based on search term
     const filteredFiles = sortedFiles.filter(file => {
         if (!searchTerm) return true;
-        
+
         const searchLower = searchTerm.toLowerCase();
         const fileName = (file.custom_name || file.filename || '').toLowerCase();
-        
+
         return fileName.includes(searchLower);
     });
 
@@ -373,24 +437,27 @@ const MiscellaneousFileSelection = ({
                 <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
                     <span>Select Files for Processing</span>
                     <div className="group relative">
-                        <HelpCircle size={16} className="text-gray-400 cursor-help" />
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
+                        <HelpCircle size={16} className="text-gray-400 cursor-help"/>
+                        <div
+                            className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-10">
                             Choose 1-{maxFiles} files • Drag & drop or click to upload new files
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                            <div
+                                className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                         </div>
                     </div>
                 </h3>
                 <p className="text-sm text-gray-600">
-                    Choose 1 to {maxFiles} files for your data processing operation. The AI will analyze these files and generate appropriate SQL queries.
+                    Choose 1 to {maxFiles} files for your data processing operation. The AI will analyze these files and
+                    generate appropriate SQL queries.
                 </p>
             </div>
 
             {/* Compact Drag & Drop Upload Zone */}
             <div
                 className={`relative border-2 border-dashed rounded-lg transition-all duration-200 ${
-                    isDragOver 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : isUploading 
+                    isDragOver
+                        ? 'border-blue-500 bg-blue-50'
+                        : isUploading
                             ? 'border-green-500 bg-green-50'
                             : 'border-gray-300 hover:border-gray-400'
                 }`}
@@ -402,16 +469,17 @@ const MiscellaneousFileSelection = ({
                 <div className="p-3 text-center">
                     <div className={`transition-all duration-200 ${isDragOver ? 'scale-105' : ''}`}>
                         {isUploading ? (
-                            <div className="animate-spin w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+                            <div
+                                className="animate-spin w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full mx-auto mb-2"></div>
                         ) : (
                             <Upload size={24} className={`mx-auto mb-2 ${
                                 isDragOver ? 'text-blue-500' : 'text-gray-400'
-                            }`} />
+                            }`}/>
                         )}
                         <p className="text-sm text-gray-600 mb-2">
-                            {isUploading 
+                            {isUploading
                                 ? 'Uploading...'
-                                : isDragOver 
+                                : isDragOver
                                     ? 'Drop files here'
                                     : 'Drag & drop files or'
                             }
@@ -419,20 +487,23 @@ const MiscellaneousFileSelection = ({
                         {!isUploading && (
                             <button
                                 type="button"
-                                onClick={() => fileInputRef.current?.click()}
+                                onClick={() => {
+                                    console.log('🖱️ [MiscellaneousFileSelection] Choose Files button clicked');
+                                    fileInputRef.current?.click();
+                                }}
                                 className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 transition-colors"
                             >
                                 Choose Files
                             </button>
                         )}
                     </div>
-                    
+
                     <div className="flex items-center justify-center space-x-3 text-xs text-gray-500 mt-2">
                         <span>CSV, Excel</span>
                         <span>•</span>
                         <span>Max 10 files at once</span>
                     </div>
-                    
+
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -448,7 +519,7 @@ const MiscellaneousFileSelection = ({
             {uploadError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                     <div className="flex items-start space-x-2">
-                        <AlertCircle className="text-red-600 mt-0.5" size={16} />
+                        <AlertCircle className="text-red-600 mt-0.5" size={16}/>
                         <div>
                             <span className="text-sm font-medium text-red-800">Upload Error</span>
                             <p className="text-sm text-red-700 mt-1">{uploadError}</p>
@@ -461,7 +532,7 @@ const MiscellaneousFileSelection = ({
             {uploadSuccess && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                     <div className="flex items-start space-x-2">
-                        <Check className="text-green-600 mt-0.5" size={16} />
+                        <Check className="text-green-600 mt-0.5" size={16}/>
                         <div>
                             <span className="text-sm font-medium text-green-800">File Uploaded Successfully</span>
                             <p className="text-sm text-green-700 mt-1">
@@ -484,7 +555,7 @@ const MiscellaneousFileSelection = ({
                         {selectedCount === maxFiles && "Maximum files selected"}
                     </div>
                 </div>
-                
+
                 {selectedCount > 0 && (
                     <div className="mt-2 text-xs text-blue-600">
                         Files will be referenced as: {Object.keys(selectedFiles).join(', ')} in your queries
@@ -519,7 +590,7 @@ const MiscellaneousFileSelection = ({
                 {/* Search Input */}
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="h-4 w-4 text-gray-400" />
+                        <Search className="h-4 w-4 text-gray-400"/>
                     </div>
                     <input
                         type="text"
@@ -533,7 +604,7 @@ const MiscellaneousFileSelection = ({
                             onClick={() => setSearchTerm('')}
                             className="absolute inset-y-0 right-0 pr-3 flex items-center"
                         >
-                            <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                            <X className="h-4 w-4 text-gray-400 hover:text-gray-600"/>
                         </button>
                     )}
                 </div>
@@ -551,17 +622,17 @@ const MiscellaneousFileSelection = ({
                         onClick={handleRefresh}
                         disabled={isRefreshing}
                         className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium rounded-md transition-colors shadow-sm ${
-                            isRefreshing 
-                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                            isRefreshing
+                                ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                                 : 'bg-blue-500 text-white hover:bg-blue-600'
                         }`}
                         title={isRefreshing ? "Refreshing..." : "Refresh file list"}
                     >
-                        <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                        <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''}/>
                         <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
                     </button>
                 </div>
-                
+
                 {files.length === 0 ? (
                     <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                         <FileText size={48} className="mx-auto mb-4 text-gray-400"/>
@@ -575,10 +646,10 @@ const MiscellaneousFileSelection = ({
                         <Search size={48} className="mx-auto mb-4 text-yellow-400"/>
                         <p className="text-yellow-600 mb-2">No files match your search</p>
                         <p className="text-sm text-yellow-500">
-                            Try adjusting your search term or <button 
-                                onClick={() => setSearchTerm('')}
-                                className="text-blue-500 hover:text-blue-700 underline"
-                            >clear the search</button>
+                            Try adjusting your search term or <button
+                            onClick={() => setSearchTerm('')}
+                            className="text-blue-500 hover:text-blue-700 underline"
+                        >clear the search</button>
                         </p>
                     </div>
                 ) : (
@@ -586,39 +657,54 @@ const MiscellaneousFileSelection = ({
                         {filteredFiles.map((file, index) => {
                             const isSelected = isFileSelected(file);
                             const canSelect = selectedCount < maxFiles || isSelected;
-                            
+
                             return (
                                 <div
                                     key={`${file.file_id}_${index}`}
                                     className={`
-                                        relative p-3 rounded-lg border cursor-pointer transition-all min-h-[120px]
-                                        ${isSelected 
-                                            ? 'border-blue-500 bg-blue-50 shadow-md' 
-                                            : canSelect 
-                                                ? 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 hover:shadow-sm'
-                                                : 'border-gray-200 bg-gray-100 cursor-not-allowed'
-                                        }
+                                        relative p-3 rounded-lg border cursor-pointer transition-all min-h-[120px] group
+                                        ${isSelected
+                                        ? 'border-blue-500 bg-blue-50 shadow-md'
+                                        : canSelect
+                                            ? 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50 hover:shadow-sm'
+                                            : 'border-gray-200 bg-gray-100 cursor-not-allowed'
+                                    }
                                     `}
                                     onClick={() => canSelect && handleFileToggle(file)}
                                     title={file.custom_name || file.filename}
                                 >
-                                    {/* Selection indicator */}
-                                    <div className="absolute top-2 right-2">
+                                    {/* Action buttons */}
+                                    <div className="absolute top-2 right-2 flex items-center space-x-1">
+                                        {/* View button */}
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                openFileViewer(file.file_id);
+                                            }}
+                                            className="opacity-0 group-hover:opacity-100 p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-all duration-200"
+                                            title="View/Edit File"
+                                        >
+                                            <Eye size={12}/>
+                                        </button>
+                                        
+                                        {/* Selection indicator */}
                                         {isSelected ? (
-                                            <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                                                <Check className="text-white" size={12} />
+                                            <div
+                                                className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                                <Check className="text-white" size={12}/>
                                             </div>
                                         ) : canSelect ? (
                                             <div className="w-5 h-5 border border-gray-300 rounded-full bg-white"></div>
                                         ) : (
                                             <div className="w-5 h-5 border border-gray-300 rounded-full bg-gray-200">
-                                                <X className="text-gray-400" size={10} />
+                                                <X className="text-gray-400" size={10}/>
                                             </div>
                                         )}
                                     </div>
 
                                     {/* File info */}
-                                    <div className="pr-8">
+                                    <div className="pr-12">
                                         {/* File icon and name */}
                                         <div className="flex items-start space-x-2 mb-2">
                                             <div className="flex-shrink-0 mt-0.5">
@@ -626,18 +712,18 @@ const MiscellaneousFileSelection = ({
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <span className={`text-xs font-medium leading-tight break-words block ${
-                                                    isSelected ? 'text-blue-800' : 
-                                                    canSelect ? 'text-gray-800' : 'text-gray-500'
+                                                    isSelected ? 'text-blue-800' :
+                                                        canSelect ? 'text-gray-800' : 'text-gray-500'
                                                 }`}>
                                                     {file.custom_name || file.filename}
                                                 </span>
                                             </div>
                                         </div>
-                                        
+
                                         {/* Stats */}
                                         <div className={`text-xs space-y-1 ${
-                                            isSelected ? 'text-blue-600' : 
-                                            canSelect ? 'text-gray-600' : 'text-gray-400'
+                                            isSelected ? 'text-blue-600' :
+                                                canSelect ? 'text-gray-600' : 'text-gray-400'
                                         }`}>
                                             <div>{(file.totalRows || file.total_rows || 0).toLocaleString()} rows</div>
                                             <div>{file.columns?.length || 0} columns</div>
@@ -650,8 +736,8 @@ const MiscellaneousFileSelection = ({
                                         {file.columns && file.columns.length > 0 && (
                                             <div className="mt-2">
                                                 <div className={`text-xs leading-tight opacity-75 ${
-                                                    isSelected ? 'text-blue-600' : 
-                                                    canSelect ? 'text-gray-500' : 'text-gray-400'
+                                                    isSelected ? 'text-blue-600' :
+                                                        canSelect ? 'text-gray-500' : 'text-gray-400'
                                                 }`}>
                                                     {file.columns.slice(0, 2).join(', ')}
                                                     {file.columns.length > 2 && `, +${file.columns.length - 2}`}

@@ -3,7 +3,7 @@
  * Handles API communication for use case management
  */
 
-import { API_ENDPOINTS } from '../config/environment';
+import {API_ENDPOINTS} from '../config/environment';
 
 class UseCaseService {
     constructor() {
@@ -41,7 +41,7 @@ class UseCaseService {
             }
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 if (response.status === 404) {
                     throw new Error('Use case not found');
@@ -111,7 +111,7 @@ class UseCaseService {
     async listUseCases(filters = {}) {
         try {
             const url = new URL(this.baseURL);
-            
+
             // Add filter parameters
             if (filters.use_case_type) url.searchParams.append('use_case_type', filters.use_case_type);
             if (filters.category) url.searchParams.append('category', filters.category);
@@ -121,7 +121,7 @@ class UseCaseService {
             if (filters.offset) url.searchParams.append('offset', filters.offset);
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to list use cases');
@@ -138,7 +138,7 @@ class UseCaseService {
         try {
             const url = new URL(`${this.baseURL}/search/query`);
             url.searchParams.append('q', query);
-            
+
             // Add filter parameters
             if (filters.use_case_type) url.searchParams.append('use_case_type', filters.use_case_type);
             if (filters.category) url.searchParams.append('category', filters.category);
@@ -147,7 +147,7 @@ class UseCaseService {
             }
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to search use cases');
@@ -167,7 +167,7 @@ class UseCaseService {
             if (useCaseType) url.searchParams.append('use_case_type', useCaseType);
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to get popular use cases');
@@ -330,7 +330,7 @@ class UseCaseService {
                     category: useCaseMetadata.category,
                     tags: useCaseMetadata.tags || [],
                     created_by: useCaseMetadata.created_by,
-                    
+
                     // Enhanced use case data
                     template_content: useCaseMetadata.use_case_content,
                     template_config: useCaseMetadata.template_config,
@@ -390,7 +390,7 @@ class UseCaseService {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ rating })
+                body: JSON.stringify({rating})
             });
 
             if (!response.ok) {
@@ -412,7 +412,7 @@ class UseCaseService {
             if (useCaseType) url.searchParams.append('use_case_type', useCaseType);
 
             const response = await fetch(url);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to get categories');
@@ -428,7 +428,7 @@ class UseCaseService {
     async getUseCaseTypes() {
         try {
             const response = await fetch(`${this.baseURL}/types/list`);
-            
+
             if (!response.ok) {
                 const error = await response.json();
                 throw new Error(error.detail || 'Failed to get use case types');
@@ -447,7 +447,7 @@ class UseCaseService {
             return await response.json();
         } catch (error) {
             console.error('Error checking use case service health:', error);
-            return { status: 'unhealthy', error: error.message };
+            return {status: 'unhealthy', error: error.message};
         }
     }
 

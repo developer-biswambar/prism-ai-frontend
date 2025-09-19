@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, X, Filter, Check } from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {Check, ChevronDown, Filter, X} from 'lucide-react';
 import apiService from '../../services/defaultApi';
 
-const ColumnFilterDropdown = ({ 
-    fileId, 
-    columnName, 
-    onFilterSelect, 
-    selectedValues = [],
-    onClear,
-    cascadeFilters = {} // New prop for cascading dropdown filters
-}) => {
+const ColumnFilterDropdown = ({
+                                  fileId,
+                                  columnName,
+                                  onFilterSelect,
+                                  selectedValues = [],
+                                  onClear,
+                                  cascadeFilters = {} // New prop for cascading dropdown filters
+                              }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [uniqueValues, setUniqueValues] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ const ColumnFilterDropdown = ({
             loadUniqueValues();
         }
     }, [isOpen, fileId, columnName]);
-    
+
     // Reload unique values when cascade filters change
     useEffect(() => {
         if (isOpen) {
@@ -35,7 +35,7 @@ const ColumnFilterDropdown = ({
         try {
             setLoading(true);
             setError(null);
-            
+
             // Prepare filters for cascading dropdowns
             // Only include filters from other columns (not the current column)
             const relevantFilters = {};
@@ -44,11 +44,11 @@ const ColumnFilterDropdown = ({
                     relevantFilters[filterColumn] = filterValues;
                 }
             });
-            
+
             console.log(`Loading unique values for ${columnName} with filters:`, relevantFilters);
-            
+
             const response = await apiService.getColumnUniqueValues(fileId, columnName, 1000, relevantFilters);
-            
+
             // Handle direct response format (not wrapped in success/data structure)
             if (response.unique_values) {
                 setUniqueValues(response.unique_values || []);
@@ -72,7 +72,7 @@ const ColumnFilterDropdown = ({
             // Add value if not selected
             newSelectedValues = [...selectedValues, value];
         }
-        
+
         onFilterSelect(newSelectedValues);
         // Don't close dropdown for multi-select
     };
@@ -88,7 +88,7 @@ const ColumnFilterDropdown = ({
     );
 
     const displayText = selectedValues.length > 0
-        ? selectedValues.length === 1 
+        ? selectedValues.length === 1
             ? selectedValues[0]
             : `${selectedValues.length} selected`
         : 'All values';
@@ -99,25 +99,26 @@ const ColumnFilterDropdown = ({
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center space-x-2 px-3 py-1 text-xs border rounded-md transition-colors ${
                     selectedValues.length > 0
-                        ? 'bg-blue-50 border-blue-200 text-blue-700' 
+                        ? 'bg-blue-50 border-blue-200 text-blue-700'
                         : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
                 }`}
-                title={selectedValues.length > 0 
-                    ? `Filtered by: ${selectedValues.join(', ')}` 
+                title={selectedValues.length > 0
+                    ? `Filtered by: ${selectedValues.join(', ')}`
                     : 'Filter column (multi-select)'}
             >
-                <Filter size={12} />
+                <Filter size={12}/>
                 <span className="max-w-20 truncate">
                     {displayText}
                 </span>
-                <ChevronDown 
-                    size={12} 
-                    className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+                <ChevronDown
+                    size={12}
+                    className={`transform transition-transform ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 
             {isOpen && (
-                <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-80 overflow-hidden">
+                <div
+                    className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-80 overflow-hidden">
                     {/* Search box */}
                     <div className="p-2 border-b border-gray-100">
                         <input
@@ -140,10 +141,10 @@ const ColumnFilterDropdown = ({
                         >
                             <span className="flex items-center space-x-2">
                                 <span>All values</span>
-                                {selectedValues.length === 0 && <Check size={12} />}
+                                {selectedValues.length === 0 && <Check size={12}/>}
                             </span>
                             {selectedValues.length > 0 && (
-                                <X size={12} className="text-gray-400" />
+                                <X size={12} className="text-gray-400"/>
                             )}
                         </button>
                     </div>
@@ -177,11 +178,12 @@ const ColumnFilterDropdown = ({
                                     >
                                         <span className="flex items-center space-x-2 flex-1">
                                             {/* Checkbox */}
-                                            <div className={`w-3 h-3 border border-gray-300 rounded-sm flex items-center justify-center ${
-                                                isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white'
-                                            }`}>
+                                            <div
+                                                className={`w-3 h-3 border border-gray-300 rounded-sm flex items-center justify-center ${
+                                                    isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white'
+                                                }`}>
                                                 {isSelected && (
-                                                    <Check size={8} className="text-white" />
+                                                    <Check size={8} className="text-white"/>
                                                 )}
                                             </div>
                                             <span className="truncate">
@@ -219,8 +221,8 @@ const ColumnFilterDropdown = ({
 
             {/* Backdrop to close dropdown */}
             {isOpen && (
-                <div 
-                    className="fixed inset-0 z-40" 
+                <div
+                    className="fixed inset-0 z-40"
                     onClick={() => setIsOpen(false)}
                 />
             )}

@@ -4,35 +4,32 @@ import {
     AlertCircle,
     BookOpen,
     Calendar,
-    Clock,
+    Copy,
     Download,
     Edit3,
     Eye,
+    FileText,
     Save,
     Search,
     Sparkles,
-    Star,
-    Tag,
     Trash2,
     Upload,
-    X,
-    Copy,
-    FileText
+    X
 } from 'lucide-react';
-import { API_ENDPOINTS } from '../../config/environment';
+import {API_ENDPOINTS} from '../../config/environment';
 
 const PromptSaveLoad = ({
-    currentPrompt,
-    processName,
-    selectedFiles,
-    processResults = null, // Process results containing metadata and AI description
-    generatedSQL = null, // Generated SQL for reverse engineering
-    processId = null, // Process ID
-    onPromptLoaded,
-    onPromptSaved,
-    onClose,
-    defaultTab = 'load' // 'load' for beginning, 'save' for end
-}) => {
+                            currentPrompt,
+                            processName,
+                            selectedFiles,
+                            processResults = null, // Process results containing metadata and AI description
+                            generatedSQL = null, // Generated SQL for reverse engineering
+                            processId = null, // Process ID
+                            onPromptLoaded,
+                            onPromptSaved,
+                            onClose,
+                            defaultTab = 'load' // 'load' for beginning, 'save' for end
+                        }) => {
     const [activeTab, setActiveTab] = useState(defaultTab);
     const [prompts, setPrompts] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -48,13 +45,13 @@ const PromptSaveLoad = ({
         tags: []
     });
     const [saveErrors, setSaveErrors] = useState([]);
-    
+
     // Ideal prompt generation state
     const [generatingIdealPrompt, setGeneratingIdealPrompt] = useState(false);
     const [idealPrompt, setIdealPrompt] = useState('');
     const [idealPromptData, setIdealPromptData] = useState(null);
     const [lastGenerationTime, setLastGenerationTime] = useState(0);
-    
+
     // Edit prompt state
     const [editingPrompt, setEditingPrompt] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -63,7 +60,7 @@ const PromptSaveLoad = ({
     const categories = [
         'all',
         'Data Processing',
-        'Data Reconciliation', 
+        'Data Reconciliation',
         'Data Merging',
         'Delta Analysis',
         'Analytics',
@@ -107,7 +104,7 @@ const PromptSaveLoad = ({
 
         setGeneratingIdealPrompt(true);
         setSaveErrors([]);
-        
+
         try {
             const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/generate-ideal-prompt`, {
                 method: 'POST',
@@ -139,7 +136,7 @@ const PromptSaveLoad = ({
                 // Store the generated ideal prompt data
                 setIdealPromptData(data);
                 setIdealPrompt(data.ideal_prompt);
-                
+
                 // Auto-populate the form with AI-generated data
                 setSaveForm({
                     name: data.name || `${processName} - Optimized`,
@@ -168,7 +165,7 @@ const PromptSaveLoad = ({
             }
         } catch (error) {
             console.error('Error generating ideal prompt:', error);
-            
+
             // Check if it's a rate limiting error
             if (error.message && error.message.includes('429')) {
                 setSaveErrors([
@@ -206,7 +203,7 @@ const PromptSaveLoad = ({
                 original_prompt: currentPrompt.trim(),
                 description: saveForm.description.trim(),
                 category: saveForm.category,
-                file_pattern: idealPromptData?.file_pattern || (selectedFiles.length > 0 
+                file_pattern: idealPromptData?.file_pattern || (selectedFiles.length > 0
                     ? `Works with ${selectedFiles.length} file(s) - ${selectedFiles.map(f => f.filename).join(', ')}`
                     : 'General purpose')
             };
@@ -215,10 +212,10 @@ const PromptSaveLoad = ({
 
             // Determine if this is an update or create
             const isUpdate = isEditMode && editingPrompt;
-            const url = isUpdate 
+            const url = isUpdate
                 ? `${API_ENDPOINTS.MISCELLANEOUS}/saved-prompts/${editingPrompt.id}`
                 : `${API_ENDPOINTS.MISCELLANEOUS}/save-prompt`;
-            
+
             const method = isUpdate ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
@@ -244,9 +241,9 @@ const PromptSaveLoad = ({
                 setEditingPrompt(null);
                 setIdealPrompt('');
                 setIdealPromptData(null);
-                
+
                 setActiveTab('load'); // Switch to load tab to see saved prompt
-                
+
                 if (onPromptSaved) {
                     onPromptSaved(data);
                 }
@@ -369,7 +366,7 @@ const PromptSaveLoad = ({
             }
         };
 
-        const blob = new Blob([JSON.stringify(promptData, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(promptData, null, 2)], {type: 'application/json'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -387,14 +384,14 @@ const PromptSaveLoad = ({
                 <div className="p-4 border-b border-gray-200 bg-gray-50">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                            <BookOpen size={20} className="text-purple-600" />
+                            <BookOpen size={20} className="text-purple-600"/>
                             <span>Prompt Management</span>
                         </h2>
                         <button
                             onClick={onClose}
                             className="p-1 text-gray-400 hover:text-gray-600"
                         >
-                            <X size={20} />
+                            <X size={20}/>
                         </button>
                     </div>
 
@@ -408,7 +405,7 @@ const PromptSaveLoad = ({
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                         >
-                            <BookOpen size={16} className="inline mr-1" />
+                            <BookOpen size={16} className="inline mr-1"/>
                             Load Prompt
                         </button>
                         <button
@@ -419,7 +416,7 @@ const PromptSaveLoad = ({
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                         >
-                            <Save size={16} className="inline mr-1" />
+                            <Save size={16} className="inline mr-1"/>
                             Save Prompt
                         </button>
                         <button
@@ -430,21 +427,21 @@ const PromptSaveLoad = ({
                                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                         >
-                            <Download size={16} className="inline mr-1" />
+                            <Download size={16} className="inline mr-1"/>
                             Import/Export
                         </button>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+                <div className="p-6 overflow-y-auto" style={{maxHeight: 'calc(90vh - 140px)'}}>
                     {activeTab === 'load' && (
                         <div className="space-y-4">
                             {/* Search and Filters */}
                             <div className="flex space-x-4 mb-4">
                                 <div className="flex-1 relative">
                                     <Search size={16}
-                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
                                     <input
                                         type="text"
                                         placeholder="Search prompts..."
@@ -469,12 +466,13 @@ const PromptSaveLoad = ({
                             {/* Prompts List */}
                             {loading ? (
                                 <div className="text-center py-8">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                                    <div
+                                        className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
                                     <p className="text-gray-500 mt-2">Loading prompts...</p>
                                 </div>
                             ) : filteredPrompts.length === 0 ? (
                                 <div className="text-center py-8">
-                                    <Sparkles size={48} className="mx-auto mb-4 text-gray-400" />
+                                    <Sparkles size={48} className="mx-auto mb-4 text-gray-400"/>
                                     <p className="text-gray-500">
                                         {searchTerm || selectedCategory !== 'all'
                                             ? 'No prompts match your filters'
@@ -492,12 +490,13 @@ const PromptSaveLoad = ({
                                 <div className="space-y-3">
                                     {filteredPrompts.map(prompt => (
                                         <div key={prompt.id}
-                                            className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                             className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
                                                     <div className="flex items-center space-x-2 mb-2">
                                                         <h3 className="font-medium text-gray-800">{prompt.name}</h3>
-                                                        <span className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
+                                                        <span
+                                                            className="px-2 py-1 text-xs rounded-full bg-purple-100 text-purple-800">
                                                             {prompt.category}
                                                         </span>
                                                     </div>
@@ -508,11 +507,11 @@ const PromptSaveLoad = ({
 
                                                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                                                         <div className="flex items-center space-x-1">
-                                                            <Calendar size={12} />
+                                                            <Calendar size={12}/>
                                                             <span>{formatDate(prompt.created_at)}</span>
                                                         </div>
                                                         <div className="flex items-center space-x-1">
-                                                            <FileText size={12} />
+                                                            <FileText size={12}/>
                                                             <span>{prompt.file_pattern || 'General purpose'}</span>
                                                         </div>
                                                     </div>
@@ -531,21 +530,21 @@ const PromptSaveLoad = ({
                                                         className="p-2 text-gray-400 hover:text-gray-600"
                                                         title="View details"
                                                     >
-                                                        <Eye size={16} />
+                                                        <Eye size={16}/>
                                                     </button>
                                                     <button
                                                         onClick={() => handleEditPrompt(prompt)}
                                                         className="p-2 text-gray-400 hover:text-green-600"
                                                         title="Edit prompt"
                                                     >
-                                                        <Edit3 size={16} />
+                                                        <Edit3 size={16}/>
                                                     </button>
                                                     <button
                                                         onClick={() => exportPrompt(prompt)}
                                                         className="p-2 text-gray-400 hover:text-blue-600"
                                                         title="Export prompt"
                                                     >
-                                                        <Download size={16} />
+                                                        <Download size={16}/>
                                                     </button>
                                                     <button
                                                         onClick={() => handleLoadPrompt(prompt)}
@@ -558,7 +557,7 @@ const PromptSaveLoad = ({
                                                         className="p-2 text-gray-400 hover:text-red-600"
                                                         title="Delete prompt"
                                                     >
-                                                        <Trash2 size={16} />
+                                                        <Trash2 size={16}/>
                                                     </button>
                                                 </div>
                                             </div>
@@ -568,22 +567,26 @@ const PromptSaveLoad = ({
                                                 <div className="mt-4 pt-4 border-t border-gray-200">
                                                     <div className="space-y-3">
                                                         <div>
-                                                            <h4 className="text-sm font-medium text-gray-700 mb-1">Full Prompt:</h4>
-                                                            <div className="bg-gray-900 text-green-400 p-3 rounded text-sm font-mono relative">
-                                                                <pre className="whitespace-pre-wrap">{prompt.ideal_prompt || prompt.original_prompt}</pre>
+                                                            <h4 className="text-sm font-medium text-gray-700 mb-1">Full
+                                                                Prompt:</h4>
+                                                            <div
+                                                                className="bg-gray-900 text-green-400 p-3 rounded text-sm font-mono relative">
+                                                                <pre
+                                                                    className="whitespace-pre-wrap">{prompt.ideal_prompt || prompt.original_prompt}</pre>
                                                                 <button
                                                                     onClick={() => copyToClipboard(prompt.ideal_prompt || prompt.original_prompt)}
                                                                     className="absolute top-2 right-2 p-1 text-gray-400 hover:text-green-400"
                                                                     title="Copy prompt"
                                                                 >
-                                                                    <Copy size={14} />
+                                                                    <Copy size={14}/>
                                                                 </button>
                                                             </div>
                                                         </div>
 
                                                         {prompt.original_prompt && prompt.ideal_prompt !== prompt.original_prompt && (
                                                             <div>
-                                                                <h4 className="text-sm font-medium text-gray-700 mb-1">Original Prompt:</h4>
+                                                                <h4 className="text-sm font-medium text-gray-700 mb-1">Original
+                                                                    Prompt:</h4>
                                                                 <div className="bg-amber-50 p-3 rounded text-sm">
                                                                     <p className="text-amber-800 italic">"{prompt.original_prompt}"</p>
                                                                 </div>
@@ -606,7 +609,7 @@ const PromptSaveLoad = ({
                                     {isEditMode ? 'Edit Prompt' : 'Save Optimized Prompt'}
                                 </h3>
                                 <p className="text-sm text-gray-600">
-                                    {isEditMode 
+                                    {isEditMode
                                         ? 'Update your saved prompt with new details.'
                                         : 'Generate an AI-optimized version of your prompt using reverse engineering, then save it to your library.'
                                     }
@@ -617,7 +620,7 @@ const PromptSaveLoad = ({
                             {isEditMode && editingPrompt && (
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                                     <div className="flex items-center space-x-2">
-                                        <Edit3 className="text-blue-600" size={16} />
+                                        <Edit3 className="text-blue-600" size={16}/>
                                         <span className="text-sm font-medium text-blue-800">
                                             Editing: {editingPrompt.name}
                                         </span>
@@ -646,12 +649,13 @@ const PromptSaveLoad = ({
                                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center space-x-2">
-                                            <Sparkles className="text-purple-600" size={16} />
+                                            <Sparkles className="text-purple-600" size={16}/>
                                             <h4 className="font-medium text-purple-800">AI Optimization Available</h4>
                                         </div>
                                     </div>
                                     <p className="text-sm text-purple-700 mb-3">
-                                        Use AI to analyze your successful query and create an optimized, more specific prompt that will generate similar results consistently.
+                                        Use AI to analyze your successful query and create an optimized, more specific
+                                        prompt that will generate similar results consistently.
                                     </p>
                                     <div className="flex items-center space-x-3">
                                         <button
@@ -661,12 +665,13 @@ const PromptSaveLoad = ({
                                         >
                                             {generatingIdealPrompt ? (
                                                 <>
-                                                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                                                    <div
+                                                        className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"/>
                                                     <span>Generating Ideal Prompt...</span>
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Sparkles size={16} />
+                                                    <Sparkles size={16}/>
                                                     <span>Generate Ideal Prompt</span>
                                                 </>
                                             )}
@@ -716,13 +721,14 @@ const PromptSaveLoad = ({
                             {idealPromptData && (
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                                     <div className="flex items-center space-x-2 mb-3">
-                                        <Sparkles className="text-green-600" size={16} />
+                                        <Sparkles className="text-green-600" size={16}/>
                                         <h4 className="font-medium text-green-800">AI-Generated Ideal Prompt</h4>
                                     </div>
-                                    
+
                                     {idealPromptData.improvements_made && (
                                         <div className="bg-green-100 border border-green-300 rounded p-3 mb-3">
-                                            <p className="text-sm font-medium text-green-800 mb-1">Improvements Made:</p>
+                                            <p className="text-sm font-medium text-green-800 mb-1">Improvements
+                                                Made:</p>
                                             <p className="text-sm text-green-700">{idealPromptData.improvements_made}</p>
                                         </div>
                                     )}
@@ -739,7 +745,7 @@ const PromptSaveLoad = ({
                                             placeholder="AI-generated ideal prompt..."
                                         />
                                     </div>
-                                    
+
                                     <button
                                         onClick={() => {
                                             setIdealPromptData(null);
@@ -767,7 +773,7 @@ const PromptSaveLoad = ({
                                     <input
                                         type="text"
                                         value={saveForm.name}
-                                        onChange={(e) => setSaveForm(prev => ({ ...prev, name: e.target.value }))}
+                                        onChange={(e) => setSaveForm(prev => ({...prev, name: e.target.value}))}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                                         placeholder="Give your prompt a descriptive name..."
                                         maxLength={100}
@@ -780,7 +786,7 @@ const PromptSaveLoad = ({
                                     </label>
                                     <textarea
                                         value={saveForm.description}
-                                        onChange={(e) => setSaveForm(prev => ({ ...prev, description: e.target.value }))}
+                                        onChange={(e) => setSaveForm(prev => ({...prev, description: e.target.value}))}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                                         rows={3}
                                         placeholder="Describe what this prompt does and when to use it..."
@@ -794,7 +800,7 @@ const PromptSaveLoad = ({
                                     </label>
                                     <select
                                         value={saveForm.category}
-                                        onChange={(e) => setSaveForm(prev => ({ ...prev, category: e.target.value }))}
+                                        onChange={(e) => setSaveForm(prev => ({...prev, category: e.target.value}))}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                                     >
                                         {categories.filter(cat => cat !== 'all').map(cat => (
@@ -808,7 +814,8 @@ const PromptSaveLoad = ({
                                         <h4 className="text-sm font-medium text-gray-700 mb-2">File Context:</h4>
                                         <div className="bg-blue-50 border border-blue-200 rounded p-3">
                                             <p className="text-sm text-blue-800">
-                                                Works with {selectedFiles.length} file(s): {selectedFiles.map(f => f.filename).join(', ')}
+                                                Works
+                                                with {selectedFiles.length} file(s): {selectedFiles.map(f => f.filename).join(', ')}
                                             </p>
                                         </div>
                                     </div>
@@ -819,28 +826,30 @@ const PromptSaveLoad = ({
                             {saveErrors.length > 0 && (
                                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                                     <div className="flex items-start space-x-2">
-                                        <AlertCircle className="text-red-600 mt-0.5" size={16} />
+                                        <AlertCircle className="text-red-600 mt-0.5" size={16}/>
                                         <div className="flex-1">
                                             <h4 className="text-sm font-medium text-red-800 mb-2">
-                                                {saveErrors.length === 1 && saveErrors[0].includes('quota') ? 
+                                                {saveErrors.length === 1 && saveErrors[0].includes('quota') ?
                                                     'AI Service Quota Exceeded' :
-                                                saveErrors.length === 1 && saveErrors[0].includes('busy') ?
-                                                    'AI Service Temporarily Busy' :
-                                                    'Please Address the Following:'
+                                                    saveErrors.length === 1 && saveErrors[0].includes('busy') ?
+                                                        'AI Service Temporarily Busy' :
+                                                        'Please Address the Following:'
                                                 }
                                             </h4>
                                             <ul className="text-sm text-red-700 space-y-1">
                                                 {saveErrors.map((error, index) => (
-                                                    <li key={index} className={index === 0 ? 'font-medium' : 'text-red-600'}>
+                                                    <li key={index}
+                                                        className={index === 0 ? 'font-medium' : 'text-red-600'}>
                                                         {index === 0 ? '• ' : '💡 '}{error}
                                                     </li>
                                                 ))}
                                             </ul>
-                                            
+
                                             {/* Show manual save option for AI errors */}
                                             {(saveErrors.some(error => error.includes('quota') || error.includes('busy'))) && (
                                                 <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                                                    <p className="text-sm font-medium text-blue-800 mb-2">Manual Save Available:</p>
+                                                    <p className="text-sm font-medium text-blue-800 mb-2">Manual Save
+                                                        Available:</p>
                                                     <p className="text-sm text-blue-700 mb-3">
                                                         You can still save your original prompt without AI optimization.
                                                     </p>
@@ -880,12 +889,13 @@ const PromptSaveLoad = ({
                                 >
                                     {loading ? (
                                         <>
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                            <div
+                                                className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                             <span>{isEditMode ? 'Updating...' : 'Saving...'}</span>
                                         </>
                                     ) : (
                                         <>
-                                            <Save size={16} />
+                                            <Save size={16}/>
                                             <span>{isEditMode ? 'Update Prompt' : 'Save Prompt'}</span>
                                         </>
                                     )}
@@ -906,7 +916,7 @@ const PromptSaveLoad = ({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="border border-gray-200 rounded-lg p-4">
                                     <h4 className="font-medium text-gray-800 mb-2 flex items-center space-x-2">
-                                        <Upload size={16} />
+                                        <Upload size={16}/>
                                         <span>Import Prompt</span>
                                     </h4>
                                     <p className="text-sm text-gray-600 mb-4">
@@ -921,7 +931,7 @@ const PromptSaveLoad = ({
 
                                 <div className="border border-gray-200 rounded-lg p-4">
                                     <h4 className="font-medium text-gray-800 mb-2 flex items-center space-x-2">
-                                        <Download size={16} />
+                                        <Download size={16}/>
                                         <span>Export All Prompts</span>
                                     </h4>
                                     <p className="text-sm text-gray-600 mb-4">
@@ -929,8 +939,8 @@ const PromptSaveLoad = ({
                                     </p>
                                     <button
                                         onClick={() => {
-                                            const data = { prompts: prompts, exported_at: new Date().toISOString() };
-                                            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                                            const data = {prompts: prompts, exported_at: new Date().toISOString()};
+                                            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
                                             const url = URL.createObjectURL(blob);
                                             const a = document.createElement('a');
                                             a.href = url;

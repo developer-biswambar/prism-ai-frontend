@@ -1,57 +1,57 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     AlertCircle,
-    Database,
-    Lightbulb,
-    MessageSquare,
-    Sparkles,
-    RefreshCw,
-    CheckCircle,
+    ArrowRight,
     BookOpen,
     Brain,
-    Zap,
+    CheckCircle,
+    CheckCircle2,
+    Copy,
+    Database,
+    Lightbulb,
+    Loader,
+    Maximize2,
+    MessageSquare,
+    RefreshCw,
+    Save,
+    Sparkles,
     Target,
     TrendingUp,
     X,
-    Loader,
-    ArrowRight,
-    Copy,
-    CheckCircle2,
-    Maximize2,
-    Save
+    Zap
 } from 'lucide-react';
-import { API_ENDPOINTS } from '../../config/environment';
+import {API_ENDPOINTS} from '../../config/environment';
 import PromptSaveLoad from './PromptSaveLoad';
 
 const MiscellaneousPromptInput = ({
-    userPrompt,
-    onPromptChange,
-    processName,
-    onProcessNameChange,
-    selectedFiles,
-    hasExistingResults = false,
-    hasPromptChanged = false,
-    onReprocess,
-    onProcessData,
-    isProcessing = false
-}) => {
+                                      userPrompt,
+                                      onPromptChange,
+                                      processName,
+                                      onProcessNameChange,
+                                      selectedFiles,
+                                      hasExistingResults = false,
+                                      hasPromptChanged = false,
+                                      onReprocess,
+                                      onProcessData,
+                                      isProcessing = false
+                                  }) => {
 
     const [showExamples, setShowExamples] = useState(false);
     const [savedPrompts, setSavedPrompts] = useState([]);
     const [showSavedPrompts, setShowSavedPrompts] = useState(false);
     const [loadingPrompts, setLoadingPrompts] = useState(false);
     const [showPromptManager, setShowPromptManager] = useState(false);
-    
+
     // Prompt improvement state
     const [isImprovingPrompt, setIsImprovingPrompt] = useState(false);
     const [showImprovementModal, setShowImprovementModal] = useState(false);
     const [improvementData, setImprovementData] = useState(null);
     const [improvementError, setImprovementError] = useState('');
-    
+
     // Expanded modal state
     const [showExpandedModal, setShowExpandedModal] = useState(false);
     const [expandedPrompt, setExpandedPrompt] = useState('');
-    
+
     const textareaRef = useRef(null);
     const expandedTextareaRef = useRef(null);
 
@@ -178,7 +178,7 @@ const MiscellaneousPromptInput = ({
 
         setIsImprovingPrompt(true);
         setImprovementError('');
-        
+
         try {
             const requestData = {
                 user_prompt: userPrompt,
@@ -263,7 +263,8 @@ const MiscellaneousPromptInput = ({
             <div>
                 <h3 className="text-lg font-semibold text-gray-800">Natural Language Query</h3>
                 <p className="text-sm text-gray-600">
-                    Describe what you want to do with your data in plain English. Our AI will convert your request into efficient SQL queries.
+                    Describe what you want to do with your data in plain English. Our AI will convert your request into
+                    efficient SQL queries.
                 </p>
             </div>
 
@@ -271,7 +272,7 @@ const MiscellaneousPromptInput = ({
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                        <BookOpen className="text-purple-600" size={16} />
+                        <BookOpen className="text-purple-600" size={16}/>
                         <span className="text-sm font-medium text-purple-800">Saved Prompts</span>
                         {savedPrompts.length > 0 && (
                             <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
@@ -283,15 +284,16 @@ const MiscellaneousPromptInput = ({
                         onClick={() => setShowPromptManager(true)}
                         className="flex items-center space-x-1 px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
                     >
-                        <BookOpen size={14} />
+                        <BookOpen size={14}/>
                         <span>Manage Prompts</span>
                     </button>
                 </div>
-                
+
                 <div className="mt-3">
                     {savedPrompts.length === 0 ? (
                         <p className="text-xs text-purple-600">
-                            No saved prompts yet. Use "Save Prompt" after successful data processing to build your library.
+                            No saved prompts yet. Use "Save Prompt" after successful data processing to build your
+                            library.
                         </p>
                     ) : (
                         <div>
@@ -344,13 +346,13 @@ const MiscellaneousPromptInput = ({
             {/* File Context */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-blue-800 mb-2 flex items-center space-x-2">
-                    <Database size={16} />
+                    <Database size={16}/>
                     <span>Selected Files Context</span>
                 </h4>
                 <div className="space-y-2">
                     {getFileInfo().map((file, index) => (
                         <div key={index} className="text-sm text-blue-700">
-                            <strong>{file.reference}</strong>: {file.name} 
+                            <strong>{file.reference}</strong>: {file.name}
                             <span className="text-blue-600 ml-2">
                                 ({file.rows} rows)
                             </span>
@@ -370,8 +372,8 @@ const MiscellaneousPromptInput = ({
                     </label>
                     <div className="flex items-center space-x-2">
                         <span className={`text-xs ${
-                            getCharacterCount() < 10 ? 'text-red-500' : 
-                            getCharacterCount() > 500 ? 'text-amber-500' : 'text-gray-500'
+                            getCharacterCount() < 10 ? 'text-red-500' :
+                                getCharacterCount() > 500 ? 'text-amber-500' : 'text-gray-500'
                         }`}>
                             {getCharacterCount()} characters
                         </span>
@@ -382,9 +384,9 @@ const MiscellaneousPromptInput = ({
                             title="Get AI suggestions to improve your prompt"
                         >
                             {isImprovingPrompt ? (
-                                <Loader size={18} className="animate-spin" />
+                                <Loader size={18} className="animate-spin"/>
                             ) : (
-                                <Brain size={18} />
+                                <Brain size={18}/>
                             )}
                             <span>{isImprovingPrompt ? 'Improving...' : '✨ Improve with AI'}</span>
                         </button>
@@ -393,14 +395,14 @@ const MiscellaneousPromptInput = ({
                             className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-300 hover:border-blue-300"
                             title="Expand to full screen for easier editing"
                         >
-                            <Maximize2 size={14} />
+                            <Maximize2 size={14}/>
                             <span>Expand</span>
                         </button>
                         <button
                             onClick={() => setShowExamples(!showExamples)}
                             className="flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-700"
                         >
-                            <Lightbulb size={14} />
+                            <Lightbulb size={14}/>
                             <span>Examples</span>
                         </button>
                     </div>
@@ -429,23 +431,25 @@ Examples:
                             fontSize: '15px'
                         }}
                     />
-                    
+
                     {/* Character counter */}
                     <div className="absolute bottom-3 right-3 flex items-center space-x-3">
                         {userPrompt && userPrompt.length > 0 && (
-                            <div className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm border border-gray-200">
+                            <div
+                                className="flex items-center space-x-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg shadow-sm border border-gray-200">
                                 <div className={`text-xs ${
-                                    userPrompt.length > 40000 ? 'text-red-500' : 
-                                    userPrompt.length > 25000 ? 'text-amber-500' : 'text-gray-500'
+                                    userPrompt.length > 40000 ? 'text-red-500' :
+                                        userPrompt.length > 25000 ? 'text-amber-500' : 'text-gray-500'
                                 }`}>
                                     {userPrompt.length.toLocaleString()}/{(50000).toLocaleString()}
                                 </div>
                             </div>
                         )}
-                        
+
                         {/* Writing indicator */}
                         {userPrompt && userPrompt.length > 10 && (
-                            <div className="flex items-center space-x-1 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
+                            <div
+                                className="flex items-center space-x-1 bg-green-50 border border-green-200 px-2 py-1 rounded-lg">
                                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                                 <span className="text-xs text-green-700 font-medium">Ready</span>
                             </div>
@@ -455,60 +459,61 @@ Examples:
 
                 {!isPromptValid() && (
                     <div className="text-xs text-red-500 mt-1 flex items-center space-x-1">
-                        <AlertCircle size={12} />
+                        <AlertCircle size={12}/>
                         <span>Please provide at least 10 characters describing your data operation</span>
                     </div>
                 )}
-                
+
                 {/* Improvement Error */}
                 {improvementError && (
                     <div className="text-xs text-red-500 mt-1 flex items-center space-x-1">
-                        <AlertCircle size={12} />
+                        <AlertCircle size={12}/>
                         <span>{improvementError}</span>
                     </div>
                 )}
-                
+
                 {/* Reprocess Section */}
                 {hasExistingResults && (
                     <div className={`mt-3 p-3 rounded-lg border ${
-                        hasPromptChanged 
-                            ? 'bg-amber-50 border-amber-200' 
+                        hasPromptChanged
+                            ? 'bg-amber-50 border-amber-200'
                             : 'bg-green-50 border-green-200'
                     }`}>
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                                 {hasPromptChanged ? (
                                     <>
-                                        <RefreshCw size={14} className="text-amber-600" />
+                                        <RefreshCw size={14} className="text-amber-600"/>
                                         <span className="text-sm text-amber-800 font-medium">
                                             Prompt modified - reprocess to see new results
                                         </span>
                                     </>
                                 ) : (
                                     <>
-                                        <CheckCircle size={14} className="text-green-600" />
+                                        <CheckCircle size={14} className="text-green-600"/>
                                         <span className="text-sm text-green-800 font-medium">
                                             Results generated with current prompt
                                         </span>
                                     </>
                                 )}
                             </div>
-                            
+
                             {hasPromptChanged && onReprocess && (
                                 <button
                                     onClick={onReprocess}
                                     disabled={!isPromptValid()}
                                     className="flex items-center space-x-1 px-3 py-1.5 bg-amber-600 text-white text-sm rounded hover:bg-amber-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    <RefreshCw size={14} />
+                                    <RefreshCw size={14}/>
                                     <span>Reprocess</span>
                                 </button>
                             )}
                         </div>
-                        
+
                         {hasPromptChanged && (
                             <div className="text-xs text-amber-700 mt-2">
-                                Your query has been modified. Click "Reprocess" or use "Next" to generate new results with the updated prompt.
+                                Your query has been modified. Click "Reprocess" or use "Next" to generate new results
+                                with the updated prompt.
                             </div>
                         )}
                     </div>
@@ -516,15 +521,14 @@ Examples:
             </div>
 
 
-
             {/* Examples Panel */}
             {showExamples && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <h4 className="text-sm font-medium text-gray-800 mb-3 flex items-center space-x-2">
-                        <Sparkles size={16} />
+                        <Sparkles size={16}/>
                         <span>Example Queries</span>
                     </h4>
-                    
+
                     <div className="space-y-4">
                         {examplePrompts.map((category, catIndex) => (
                             <div key={catIndex}>
@@ -570,7 +574,7 @@ Examples:
                         <div className="flex items-center justify-between p-6 border-b border-gray-200">
                             <div>
                                 <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-                                    <Brain className="text-purple-500" size={24} />
+                                    <Brain className="text-purple-500" size={24}/>
                                     <span>AI-Improved Prompt</span>
                                 </h2>
                                 <p className="text-sm text-gray-600 mt-1">
@@ -581,7 +585,7 @@ Examples:
                                 onClick={() => setShowImprovementModal(false)}
                                 className="text-gray-400 hover:text-gray-600 p-1"
                             >
-                                <X size={24} />
+                                <X size={24}/>
                             </button>
                         </div>
 
@@ -591,7 +595,7 @@ Examples:
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                     <div className="flex items-center space-x-2 mb-2">
-                                        <Target className="text-blue-600" size={16} />
+                                        <Target className="text-blue-600" size={16}/>
                                         <span className="text-sm font-medium text-blue-800">Query Intent</span>
                                     </div>
                                     <p className="text-sm text-blue-700 capitalize">
@@ -603,17 +607,17 @@ Examples:
                                         </p>
                                     )}
                                 </div>
-                                
+
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                                     <div className="flex items-center space-x-2 mb-2">
-                                        <TrendingUp className="text-green-600" size={16} />
+                                        <TrendingUp className="text-green-600" size={16}/>
                                         <span className="text-sm font-medium text-green-800">Confidence Score</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <div className="flex-1 bg-green-200 rounded-full h-2">
-                                            <div 
+                                            <div
                                                 className="bg-green-600 h-2 rounded-full transition-all duration-500"
-                                                style={{ width: `${(improvementData.confidence_score || 0.8) * 100}%` }}
+                                                style={{width: `${(improvementData.confidence_score || 0.8) * 100}%`}}
                                             ></div>
                                         </div>
                                         <span className="text-sm font-medium text-green-700">
@@ -628,10 +632,11 @@ Examples:
                                 {/* Original Prompt */}
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
-                                        <MessageSquare className="text-gray-500" size={16} />
+                                        <MessageSquare className="text-gray-500" size={16}/>
                                         <span>Your Original Prompt</span>
                                     </h3>
-                                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 h-32 overflow-y-auto">
+                                    <div
+                                        className="bg-gray-50 border border-gray-200 rounded-lg p-4 h-32 overflow-y-auto">
                                         <p className="text-sm text-gray-700 leading-relaxed">
                                             {improvementData.original_prompt}
                                         </p>
@@ -641,10 +646,11 @@ Examples:
                                 {/* Improved Prompt */}
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
-                                        <Sparkles className="text-purple-500" size={16} />
+                                        <Sparkles className="text-purple-500" size={16}/>
                                         <span>AI-Improved Prompt</span>
                                     </h3>
-                                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 h-32 overflow-y-auto">
+                                    <div
+                                        className="bg-purple-50 border border-purple-200 rounded-lg p-4 h-32 overflow-y-auto">
                                         <p className="text-sm text-purple-700 leading-relaxed">
                                             {improvementData.improved_prompt}
                                         </p>
@@ -656,13 +662,13 @@ Examples:
                             {improvementData.expected_output_columns && improvementData.expected_output_columns.length > 0 && (
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
-                                        <Database className="text-green-500" size={16} />
+                                        <Database className="text-green-500" size={16}/>
                                         <span>Expected Output Columns</span>
                                     </h3>
                                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                                         <div className="flex flex-wrap gap-2">
                                             {improvementData.expected_output_columns.map((column, index) => (
-                                                <span 
+                                                <span
                                                     key={index}
                                                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200"
                                                 >
@@ -678,14 +684,15 @@ Examples:
                             {improvementData.improvements_made && improvementData.improvements_made.length > 0 && (
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
-                                        <Zap className="text-orange-500" size={16} />
+                                        <Zap className="text-orange-500" size={16}/>
                                         <span>Key Improvements</span>
                                     </h3>
                                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                                         <ul className="space-y-2">
                                             {improvementData.improvements_made.map((improvement, index) => (
                                                 <li key={index} className="flex items-start space-x-2">
-                                                    <CheckCircle2 className="text-orange-600 flex-shrink-0 mt-0.5" size={14} />
+                                                    <CheckCircle2 className="text-orange-600 flex-shrink-0 mt-0.5"
+                                                                  size={14}/>
                                                     <span className="text-sm text-orange-700">{improvement}</span>
                                                 </li>
                                             ))}
@@ -698,14 +705,15 @@ Examples:
                             {improvementData.suggestions && improvementData.suggestions.length > 0 && (
                                 <div>
                                     <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center space-x-2">
-                                        <Lightbulb className="text-yellow-500" size={16} />
+                                        <Lightbulb className="text-yellow-500" size={16}/>
                                         <span>Additional Suggestions</span>
                                     </h3>
                                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                                         <ul className="space-y-2">
                                             {improvementData.suggestions.map((suggestion, index) => (
                                                 <li key={index} className="flex items-start space-x-2">
-                                                    <ArrowRight className="text-yellow-600 flex-shrink-0 mt-0.5" size={14} />
+                                                    <ArrowRight className="text-yellow-600 flex-shrink-0 mt-0.5"
+                                                                size={14}/>
                                                     <span className="text-sm text-yellow-700">{suggestion}</span>
                                                 </li>
                                             ))}
@@ -722,11 +730,11 @@ Examples:
                                     onClick={() => navigator.clipboard.writeText(improvementData.improved_prompt)}
                                     className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-white transition-colors"
                                 >
-                                    <Copy size={16} />
+                                    <Copy size={16}/>
                                     <span>Copy Improved Prompt</span>
                                 </button>
                             </div>
-                            
+
                             <div className="flex items-center space-x-3">
                                 <button
                                     onClick={() => setShowImprovementModal(false)}
@@ -738,7 +746,7 @@ Examples:
                                     onClick={applyImprovedPrompt}
                                     className="flex items-center space-x-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                                 >
-                                    <Sparkles size={16} />
+                                    <Sparkles size={16}/>
                                     <span>Use Improved Prompt</span>
                                 </button>
                             </div>
@@ -750,12 +758,12 @@ Examples:
             {/* Expanded Prompt Modal */}
             {showExpandedModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white w-full max-w-7xl mx-auto rounded-xl shadow-2xl flex flex-col" 
+                    <div className="bg-white w-full max-w-7xl mx-auto rounded-xl shadow-2xl flex flex-col"
                          style={{height: 'min(90vh, 800px)'}}>
                         {/* Modal Header */}
                         <div className="flex items-center justify-between p-6 border-b border-gray-200">
                             <div className="flex items-center space-x-3">
-                                <MessageSquare className="text-blue-600" size={24} />
+                                <MessageSquare className="text-blue-600" size={24}/>
                                 <h2 className="text-xl font-semibold text-gray-900">Expanded Prompt Editor</h2>
                             </div>
                             <div className="flex items-center space-x-4">
@@ -767,7 +775,7 @@ Examples:
                                     className="text-gray-400 hover:text-gray-600 transition-colors p-1"
                                     title="Close (Esc)"
                                 >
-                                    <X size={24} />
+                                    <X size={24}/>
                                 </button>
                             </div>
                         </div>
@@ -776,13 +784,14 @@ Examples:
                         <div className="flex-1 p-6 flex flex-col overflow-hidden">
                             <div className="mb-4">
                                 <p className="text-sm text-gray-600">
-                                    ✨ Write your natural language query here. Be as detailed as possible about your requirements.
+                                    ✨ Write your natural language query here. Be as detailed as possible about your
+                                    requirements.
                                     <span className="block mt-1 text-xs text-gray-500">
                                         💡 <strong>Tip:</strong> Use Ctrl+Enter to save, or Esc to cancel
                                     </span>
                                 </p>
                             </div>
-                            
+
                             <div className="flex-1 relative">
                                 <textarea
                                     ref={expandedTextareaRef}
@@ -811,23 +820,25 @@ Be as specific as possible about:
                                         fontSize: '15px'
                                     }}
                                 />
-                                
+
                                 {/* Floating character count */}
-                                <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-500 border border-gray-200">
+                                <div
+                                    className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-xs text-gray-500 border border-gray-200">
                                     {expandedPrompt ? expandedPrompt.length : 0} / 50,000
                                 </div>
                             </div>
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                        <div
+                            className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
                             <div className="text-xs text-gray-500">
                                 <span className="inline-flex items-center space-x-1">
                                     <span>💡 <strong>Keyboard shortcuts:</strong></span>
                                 </span>
                                 <span className="ml-2">Ctrl+Enter to save • Esc to cancel</span>
                             </div>
-                            
+
                             <div className="flex items-center space-x-3">
                                 <button
                                     onClick={closeExpandedModal}
@@ -839,7 +850,7 @@ Be as specific as possible about:
                                     onClick={saveExpandedPrompt}
                                     className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                                 >
-                                    <Save size={16} />
+                                    <Save size={16}/>
                                     <span>Save Query</span>
                                 </button>
                             </div>

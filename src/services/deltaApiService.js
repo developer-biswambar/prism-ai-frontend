@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ENV_CONFIG } from '../config/environment.js';
+import {ENV_CONFIG} from '../config/environment.js';
 
 const API_BASE_URL = ENV_CONFIG.API_BASE_URL;
 
@@ -767,7 +767,7 @@ Transformation Metrics:
      */
     async generateDeltaConfig(requirements, sourceFiles) {
         try {
-            console.log('Generating delta configuration with AI:', { requirements, sourceFiles });
+            console.log('Generating delta configuration with AI:', {requirements, sourceFiles});
 
             const response = await api.post('/delta/generate-config/', {
                 requirements: requirements,

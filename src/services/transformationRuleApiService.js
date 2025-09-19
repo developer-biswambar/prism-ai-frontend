@@ -1,6 +1,5 @@
 // src/services/transformationRuleApiService.js - Transformation rule management API service
-import { apiService } from './defaultApi.js';
-import { ENV_CONFIG } from '../config/environment.js';
+import {ENV_CONFIG} from '../config/environment.js';
 
 const API_BASE_URL = ENV_CONFIG.API_BASE_URL;
 
@@ -223,12 +222,12 @@ export const transformationRuleApiService = {
             template_name: selectedTemplate?.name || null
         };
 
-        return { ruleConfig, ruleMetadata };
+        return {ruleConfig, ruleMetadata};
     },
 
     // Adapt transformation rule to current files
     adaptTransformationRuleToFiles: (rule, fileColumns) => {
-        const adaptedConfig = { ...rule.rule_config };
+        const adaptedConfig = {...rule.rule_config};
         const warnings = [];
         const errors = [];
 
@@ -236,7 +235,7 @@ export const transformationRuleApiService = {
             // Update source files with current file information
             if (adaptedConfig.source_files && fileColumns) {
                 const fileIds = Object.keys(fileColumns);
-                
+
                 if (fileIds.length === 0) {
                     errors.push('No files available to apply rule to');
                 } else {
@@ -252,7 +251,7 @@ export const transformationRuleApiService = {
             // Validate column references in row generation rules
             if (adaptedConfig.row_generation_rules && fileColumns) {
                 const availableColumns = Object.values(fileColumns).flat();
-                
+
                 adaptedConfig.row_generation_rules.forEach((rule, ruleIndex) => {
                     if (rule.output_columns) {
                         rule.output_columns.forEach((col, colIndex) => {
@@ -262,7 +261,7 @@ export const transformationRuleApiService = {
                                     warnings.push(`Rule ${ruleIndex + 1}, Column ${colIndex + 1}: Source column '${col.source_column}' not found in current files`);
                                 }
                             }
-                            
+
                             // Check dynamic condition columns
                             if (col.mapping_type === 'dynamic' && col.dynamic_conditions) {
                                 col.dynamic_conditions.forEach((condition, condIndex) => {

@@ -27,7 +27,7 @@ const DataViewer = ({fileId, onClose}) => {
     const [fileStats, setFileStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    
+
     // Track changes for intelligent saving - patch-based approach
     const [cellChanges, setCellChanges] = useState(new Map()); // Map of 'rowIndex:columnName' -> newValue
     const [addedRows, setAddedRows] = useState([]); // Array of new row objects
@@ -39,7 +39,7 @@ const DataViewer = ({fileId, onClose}) => {
     const [editingColumn, setEditingColumn] = useState(null);
     const [editingColumnValue, setEditingColumnValue] = useState('');
     const [columnWidths, setColumnWidths] = useState({});
-    const [resizing, setResizing] = useState({ isResizing: false, columnIndex: -1, startX: 0, startWidth: 0 });
+    const [resizing, setResizing] = useState({isResizing: false, columnIndex: -1, startX: 0, startWidth: 0});
     const [hoveredColumnIndex, setHoveredColumnIndex] = useState(-1);
     const [sortConfig, setSortConfig] = useState({column: null, direction: 'asc'});
     const [filterConfig, setFilterConfig] = useState({});
@@ -114,14 +114,14 @@ const DataViewer = ({fileId, onClose}) => {
             }
         } catch (err) {
             console.error('Failed to load file name:', err);
-            
+
             // If it's a 404 error, the file doesn't exist
             if (err.response?.status === 404) {
                 setError(`File not found. The file with ID "${fileId}" does not exist or may have been deleted.`);
                 setLoading(false);
                 return;
             }
-            
+
             // For other errors, just use a fallback filename
             setFileName(`File ${fileId}`);
         }
@@ -134,10 +134,10 @@ const DataViewer = ({fileId, onClose}) => {
             // Try to load real data first, fallback to sample if endpoint doesn't exist
             try {
                 const response = await apiService.getFileData(
-                    fileId, 
-                    currentPage, 
-                    pageSize, 
-                    searchTerm, 
+                    fileId,
+                    currentPage,
+                    pageSize,
+                    searchTerm,
                     columnFilters
                 );
                 if (response.success) {
@@ -161,26 +161,26 @@ const DataViewer = ({fileId, onClose}) => {
                     message: apiError.message,
                     keys: Object.keys(apiError)
                 });
-                
+
                 // Check if it's a specific error that should be shown to user
                 const errorStatus = apiError.response?.status || apiError.status;
                 const message = apiError.message || '';
-                const is404 = errorStatus === 404 || 
-                              message.includes('404') || 
-                              message.includes('status code 404') ||
-                              message.includes('Requested resource not found') ||
-                              message.includes('not found');
-                const is403 = errorStatus === 403 || 
-                              message.includes('403') || 
-                              message.includes('status code 403') ||
-                              message.includes('Access denied') ||
-                              message.includes('Forbidden');
+                const is404 = errorStatus === 404 ||
+                    message.includes('404') ||
+                    message.includes('status code 404') ||
+                    message.includes('Requested resource not found') ||
+                    message.includes('not found');
+                const is403 = errorStatus === 403 ||
+                    message.includes('403') ||
+                    message.includes('status code 403') ||
+                    message.includes('Access denied') ||
+                    message.includes('Forbidden');
                 const is5xx = (errorStatus >= 500 && errorStatus < 600) || /status code 5\d\d/.test(message);
-                
+
                 console.log('Checking error status:', errorStatus);
                 console.log('Error message:', message);
-                console.log('Error classification:', { is404, is403, is5xx });
-                
+                console.log('Error classification:', {is404, is403, is5xx});
+
                 if (is404) {
                     console.log('Re-throwing 404 error');
                     throw apiError; // Re-throw to be handled by outer catch
@@ -191,7 +191,7 @@ const DataViewer = ({fileId, onClose}) => {
                     console.log('Re-throwing 5xx error');
                     throw apiError; // Re-throw to be handled by outer catch
                 }
-                
+
                 // Only fallback to sample data for non-critical errors (network issues, etc.)
                 console.log('API endpoint not available, using sample data');
             }
@@ -211,26 +211,26 @@ const DataViewer = ({fileId, onClose}) => {
                 data: err.response?.data,
                 message: err.message
             });
-            
+
             // Provide specific error messages based on error type
             const errorStatus = err.response?.status || err.status;
             const message = err.message || '';
-            const is404 = errorStatus === 404 || 
-                          message.includes('404') || 
-                          message.includes('status code 404') ||
-                          message.includes('Requested resource not found') ||
-                          message.includes('not found');
-            const is403 = errorStatus === 403 || 
-                          message.includes('403') || 
-                          message.includes('status code 403') ||
-                          message.includes('Access denied') ||
-                          message.includes('Forbidden');
+            const is404 = errorStatus === 404 ||
+                message.includes('404') ||
+                message.includes('status code 404') ||
+                message.includes('Requested resource not found') ||
+                message.includes('not found');
+            const is403 = errorStatus === 403 ||
+                message.includes('403') ||
+                message.includes('status code 403') ||
+                message.includes('Access denied') ||
+                message.includes('Forbidden');
             const is5xx = (errorStatus >= 500 && errorStatus < 600) || /status code 5\d\d/.test(message);
-            
+
             console.log('Outer catch - error status:', errorStatus);
             console.log('Outer catch - error message:', message);
-            console.log('Outer catch - error classification:', { is404, is403, is5xx });
-            
+            console.log('Outer catch - error classification:', {is404, is403, is5xx});
+
             if (is404) {
                 console.log('Setting 404 error');
                 const errorMsg = `File not found. The file with ID "${fileId}" does not exist or may have been deleted.`;
@@ -270,7 +270,7 @@ const DataViewer = ({fileId, onClose}) => {
     const saveChanges = async () => {
         try {
             setSaving(true);
-            
+
             // Prepare patch data with only the changes
             const patchData = {
                 cell_changes: Array.from(cellChanges.entries()).map(([key, value]) => {
@@ -285,21 +285,21 @@ const DataViewer = ({fileId, onClose}) => {
                 deleted_row_indices: Array.from(deletedRowIndices),
                 column_operations: columnOperations
             };
-            
+
             console.log('Sending patch data:', patchData);
-            
+
             try {
                 await apiService.patchFileData(fileId, patchData);
-                
+
                 // Clear all pending changes after successful save
                 setCellChanges(new Map());
                 setAddedRows([]);
                 setDeletedRowIndices(new Set());
                 setColumnOperations([]);
                 setHasChanges(false);
-                
+
                 showNotification('Changes saved successfully!', 'success');
-                
+
                 // Reload data to reflect server state
                 await loadFileData();
             } catch (apiError) {
@@ -324,9 +324,9 @@ const DataViewer = ({fileId, onClose}) => {
                 const lastDotIndex = filename.lastIndexOf('.');
                 return lastDotIndex > 0 ? filename.substring(0, lastDotIndex) : filename;
             };
-            
+
             const baseFileName = getBaseFilename(fileName);
-            
+
             try {
                 const response = await apiService.downloadModifiedFile(fileId, format);
                 const blob = new Blob([response.data]);
@@ -408,12 +408,12 @@ const DataViewer = ({fileId, onClose}) => {
             newData[editingCell.row][columns[editingCell.col]] = editValue;
             setData(newData);
             addToHistory(newData, columns);
-            
+
             // Track the change for patch-based saving
             const absoluteRowIndex = (currentPage - 1) * pageSize + editingCell.row;
             const columnName = columns[editingCell.col];
             const changeKey = `${absoluteRowIndex}:${columnName}`;
-            
+
             setCellChanges(prev => {
                 const newChanges = new Map(prev);
                 newChanges.set(changeKey, editValue);
@@ -457,7 +457,7 @@ const DataViewer = ({fileId, onClose}) => {
 
         // Update data to use new column name
         const newData = data.map(row => {
-            const newRow = { ...row };
+            const newRow = {...row};
             if (oldColumnName !== newColumnName && oldColumnName in newRow) {
                 newRow[newColumnName] = newRow[oldColumnName];
                 delete newRow[oldColumnName];
@@ -469,7 +469,7 @@ const DataViewer = ({fileId, onClose}) => {
         setData(newData);
         addToHistory(newData, newColumns);
         setHasChanges(true);
-        
+
         // Track column rename operation for patch-based saving
         if (oldColumnName !== newColumnName) {
             setColumnOperations(prev => [...prev, {
@@ -507,28 +507,28 @@ const DataViewer = ({fileId, onClose}) => {
     const startColumnResize = (e, columnIndex) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         console.log('Starting resize for column:', columnIndex, 'at position:', e.clientX);
-        
+
         const startX = e.clientX;
         const startWidth = getColumnWidth(columnIndex);
-        
+
         const newResizing = {
             isResizing: true,
             columnIndex,
             startX,
             startWidth
         };
-        
+
         setResizing(newResizing);
-        
+
         // Create handlers with current state
         const handleMouseMove = (moveEvent) => {
             const deltaX = moveEvent.clientX - startX;
             const newWidth = Math.max(50, startWidth + deltaX); // Minimum width: 50px
-            
+
             console.log('Resizing column:', columnIndex, 'to width:', newWidth);
-            
+
             setColumnWidths(prev => ({
                 ...prev,
                 [columnIndex]: newWidth
@@ -536,11 +536,11 @@ const DataViewer = ({fileId, onClose}) => {
         };
 
         const handleMouseUp = () => {
-            setResizing({ isResizing: false, columnIndex: -1, startX: 0, startWidth: 0 });
+            setResizing({isResizing: false, columnIndex: -1, startX: 0, startWidth: 0});
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-        
+
         // Add global event listeners
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
@@ -549,10 +549,10 @@ const DataViewer = ({fileId, onClose}) => {
     // Auto-fit column width to content
     const autoFitColumn = (columnIndex) => {
         const columnName = columns[columnIndex];
-        
+
         // Calculate width based on content
         let maxWidth = columnName.length * 8 + 40; // Base width from column name
-        
+
         // Check data content width (sample first 100 rows for performance)
         const sampleData = displayedData.slice(0, 100);
         sampleData.forEach(row => {
@@ -560,10 +560,10 @@ const DataViewer = ({fileId, onClose}) => {
             const cellWidth = cellValue.length * 8 + 20; // Approximate character width
             maxWidth = Math.max(maxWidth, cellWidth);
         });
-        
+
         // Set reasonable bounds
         const finalWidth = Math.min(Math.max(maxWidth, 80), 400);
-        
+
         setColumnWidths(prev => ({
             ...prev,
             [columnIndex]: finalWidth
@@ -577,7 +577,7 @@ const DataViewer = ({fileId, onClose}) => {
         const newData = [...data, newRow];
         setData(newData);
         addToHistory(newData, columns);
-        
+
         // Track the added row for patch-based saving
         setAddedRows(prev => [...prev, newRow]);
         setTotalRowsInDataset(prev => prev + 1);
@@ -588,7 +588,7 @@ const DataViewer = ({fileId, onClose}) => {
         const newData = data.filter((_, index) => index !== rowIndex);
         setData(newData);
         addToHistory(newData, columns);
-        
+
         // Track the deleted row for patch-based saving (absolute index)
         const absoluteRowIndex = (currentPage - 1) * pageSize + rowIndex;
         setDeletedRowIndices(prev => new Set([...prev, absoluteRowIndex]));
@@ -597,22 +597,22 @@ const DataViewer = ({fileId, onClose}) => {
 
     // Column filter handlers
     const handleColumnFilter = (columnName, selectedValues) => {
-        const newColumnFilters = { ...columnFilters, [columnName]: selectedValues };
+        const newColumnFilters = {...columnFilters, [columnName]: selectedValues};
         setColumnFilters(newColumnFilters);
-        
+
         // Clear search term when using column filter
         if (selectedValues.length > 0) {
             setSearchTerm('');
         }
-        
+
         setCurrentPage(1); // Reset to first page
     };
 
     const handleColumnFilterClear = (columnName) => {
-        const newColumnFilters = { ...columnFilters };
+        const newColumnFilters = {...columnFilters};
         delete newColumnFilters[columnName];
         setColumnFilters(newColumnFilters);
-        
+
         setCurrentPage(1); // Reset to first page
     };
 
@@ -642,14 +642,14 @@ const DataViewer = ({fileId, onClose}) => {
             setColumns(newColumns);
             setData(newData);
             addToHistory(newData, newColumns);
-            
+
             // Track column addition for patch-based saving
             setColumnOperations(prev => [...prev, {
                 type: 'add',
                 column_name: newColumnName.trim()
             }]);
             setHasChanges(true);
-            
+
             setNewColumnName('');
             setShowAddColumn(false);
         }
@@ -666,7 +666,7 @@ const DataViewer = ({fileId, onClose}) => {
         setColumns(newColumns);
         setData(newData);
         addToHistory(newData, newColumns);
-        
+
         // Track column deletion for patch-based saving
         setColumnOperations(prev => [...prev, {
             type: 'delete',
@@ -728,12 +728,12 @@ const DataViewer = ({fileId, onClose}) => {
     const getExcelColumnName = (columnIndex) => {
         let result = '';
         let index = columnIndex;
-        
+
         while (index >= 0) {
             result = String.fromCharCode(65 + (index % 26)) + result;
             index = Math.floor(index / 26) - 1;
         }
-        
+
         return result;
     };
 
@@ -751,11 +751,11 @@ const DataViewer = ({fileId, onClose}) => {
     // Delete multiple selected columns
     const deleteSelectedColumns = () => {
         if (selectedColumns.size === 0) return;
-        
+
         const sortedColumnIndexes = Array.from(selectedColumns).sort((a, b) => b - a); // Sort in descending order
         let newColumns = [...columns];
         let newData = [...data];
-        
+
         // Remove columns from highest index to lowest to maintain correct indexing
         sortedColumnIndexes.forEach(columnIndex => {
             const columnToDelete = newColumns[columnIndex];
@@ -766,11 +766,11 @@ const DataViewer = ({fileId, onClose}) => {
                 return newRow;
             });
         });
-        
+
         setColumns(newColumns);
         setData(newData);
         addToHistory(newData, newColumns);
-        
+
         // Track column deletions for patch-based saving
         const deletedColumnNames = Array.from(selectedColumns).sort((a, b) => a - b).map(columnIndex => columns[columnIndex]);
         setColumnOperations(prev => [...prev, ...deletedColumnNames.map(columnName => ({
@@ -778,7 +778,7 @@ const DataViewer = ({fileId, onClose}) => {
             column_name: columnName
         }))]);
         setHasChanges(true);
-        
+
         setSelectedColumns(new Set()); // Clear selection
         setShowDeleteColumnsModal(false);
     };
@@ -797,23 +797,23 @@ const DataViewer = ({fileId, onClose}) => {
     // Delete multiple selected rows
     const deleteSelectedRows = () => {
         if (selectedRows.size === 0) return;
-        
+
         const sortedRowIndexes = Array.from(selectedRows).sort((a, b) => b - a); // Sort in descending order
         let newData = [...data];
-        
+
         // Remove rows from highest index to lowest to maintain correct indexing
         sortedRowIndexes.forEach(rowIndex => {
             newData.splice(rowIndex, 1);
         });
-        
+
         setData(newData);
         addToHistory(newData, columns);
-        
+
         // Track deleted rows for patch-based saving (absolute indices)
         const absoluteIndices = Array.from(selectedRows).map(rowIndex => (currentPage - 1) * pageSize + rowIndex);
         setDeletedRowIndices(prev => new Set([...prev, ...absoluteIndices]));
         setHasChanges(true);
-        
+
         setSelectedRows(new Set()); // Clear selection
         setShowDeleteRowsModal(false);
     };
@@ -874,29 +874,31 @@ const DataViewer = ({fileId, onClose}) => {
 
     if (error) {
         const isFileNotFound = error.includes('File not found');
-        
+
         return (
             <div className="flex items-center justify-center h-screen bg-gray-50">
                 <div className="max-w-md text-center p-8 bg-white rounded-lg shadow-lg">
                     <div className="mb-6">
                         {isFileNotFound ? (
-                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <FileText className="h-8 w-8 text-orange-500" />
+                            <div
+                                className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <FileText className="h-8 w-8 text-orange-500"/>
                             </div>
                         ) : (
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <AlertCircle className="h-8 w-8 text-red-500" />
+                            <div
+                                className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <AlertCircle className="h-8 w-8 text-red-500"/>
                             </div>
                         )}
-                        
+
                         <h2 className="text-xl font-semibold text-gray-900 mb-2">
                             {isFileNotFound ? 'File Not Found' : 'Unable to Load File'}
                         </h2>
-                        
+
                         <p className="text-gray-600 text-sm leading-relaxed mb-6">
                             {error}
                         </p>
-                        
+
                         {isFileNotFound && (
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
                                 <h3 className="text-sm font-medium text-blue-800 mb-2">What you can do:</h3>
@@ -908,7 +910,7 @@ const DataViewer = ({fileId, onClose}) => {
                             </div>
                         )}
                     </div>
-                    
+
                     <div className="flex space-x-3 justify-center">
                         <button
                             onClick={() => window.location.reload()}
@@ -923,7 +925,7 @@ const DataViewer = ({fileId, onClose}) => {
                             Close
                         </button>
                     </div>
-                    
+
                     <p className="text-xs text-gray-400 mt-4">
                         File ID: {fileId}
                     </p>
@@ -957,7 +959,8 @@ const DataViewer = ({fileId, onClose}) => {
                                 </div>
                             </div>
                             {hasChanges && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 mt-1">
+                                <span
+                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 mt-1">
                                     <Edit3 size={10} className="mr-1"/>
                                     Unsaved
                                 </span>
@@ -968,7 +971,8 @@ const DataViewer = ({fileId, onClose}) => {
                         <div className="flex items-center space-x-3">
                             {/* Search bar */}
                             <div className="relative">
-                                <Search size={14} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
+                                <Search size={14}
+                                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"/>
                                 <input
                                     type="text"
                                     placeholder="Search..."
@@ -985,7 +989,7 @@ const DataViewer = ({fileId, onClose}) => {
                                     className="flex items-center space-x-1 px-3 py-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded transition-colors"
                                     title={`Clear all ${getActiveFilterCount()} active filter(s)`}
                                 >
-                                    <X size={12} />
+                                    <X size={12}/>
                                     <span>Clear All ({getActiveFilterCount()})</span>
                                 </button>
                             )}
@@ -1057,13 +1061,16 @@ const DataViewer = ({fileId, onClose}) => {
                                     <option value="csv">CSV</option>
                                     <option value="xlsx">Excel</option>
                                 </select>
-                                <Download size={14} className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white pointer-events-none"/>
+                                <Download size={14}
+                                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white pointer-events-none"/>
                             </div>
 
                             {/* Column Selection Indicator */}
                             {selectedColumns.size > 0 && (
-                                <div className="flex items-center space-x-2 px-3 py-2 bg-blue-100 border border-blue-300 rounded text-sm">
-                                    <span className="text-blue-800 font-medium">{selectedColumns.size} col{selectedColumns.size !== 1 ? 's' : ''} selected</span>
+                                <div
+                                    className="flex items-center space-x-2 px-3 py-2 bg-blue-100 border border-blue-300 rounded text-sm">
+                                    <span
+                                        className="text-blue-800 font-medium">{selectedColumns.size} col{selectedColumns.size !== 1 ? 's' : ''} selected</span>
                                     <button
                                         onClick={() => setShowDeleteColumnsModal(true)}
                                         className="flex items-center space-x-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
@@ -1084,8 +1091,10 @@ const DataViewer = ({fileId, onClose}) => {
 
                             {/* Row Selection Indicator */}
                             {selectedRows.size > 0 && (
-                                <div className="flex items-center space-x-2 px-3 py-2 bg-green-100 border border-green-300 rounded text-sm">
-                                    <span className="text-green-800 font-medium">{selectedRows.size} row{selectedRows.size !== 1 ? 's' : ''} selected</span>
+                                <div
+                                    className="flex items-center space-x-2 px-3 py-2 bg-green-100 border border-green-300 rounded text-sm">
+                                    <span
+                                        className="text-green-800 font-medium">{selectedRows.size} row{selectedRows.size !== 1 ? 's' : ''} selected</span>
                                     <button
                                         onClick={() => setShowDeleteRowsModal(true)}
                                         className="flex items-center space-x-1 px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-xs"
@@ -1229,16 +1238,17 @@ const DataViewer = ({fileId, onClose}) => {
                                 <p className="text-sm text-gray-600">This action cannot be undone</p>
                             </div>
                         </div>
-                        
+
                         <div className="mb-6">
                             <p className="text-gray-700 mb-3">
-                                Are you sure you want to delete <strong>{selectedColumns.size} column{selectedColumns.size !== 1 ? 's' : ''}</strong>?
+                                Are you sure you want to
+                                delete <strong>{selectedColumns.size} column{selectedColumns.size !== 1 ? 's' : ''}</strong>?
                             </p>
                             <div className="bg-gray-50 rounded p-3 max-h-32 overflow-y-auto">
                                 <p className="text-sm text-gray-600 mb-2">Columns to be deleted:</p>
                                 <div className="flex flex-wrap gap-1">
                                     {Array.from(selectedColumns).sort((a, b) => a - b).map(columnIndex => (
-                                        <span 
+                                        <span
                                             key={columnIndex}
                                             className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded"
                                         >
@@ -1248,7 +1258,7 @@ const DataViewer = ({fileId, onClose}) => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="flex justify-end space-x-2">
                             <button
                                 onClick={() => setShowDeleteColumnsModal(false)}
@@ -1280,16 +1290,17 @@ const DataViewer = ({fileId, onClose}) => {
                                 <p className="text-sm text-gray-600">This action cannot be undone</p>
                             </div>
                         </div>
-                        
+
                         <div className="mb-6">
                             <p className="text-gray-700 mb-3">
-                                Are you sure you want to delete <strong>{selectedRows.size} row{selectedRows.size !== 1 ? 's' : ''}</strong>?
+                                Are you sure you want to
+                                delete <strong>{selectedRows.size} row{selectedRows.size !== 1 ? 's' : ''}</strong>?
                             </p>
                             <div className="bg-gray-50 rounded p-3 max-h-32 overflow-y-auto">
                                 <p className="text-sm text-gray-600 mb-2">Rows to be deleted:</p>
                                 <div className="flex flex-wrap gap-1">
                                     {Array.from(selectedRows).sort((a, b) => a - b).map(rowIndex => (
-                                        <span 
+                                        <span
                                             key={rowIndex}
                                             className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs rounded"
                                         >
@@ -1299,7 +1310,7 @@ const DataViewer = ({fileId, onClose}) => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="flex justify-end space-x-2">
                             <button
                                 onClick={() => setShowDeleteRowsModal(false)}
@@ -1319,7 +1330,7 @@ const DataViewer = ({fileId, onClose}) => {
             )}
 
             {/* Data Table */}
-            <div 
+            <div
                 className={`flex-1 overflow-auto ${resizing.isResizing ? 'select-none' : ''}`}
                 style={{
                     cursor: resizing.isResizing ? 'col-resize' : 'default'
@@ -1331,14 +1342,14 @@ const DataViewer = ({fileId, onClose}) => {
                         {/* Excel-style column letters (A, B, C...) */}
                         <tr className="bg-gray-100">
                             <th className={`w-12 px-1 py-1 text-xs font-medium text-gray-500 text-center bg-gray-100 ${uiConfig.showGridLines ? 'border border-gray-200' : 'border-transparent'}`}>
-                                
+
                             </th>
                             {columns.map((column, columnIndex) => (
                                 <th
                                     key={`letter-${columnIndex}`}
                                     className={`px-2 py-1 text-xs font-bold text-center cursor-pointer select-none transition-colors ${uiConfig.showGridLines ? 'border border-gray-200' : 'border-transparent'} ${
-                                        selectedColumns.has(columnIndex) 
-                                            ? 'bg-blue-500 text-white border-blue-600' 
+                                        selectedColumns.has(columnIndex)
+                                            ? 'bg-blue-500 text-white border-blue-600'
                                             : hoveredColumnIndex === columnIndex
                                                 ? 'bg-blue-200 text-blue-800'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -1398,7 +1409,7 @@ const DataViewer = ({fileId, onClose}) => {
                                                         <ArrowDown size={10} className="ml-1 flex-shrink-0"/>
                                                 )}
                                             </span>
-                                            
+
                                             {/* Edit button */}
                                             <button
                                                 onClick={(e) => {
@@ -1408,7 +1419,7 @@ const DataViewer = ({fileId, onClose}) => {
                                                 className="ml-1 p-1 opacity-0 group-hover:opacity-100 hover:bg-blue-100 rounded transition-all"
                                                 title="Click to rename column"
                                             >
-                                                <Edit3 size={12} className="text-blue-600" />
+                                                <Edit3 size={12} className="text-blue-600"/>
                                             </button>
                                         </div>
                                     )}
@@ -1425,7 +1436,7 @@ const DataViewer = ({fileId, onClose}) => {
                                                 onClear={() => handleColumnFilterClear(column)}
                                                 cascadeFilters={columnFilters}  // Pass all current filters for cascading
                                             />
-                                            
+
                                             {/* Text Filter */}
                                             <input
                                                 type="text"
@@ -1459,12 +1470,13 @@ const DataViewer = ({fileId, onClose}) => {
                                         }}
                                     >
                                         {/* Visual indicator */}
-                                        <div className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-px h-6 bg-gray-400 transition-all ${
-                                            hoveredColumnIndex === columnIndex 
-                                                ? 'bg-blue-600 opacity-100' 
-                                                : 'opacity-0 hover:opacity-100 hover:bg-blue-600'
-                                        }`} />
-                                        
+                                        <div
+                                            className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-px h-6 bg-gray-400 transition-all ${
+                                                hoveredColumnIndex === columnIndex
+                                                    ? 'bg-blue-600 opacity-100'
+                                                    : 'opacity-0 hover:opacity-100 hover:bg-blue-600'
+                                            }`}/>
+
                                     </div>
                                 </th>
                             ))}
@@ -1472,11 +1484,12 @@ const DataViewer = ({fileId, onClose}) => {
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                         {displayedData.map((row, rowIndex) => (
-                            <tr key={rowIndex} className={`${getRowClasses()} ${selectedRows.has(rowIndex) ? 'bg-green-100' : ''}`}>
-                                <td 
+                            <tr key={rowIndex}
+                                className={`${getRowClasses()} ${selectedRows.has(rowIndex) ? 'bg-green-100' : ''}`}>
+                                <td
                                     className={`w-12 px-1 py-1 text-xs text-center cursor-pointer select-none transition-colors ${uiConfig.showGridLines ? 'border border-gray-200' : 'border-transparent'} ${
-                                        selectedRows.has(rowIndex) 
-                                            ? 'bg-green-500 text-white border-green-600' 
+                                        selectedRows.has(rowIndex)
+                                            ? 'bg-green-500 text-white border-green-600'
                                             : hoveredColumnIndex >= 0
                                                 ? 'bg-blue-100 text-gray-600'
                                                 : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
@@ -1580,7 +1593,7 @@ const DataViewer = ({fileId, onClose}) => {
                     <span>
                         Showing {displayedData.length} of {data.length} rows on this page
                         {searchTerm && ` (search: "${searchTerm}")`}
-                        {Object.keys(columnFilters).some(key => columnFilters[key] && columnFilters[key].length > 0) && 
+                        {Object.keys(columnFilters).some(key => columnFilters[key] && columnFilters[key].length > 0) &&
                             ` (filtered by: ${Object.entries(columnFilters)
                                 .filter(([column, values]) => values && values.length > 0)
                                 .map(([column, values]) => `${column}: ${values.join(', ')}`)

@@ -3,37 +3,21 @@
  * Displays browsable gallery of use cases with search, filtering, and selection
  */
 
-import React, { useState, useEffect } from 'react';
-import {
-    Search,
-    Filter,
-    Clock,
-    User,
-    Tag,
-    ChevronDown,
-    ChevronUp,
-    Loader,
-    AlertCircle,
-    RefreshCw,
-    Plus,
-    X,
-    Edit,
-    Save,
-    FileText
-} from 'lucide-react';
-import { useCaseService } from '../../services/useCaseService';
+import React, {useEffect, useState} from 'react';
+import {AlertCircle, ChevronDown, ChevronUp, Filter, Loader, Plus, RefreshCw, Search, X} from 'lucide-react';
+import {useCaseService} from '../../services/useCaseService';
 import UseCaseCard from './UseCaseCard.jsx';
 import UseCaseDetailModal from './UseCaseDetailModal.jsx';
 import UseCaseEditModal from './UseCaseEditModal.jsx';
 
-const UseCaseGallery = ({ 
-    onUseCaseSelect, 
-    selectedUseCase = null,
-    showCreateButton = true,
-    onCreateNew = null,
-    userPrompt = '',
-    fileSchemas = []
-}) => {
+const UseCaseGallery = ({
+                            onUseCaseSelect,
+                            selectedUseCase = null,
+                            showCreateButton = true,
+                            onCreateNew = null,
+                            userPrompt = '',
+                            fileSchemas = []
+                        }) => {
     // State management
     const [useCases, setUseCases] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -41,7 +25,7 @@ const UseCaseGallery = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [isSearching, setIsSearching] = useState(false);
-    
+
     // Filter states
     const [filters, setFilters] = useState({
         use_case_type: '',
@@ -51,7 +35,7 @@ const UseCaseGallery = ({
     const [showFilters, setShowFilters] = useState(false);
     const [categories, setCategories] = useState([]);
     const [useCaseTypes, setUseCaseTypes] = useState([]);
-    
+
     // Only grid mode supported now
 
     // Load initial data
@@ -73,7 +57,7 @@ const UseCaseGallery = ({
 
             // Load all data in parallel
             const [useCasesRes, categoriesRes, typesRes] = await Promise.all([
-                useCaseService.listUseCases({ limit: 100}),
+                useCaseService.listUseCases({limit: 100}),
                 useCaseService.getCategories(),
                 useCaseService.getUseCaseTypes()
             ]);
@@ -128,7 +112,7 @@ const UseCaseGallery = ({
     const handleSearchChange = (e) => {
         const query = e.target.value;
         setSearchQuery(query);
-        
+
         // Debounce search
         clearTimeout(window.searchTimeout);
         window.searchTimeout = setTimeout(() => {
@@ -163,7 +147,6 @@ const UseCaseGallery = ({
     };
 
     const [localSelectedUseCase, setLocalSelectedUseCase] = useState(null);
-    const [loadingUseCases, setLoadingUseCases] = useState(new Set());
     const [isRefreshing, setIsRefreshing] = useState(false);
 
     const handleUseCaseSelect = (useCase) => {
@@ -173,29 +156,14 @@ const UseCaseGallery = ({
 
     const handleUseCaseApply = (useCase) => {
         console.log('Apply button clicked for use case:', useCase.name);
-        
-        // Set loading state for this specific use case
-        setLoadingUseCases(prev => new Set([...prev, useCase.id]));
-        
+
         // This will actually apply the use case and trigger navigation
         if (onUseCaseSelect) {
             console.log('Calling onUseCaseSelect with use case:', useCase.id);
-            onUseCaseSelect(useCase).finally(() => {
-                // Remove loading state when done (whether success or failure)
-                setLoadingUseCases(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(useCase.id);
-                    return newSet;
-                });
-            });
+            // Call the navigation function - it's now synchronous
+            onUseCaseSelect(useCase);
         } else {
             console.log('No onUseCaseSelect callback provided');
-            // Remove loading state if no callback
-            setLoadingUseCases(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(useCase.id);
-                return newSet;
-            });
         }
     };
 
@@ -227,11 +195,11 @@ const UseCaseGallery = ({
     const handleUseCaseEdit = async (useCase) => {
         console.log('🔧 UseCaseGallery: handleUseCaseEdit called with:', useCase.name);
         console.log('🔧 Use case object:', useCase);
-        
+
         // Set the use case to edit and open edit modal
         setEditingUseCase(useCase);
         setIsEditModalOpen(true);
-        
+
         console.log('🔧 Edit modal state set to open');
     };
 
@@ -244,50 +212,61 @@ const UseCaseGallery = ({
         if (searchQuery) {
             return searchResults;
         }
-        
+
         return useCases;
     };
 
     const renderUseCaseGrid = () => {
         const currentUseCases = getCurrentUseCases();
-        
+
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-max" data-debug="grid-container">
-                {/* Start Fresh Card - Always first */}
-                <div 
+            <div
+                className="grid grid-cols-2 gap-4 auto-rows-max"
+                data-debug="use-case-grid-container"
+            >
+                {/* Register New Use Case Card - Always first */}
+                <div
                     className="relative group bg-white rounded-lg border-2 border-dashed border-blue-300 hover:border-blue-400 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden h-[280px] flex flex-col"
-                    onClick={() => handleUseCaseApply({ id: 'start_fresh', name: 'Start Fresh', description: 'Begin with a blank prompt' })}
+                    onClick={() => handleUseCaseApply({
+                        id: 'start_fresh',
+                        name: 'Register new Use Case',
+                        description: 'Begin with a blank prompt'
+                    })}
                 >
                     {/* Background gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 group-hover:from-blue-100/80 group-hover:to-indigo-100/80 transition-all duration-200" />
-                    
+                    <div
+                        className="absolute inset-0 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 group-hover:from-blue-100/80 group-hover:to-indigo-100/80 transition-all duration-200"/>
+
                     {/* Content */}
                     <div className="relative flex-1 p-4 flex flex-col text-center">
                         {/* Icon */}
                         <div className="flex justify-center mb-3">
-                            <div className="w-12 h-12 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors duration-200">
-                                <Plus className="w-6 h-6 text-blue-600" />
+                            <div
+                                className="w-12 h-12 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors duration-200">
+                                <Plus className="w-6 h-6 text-blue-600"/>
                             </div>
                         </div>
-                        
+
                         {/* Title */}
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Start Fresh</h3>
-                        
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Register New Use-case</h3>
+
                         {/* Description */}
                         <p className="text-xs text-gray-600 mb-3 flex-1">
                             Begin with a blank prompt for custom data processing
                         </p>
-                        
+
                         {/* Badge */}
                         <div className="flex justify-center mb-3">
-                            <span className="inline-flex items-center px-2 py-1 bg-blue-100 group-hover:bg-blue-200 text-blue-700 text-xs font-medium rounded-full transition-colors duration-200">
+                            <span
+                                className="inline-flex items-center px-2 py-1 bg-blue-100 group-hover:bg-blue-200 text-blue-700 text-xs font-medium rounded-full transition-colors duration-200">
                                 New Process
                             </span>
                         </div>
-                        
+
                         {/* Action Button */}
                         <div className="flex justify-center mt-auto">
-                            <button className="px-4 py-2 bg-blue-600 group-hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm">
+                            <button
+                                className="px-4 py-2 bg-blue-600 group-hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm">
                                 Get Started
                             </button>
                         </div>
@@ -305,20 +284,21 @@ const UseCaseGallery = ({
                         onDelete={handleUseCaseDelete}
                         onView={handleUseCaseView}
                         onApply={handleUseCaseApply}
-                        isLoading={loadingUseCases.has(useCase.id)}
+                        isLoading={false}
                         loadingMessage="Applying..."
                     />
                 ))}
-                
+
                 {/* No use cases message - only show if no saved use cases */}
                 {currentUseCases.length === 0 && (
                     <div className="col-span-full text-center py-12">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Search className="w-8 h-8 text-gray-400" />
+                        <div
+                            className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Search className="w-8 h-8 text-gray-400"/>
                         </div>
                         <p className="text-gray-500 text-lg mb-2">No saved use cases found</p>
                         <p className="text-gray-400 text-sm">
-                            {searchQuery ? 'Try adjusting your search terms' : 'Create your first use case by using "Start Fresh"'}
+                            {searchQuery ? 'Try adjusting your search terms' : 'Create your first use case by using "Register new usecase"'}
                         </p>
                     </div>
                 )}
@@ -328,7 +308,9 @@ const UseCaseGallery = ({
 
     if (loading && useCases.length === 0) {
         return (
-            <div className="space-y-6 w-full max-w-full overflow-hidden" style={{maxWidth: '100%', width: '100%', minHeight: 'calc(100vh - 200px)'}} data-debug="use-case-gallery">
+            <div className="space-y-6 w-full max-w-full overflow-hidden"
+                 style={{maxWidth: '100%', width: '100%', minHeight: 'calc(100vh - 200px)'}}
+                 data-debug="use-case-gallery">
                 {/* Header Skeleton - Exactly matching real header structure */}
                 <div className="flex items-center justify-between w-full max-w-full" style={{maxWidth: '100%'}}>
                     <div>
@@ -359,9 +341,10 @@ const UseCaseGallery = ({
 
                 {/* Content Skeleton - Grid structure matching real content */}
                 <div className="w-full max-w-full overflow-hidden">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-max">
-                        {/* Start Fresh Skeleton - matching exact dimensions */}
-                        <div className="bg-white rounded-lg border-2 border-dashed border-gray-200 h-[280px] flex flex-col animate-pulse">
+                    <div className="grid grid-cols-2 gap-4 auto-rows-max">
+                        {/* Register New Use Case Skeleton - matching exact dimensions */}
+                        <div
+                            className="bg-white rounded-lg border-2 border-dashed border-gray-200 h-[280px] flex flex-col animate-pulse">
                             <div className="relative flex-1 p-4 flex flex-col text-center">
                                 <div className="flex justify-center mb-3">
                                     <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
@@ -376,10 +359,11 @@ const UseCaseGallery = ({
                                 </div>
                             </div>
                         </div>
-                        
+
                         {/* Use Case Skeletons - matching exact card dimensions */}
                         {[...Array(5)].map((_, i) => (
-                            <div key={i} className="bg-white border border-gray-200 rounded-lg h-[280px] flex flex-col animate-pulse">
+                            <div key={i}
+                                 className="bg-white border border-gray-200 rounded-lg h-[280px] flex flex-col animate-pulse">
                                 <div className="p-4 flex-1 flex flex-col">
                                     <div className="h-6 w-3/4 bg-gray-200 rounded mb-4"></div>
                                     <div className="space-y-2 mb-4 flex-1">
@@ -399,7 +383,7 @@ const UseCaseGallery = ({
                 {/* Loading indicator */}
                 <div className="flex items-center justify-center py-8">
                     <div className="text-center">
-                        <Loader className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+                        <Loader className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4"/>
                         <p className="text-gray-500">Loading use cases...</p>
                     </div>
                 </div>
@@ -411,13 +395,13 @@ const UseCaseGallery = ({
         return (
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
-                    <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+                    <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4"/>
                     <p className="text-red-600 mb-4">{error}</p>
                     <button
                         onClick={loadInitialData}
                         className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 mx-auto"
                     >
-                        <RefreshCw size={16} />
+                        <RefreshCw size={16}/>
                         <span>Retry</span>
                     </button>
                 </div>
@@ -426,7 +410,8 @@ const UseCaseGallery = ({
     }
 
     return (
-        <div className="space-y-6 w-full max-w-full overflow-hidden" style={{maxWidth: '100%', width: '100%'}} data-debug="use-case-gallery">
+        <div className="space-y-6 w-full max-w-full overflow-hidden" style={{maxWidth: '100%', width: '100%'}}
+             data-debug="use-case-gallery">
             {/* Header */}
             <div className="flex items-center justify-between w-full max-w-full" style={{maxWidth: '100%'}}>
                 <div>
@@ -439,7 +424,7 @@ const UseCaseGallery = ({
             <div className="flex items-center justify-between space-x-4 w-full max-w-full overflow-hidden">
                 {/* Search */}
                 <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20}/>
                     <input
                         type="text"
                         placeholder="Search use cases..."
@@ -449,7 +434,7 @@ const UseCaseGallery = ({
                     />
                     {isSearching && (
                         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <Loader className="w-4 h-4 animate-spin text-gray-400" />
+                            <Loader className="w-4 h-4 animate-spin text-gray-400"/>
                         </div>
                     )}
                 </div>
@@ -463,19 +448,19 @@ const UseCaseGallery = ({
                         className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Refresh use cases"
                     >
-                        <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+                        <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""}/>
                         <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
                     </button>
 
-                    
+
                     {/* Filters Toggle */}
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                     >
-                        <Filter size={16} />
+                        <Filter size={16}/>
                         <span>Filters</span>
-                        {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        {showFilters ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
                     </button>
                 </div>
             </div>
@@ -541,7 +526,7 @@ const UseCaseGallery = ({
                             onClick={clearFilters}
                             className="flex items-center space-x-1 px-3 py-1 text-sm text-gray-600 hover:text-gray-900"
                         >
-                            <X size={14} />
+                            <X size={14}/>
                             <span>Clear Filters</span>
                         </button>
                     </div>

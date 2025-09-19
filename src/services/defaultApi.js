@@ -1,6 +1,6 @@
 // src/services/api.js - Enhanced with delete access control and all existing features
 import axios from 'axios';
-import { ENV_CONFIG } from '../config/environment.js';
+import {ENV_CONFIG} from '../config/environment.js';
 
 const API_BASE_URL = ENV_CONFIG.API_BASE_URL;
 
@@ -102,21 +102,39 @@ export const apiService = {
 
     // Enhanced upload with sheet and custom name
     uploadFileWithOptions: async (file, sheetName = '', customName = '') => {
+        console.log('🚀 [apiService] uploadFileWithOptions called with:', {
+            fileName: file.name,
+            fileSize: file.size,
+            sheetName,
+            customName
+        });
+        
         const formData = new FormData();
         formData.append('file', file);
         if (sheetName) {
+            console.log('📊 [apiService] Adding sheet_name to FormData:', sheetName);
             formData.append('sheet_name', sheetName);
         }
         if (customName) {
+            console.log('🏷️ [apiService] Adding custom_name to FormData:', customName);
             formData.append('custom_name', customName);
         }
 
-        const response = await defaultApi.post('files/upload', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-            },
-        });
-        return response.data;
+        console.log('📤 [apiService] Making POST request to files/upload...');
+        try {
+            const response = await defaultApi.post('files/upload', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            console.log('✅ [apiService] Upload request successful:', response.status);
+            console.log('📦 [apiService] Response data:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('❌ [apiService] Upload request failed:', error);
+            console.error('❌ [apiService] Error response:', error.response?.data);
+            throw error;
+        }
     },
 
     // ===========================================
@@ -124,10 +142,10 @@ export const apiService = {
     // ===========================================
     getFileData: async (fileId, page = 1, pageSize = 1000, searchTerm = '', columnFilters = {}) => {
         let url = `/files/${fileId}/data?page=${page}&page_size=${pageSize}`;
-        
+
         // Handle multiple column filters
         const activeFilters = Object.entries(columnFilters).filter(([column, values]) => values && values.length > 0);
-        
+
         if (activeFilters.length > 0) {
             // Multiple column filters
             activeFilters.forEach(([column, values]) => {
@@ -137,7 +155,7 @@ export const apiService = {
             // Wildcard search (from search box)
             url += `&search=${encodeURIComponent(searchTerm.trim())}`;
         }
-        
+
         const response = await defaultApi.get(url);
         return response.data;
     },
@@ -154,8 +172,8 @@ export const apiService = {
     },
 
     getColumnUniqueValues: async (fileId, columnName, limit = 1000, filters = {}) => {
-        const params = new URLSearchParams({ limit: limit.toString() });
-        
+        const params = new URLSearchParams({limit: limit.toString()});
+
         // Add filter parameters for cascading dropdowns
         Object.entries(filters).forEach(([filterColumn, filterValues]) => {
             if (filterValues && filterValues.length > 0) {
@@ -163,7 +181,7 @@ export const apiService = {
                 params.append(`filter_${filterColumn}`, filterValues.join(','));
             }
         });
-        
+
         const response = await defaultApi.get(`/files/${fileId}/columns/${encodeURIComponent(columnName)}/unique-values?${params}`);
         return response.data;
     },

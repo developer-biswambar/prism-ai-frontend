@@ -2,14 +2,14 @@
  * Analytics Service - API client for process analytics
  */
 
-import { API_ENDPOINTS } from '../config/environment.js';
+import {API_ENDPOINTS} from '../config/environment.js';
 
 class AnalyticsService {
     constructor() {
         // Cache for analytics data
         this.cache = new Map();
         this.cacheTimeout = 60000; // 1 minute cache
-        
+
         // Throttling for API calls
         this.lastFetchTime = new Map();
         this.throttleTime = 5000; // 5 seconds minimum between calls
@@ -23,7 +23,7 @@ class AnalyticsService {
     _isCacheValid(key) {
         const cached = this.cache.get(key);
         if (!cached) return false;
-        
+
         const now = Date.now();
         return (now - cached.timestamp) < this.cacheTimeout;
     }
@@ -36,7 +36,7 @@ class AnalyticsService {
     _shouldThrottle(key) {
         const lastFetch = this.lastFetchTime.get(key);
         if (!lastFetch) return false;
-        
+
         const now = Date.now();
         return (now - lastFetch) < this.throttleTime;
     }
@@ -49,7 +49,7 @@ class AnalyticsService {
      */
     async getAnalyticsSummary(userId = 'default_user', forceRefresh = false) {
         const cacheKey = `summary_${userId}`;
-        
+
         // Return cached data if valid and not forcing refresh
         if (!forceRefresh && this._isCacheValid(cacheKey)) {
             console.log('📊 Using cached analytics summary');
@@ -66,7 +66,7 @@ class AnalyticsService {
         try {
             console.log('🔄 Fetching fresh analytics summary');
             this.lastFetchTime.set(cacheKey, Date.now());
-            
+
             const response = await fetch(`${API_ENDPOINTS.ANALYTICS_SUMMARY}?user_id=${userId}`, {
                 method: 'GET',
                 headers: {
@@ -79,7 +79,7 @@ class AnalyticsService {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.message || 'Failed to fetch analytics summary');
             }
@@ -111,9 +111,9 @@ class AnalyticsService {
      * @param {string} options.lastEvaluatedKey - Pagination key
      * @returns {Promise<Object>} Process list with pagination info
      */
-    async getUserProcesses({ userId = 'default_user', limit = 50, lastEvaluatedKey = null, forceRefresh = false } = {}) {
+    async getUserProcesses({userId = 'default_user', limit = 50, lastEvaluatedKey = null, forceRefresh = false} = {}) {
         const cacheKey = `processes_${userId}_${limit}_${lastEvaluatedKey || 'first'}`;
-        
+
         // Return cached data if valid and not forcing refresh
         if (!forceRefresh && this._isCacheValid(cacheKey)) {
             console.log('📋 Using cached user processes');
@@ -130,7 +130,7 @@ class AnalyticsService {
         try {
             console.log('🔄 Fetching fresh user processes');
             this.lastFetchTime.set(cacheKey, Date.now());
-            
+
             const params = new URLSearchParams({
                 user_id: userId,
                 limit: limit.toString()
@@ -152,7 +152,7 @@ class AnalyticsService {
             }
 
             const data = await response.json();
-            
+
             if (!data.success) {
                 throw new Error(data.message || 'Failed to fetch user processes');
             }
@@ -184,7 +184,7 @@ class AnalyticsService {
      */
     async getRecentProcesses(limit = 10, userId = 'default_user') {
         try {
-            const data = await this.getUserProcesses({ userId, limit });
+            const data = await this.getUserProcesses({userId, limit});
             return data.processes || [];
         } catch (error) {
             console.error('Error fetching recent processes:', error);
@@ -290,12 +290,12 @@ class AnalyticsService {
      * @returns {Object} Calculated metrics
      */
     calculateMetrics(summary) {
-        const avgTokensPerProcess = summary.total_processes > 0 
-            ? summary.total_tokens_used / summary.total_processes 
+        const avgTokensPerProcess = summary.total_processes > 0
+            ? summary.total_tokens_used / summary.total_processes
             : 0;
-        
-        const dataEfficiency = summary.total_input_rows > 0 
-            ? (summary.total_output_rows / summary.total_input_rows) * 100 
+
+        const dataEfficiency = summary.total_input_rows > 0
+            ? (summary.total_output_rows / summary.total_input_rows) * 100
             : 0;
 
         return {

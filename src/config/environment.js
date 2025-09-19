@@ -19,22 +19,22 @@ const getEnvVar = (key, defaultValue) => {
 export const ENV_CONFIG = {
     // API Configuration
     API_BASE_URL: getEnvVar('REACT_APP_API_URL', 'http://localhost:8000'),
-    
+
     // Application Environment
     NODE_ENV: getEnvVar('NODE_ENV', 'development'),
-    
+
     // Feature Flags
     DEBUG_MODE: getEnvVar('REACT_APP_DEBUG', 'false') === 'true',
-    
+
     // API Timeouts (in milliseconds)
     API_TIMEOUT: parseInt(getEnvVar('REACT_APP_API_TIMEOUT', '30000')),
-    
+
     // File Upload Settings
     MAX_FILE_SIZE: parseInt(getEnvVar('REACT_APP_MAX_FILE_SIZE', '100')), // MB
-    
+
     // Pagination Settings
     DEFAULT_PAGE_SIZE: parseInt(getEnvVar('REACT_APP_DEFAULT_PAGE_SIZE', '1000')),
-    
+
     // UI Settings
     ANIMATION_DURATION: parseInt(getEnvVar('REACT_APP_ANIMATION_DURATION', '400')), // seconds
 };
@@ -45,53 +45,59 @@ export const ENV_CONFIG = {
 export const API_ENDPOINTS = {
     // Base API URL
     BASE: ENV_CONFIG.API_BASE_URL,
-    
+
     // Health Check
     HEALTH: `${ENV_CONFIG.API_BASE_URL}/health`,
-    
+
     // File Management
     FILES: `${ENV_CONFIG.API_BASE_URL}/files`,
     UPLOAD: `${ENV_CONFIG.API_BASE_URL}/upload`,
-    
+
     // Reconciliation
     RECONCILIATION: `${ENV_CONFIG.API_BASE_URL}/reconciliation`,
-    
+
     // Transformation
     TRANSFORMATION: `${ENV_CONFIG.API_BASE_URL}/transformation`,
-    
+
     // Miscellaneous Data Processing
     MISCELLANEOUS: `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous`,
-    
+
     // Delta Generation
     DELTA: `${ENV_CONFIG.API_BASE_URL}/delta`,
-    
+
     // AI Assistance
     AI_ASSISTANCE: `${ENV_CONFIG.API_BASE_URL}/ai-assistance`,
-    
+
     // Viewer
     VIEWER: `${ENV_CONFIG.API_BASE_URL}/viewer`,
-    
+
     // Debug and Performance
     DEBUG: `${ENV_CONFIG.API_BASE_URL}/debug`,
     PERFORMANCE: `${ENV_CONFIG.API_BASE_URL}/performance`,
-    
+
     // Save Results
     SAVE_RESULTS: `${ENV_CONFIG.API_BASE_URL}/save-results`,
-    
+
     // Recent Results
     RECENT_RESULTS: `${ENV_CONFIG.API_BASE_URL}/recent-results`,
-    
+
     // File Generator
     FILE_GENERATOR: `${ENV_CONFIG.API_BASE_URL}/file-generator`,
-    
+
     // Use Cases  
     USE_CASES: `${ENV_CONFIG.API_BASE_URL}/use-cases`,
     SAVED_USE_CASES: `${ENV_CONFIG.API_BASE_URL}/saved-use-cases`,
-    
+
     // Analytics
     ANALYTICS: `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous/analytics`,
     ANALYTICS_SUMMARY: `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous/analytics/summary`,
     ANALYTICS_PROCESSES: `${ENV_CONFIG.API_BASE_URL}/api/miscellaneous/analytics/processes`,
+
+    // Authentication
+    AUTH_LOGIN: `${ENV_CONFIG.API_BASE_URL}/auth/login`,
+    AUTH_LOGOUT: `${ENV_CONFIG.API_BASE_URL}/auth/logout`,
+    AUTH_USER: `${ENV_CONFIG.API_BASE_URL}/auth/user`,
+    AUTH_CALLBACK: `${ENV_CONFIG.API_BASE_URL}/auth/callback`,
 };
 
 /**

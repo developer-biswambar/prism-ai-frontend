@@ -38,19 +38,25 @@ class FileManagementService {
 
     async getFiles() {
         try {
+            console.log('🔄 [fileManagementService] getFiles called');
             // if (this.cache.has('files')) {
             //     return this.cache.get('files');
             // }
 
+            console.log('🔄 [fileManagementService] Calling apiService.getFiles...');
             const data = await apiService.getFiles();
+            console.log('📁 [fileManagementService] apiService.getFiles response:', data);
+            
             if (data.success) {
                 const result = {success: true, files: data.data.files || []};
+                console.log('✅ [fileManagementService] Parsed', result.files.length, 'files from API response');
                 this.cache.set('files', result);
                 return result;
             }
+            console.log('❌ [fileManagementService] API response not successful:', data.message);
             return {success: false, files: [], error: data.message};
         } catch (error) {
-            console.error('Failed to load files:', error);
+            console.error('❌ [fileManagementService] Failed to load files:', error);
             return {success: false, files: [], error: error.message};
         }
     }
@@ -90,11 +96,15 @@ class FileManagementService {
 
     // Cache management
     invalidateCache(key) {
+        console.log('🗑️ [fileManagementService] invalidateCache called with key:', key);
         if (key) {
+            console.log('🗑️ [fileManagementService] Deleting cache entry for key:', key);
             this.cache.delete(key);
         } else {
+            console.log('🗑️ [fileManagementService] Clearing all cache');
             this.cache.clear();
         }
+        console.log('🗑️ [fileManagementService] Cache size after invalidation:', this.cache.size);
     }
 
     // File validation
@@ -119,7 +129,7 @@ class FileManagementService {
         if (!template) return [];
 
         const fileRequirements = [];
-        
+
         // For miscellaneous/data-analysis, allow up to maxFiles selection
         if (template.category === 'miscellaneous' || template.category === 'data-analysis') {
             const maxFiles = template.maxFiles || 5;
@@ -142,7 +152,7 @@ class FileManagementService {
                 });
             }
         }
-        
+
         return fileRequirements;
     }
 }

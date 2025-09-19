@@ -1,16 +1,16 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import {Minus, TrendingDown, TrendingUp} from 'lucide-react';
 
-const MetricCard = ({ 
-    title, 
-    value, 
-    subtitle, 
-    icon: Icon, 
-    trend, 
-    trendValue, 
-    color = 'blue',
-    size = 'default' 
-}) => {
+const MetricCard = ({
+                        title,
+                        value,
+                        subtitle,
+                        icon: Icon,
+                        trend,
+                        trendValue,
+                        color = 'blue',
+                        size = 'default'
+                    }) => {
     const colorClasses = {
         blue: 'bg-blue-50 text-blue-600 border-blue-100',
         green: 'bg-green-50 text-green-600 border-green-100',
@@ -39,9 +39,9 @@ const MetricCard = ({
     };
 
     const getTrendIcon = () => {
-        if (trend === 'up') return <TrendingUp className="w-3 h-3" />;
-        if (trend === 'down') return <TrendingDown className="w-3 h-3" />;
-        return <Minus className="w-3 h-3" />;
+        if (trend === 'up') return <TrendingUp className="w-3 h-3"/>;
+        if (trend === 'down') return <TrendingDown className="w-3 h-3"/>;
+        return <Minus className="w-3 h-3"/>;
     };
 
     const getTrendColor = () => {
@@ -81,7 +81,8 @@ const MetricCard = ({
     };
 
     return (
-        <div className={`${colorClasses[color]} border rounded-lg ${sizeClasses[size]} transition-all duration-200 hover:shadow-sm`}>
+        <div
+            className={`${colorClasses[color]} border rounded-lg ${sizeClasses[size]} transition-all duration-200 hover:shadow-sm`}>
             <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                     <p className={`${textSizeClasses[size].title} font-medium truncate`}>
@@ -107,7 +108,7 @@ const MetricCard = ({
                     )}
                 </div>
                 {Icon && (
-                    <Icon className={`${iconColorClasses[color]} ${iconSizeClasses[size]} flex-shrink-0 ml-2`} />
+                    <Icon className={`${iconColorClasses[color]} ${iconSizeClasses[size]} flex-shrink-0 ml-2`}/>
                 )}
             </div>
         </div>

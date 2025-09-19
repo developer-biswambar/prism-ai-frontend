@@ -3,31 +3,31 @@
  * Allows users to manually map missing columns from SQL errors to available columns in their data
  */
 
-import React, { useState, useEffect } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
-    X,
-    Settings,
-    Database,
+    AlertTriangle,
     ArrowRight,
     Check,
-    XCircle,
     CheckCircle,
-    AlertTriangle,
+    Database,
     RefreshCw,
-    Search
+    Search,
+    Settings,
+    X,
+    XCircle
 } from 'lucide-react';
 
-const ColumnMappingModal = ({ 
-    isOpen, 
-    onClose, 
-    onApplyMapping,
-    onReturnToError,
-    errorData,
-    availableColumns = [],
-    missingColumns = [],
-    generatedSQL = '',
-    processing = false
-}) => {
+const ColumnMappingModal = ({
+                                isOpen,
+                                onClose,
+                                onApplyMapping,
+                                onReturnToError,
+                                errorData,
+                                availableColumns = [],
+                                missingColumns = [],
+                                generatedSQL = '',
+                                processing = false
+                            }) => {
     const [columnMapping, setColumnMapping] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredColumns, setFilteredColumns] = useState(availableColumns);
@@ -45,7 +45,7 @@ const ColumnMappingModal = ({
 
     useEffect(() => {
         // Filter available columns based on search term
-        const filtered = availableColumns.filter(col => 
+        const filtered = availableColumns.filter(col =>
             col.toLowerCase().includes(searchTerm.toLowerCase())
         );
         setFilteredColumns(filtered);
@@ -68,7 +68,7 @@ const ColumnMappingModal = ({
                 validMapping[missing] = selected;
             }
         });
-        
+
         onApplyMapping(validMapping);
     };
 
@@ -93,7 +93,7 @@ const ColumnMappingModal = ({
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <div className="flex items-center space-x-3">
-                        <Settings className="text-purple-500" size={24} />
+                        <Settings className="text-purple-500" size={24}/>
                         <div>
                             <h2 className="text-xl font-semibold text-gray-900">
                                 Column Mapping Required
@@ -108,7 +108,7 @@ const ColumnMappingModal = ({
                         disabled={processing}
                         className="text-gray-400 hover:text-gray-600 p-1"
                     >
-                        <X size={24} />
+                        <X size={24}/>
                     </button>
                 </div>
 
@@ -119,7 +119,7 @@ const ColumnMappingModal = ({
                         <div className="lg:col-span-2">
                             <div className="mb-4">
                                 <h3 className="font-medium text-gray-900 mb-2 flex items-center space-x-2">
-                                    <XCircle className="text-red-500" size={16} />
+                                    <XCircle className="text-red-500" size={16}/>
                                     <span>Required Columns ({missingColumns.length})</span>
                                 </h3>
                                 <p className="text-sm text-gray-600">
@@ -132,20 +132,22 @@ const ColumnMappingModal = ({
                                     <div key={missingCol} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                                         <div className="flex items-center justify-between mb-3">
                                             <div className="flex items-center space-x-2">
-                                                <span className="bg-red-100 text-red-800 text-sm px-3 py-1 rounded font-medium">
+                                                <span
+                                                    className="bg-red-100 text-red-800 text-sm px-3 py-1 rounded font-medium">
                                                     {missingCol}
                                                 </span>
                                                 {columnMapping[missingCol] && (
                                                     <>
-                                                        <ArrowRight className="text-gray-400" size={16} />
-                                                        <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded font-medium">
+                                                        <ArrowRight className="text-gray-400" size={16}/>
+                                                        <span
+                                                            className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded font-medium">
                                                             {columnMapping[missingCol]}
                                                         </span>
                                                     </>
                                                 )}
                                             </div>
                                             {columnMapping[missingCol] && (
-                                                <Check className="text-green-500" size={16} />
+                                                <Check className="text-green-500" size={16}/>
                                             )}
                                         </div>
 
@@ -175,7 +177,7 @@ const ColumnMappingModal = ({
                         <div>
                             <div className="mb-4">
                                 <h3 className="font-medium text-gray-900 mb-2 flex items-center space-x-2">
-                                    <CheckCircle className="text-green-500" size={16} />
+                                    <CheckCircle className="text-green-500" size={16}/>
                                     <span>Your Data Columns</span>
                                 </h3>
                                 <p className="text-sm text-gray-600">
@@ -185,7 +187,8 @@ const ColumnMappingModal = ({
 
                             {/* Search */}
                             <div className="relative mb-4">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                                        size={16}/>
                                 <input
                                     type="text"
                                     placeholder="Search columns..."
@@ -207,7 +210,7 @@ const ColumnMappingModal = ({
                                                 }`}>
                                                     <div className="flex items-center justify-between">
                                                         <span>{col}</span>
-                                                        {isUsed && <Check className="text-green-500" size={14} />}
+                                                        {isUsed && <Check className="text-green-500" size={14}/>}
                                                     </div>
                                                 </div>
                                             );
@@ -232,18 +235,18 @@ const ColumnMappingModal = ({
                             <div className="flex items-center space-x-4">
                                 {getMappedCount() === missingColumns.length ? (
                                     <span className="text-green-600 flex items-center space-x-1">
-                                        <CheckCircle size={16} />
+                                        <CheckCircle size={16}/>
                                         <span>All columns mapped</span>
                                     </span>
                                 ) : (
                                     <span className="text-orange-600 flex items-center space-x-1">
-                                        <AlertTriangle size={16} />
+                                        <AlertTriangle size={16}/>
                                         <span>{getUnmappedColumns().length} remaining</span>
                                     </span>
                                 )}
                             </div>
                         </div>
-                        
+
                         {getUnmappedColumns().length > 0 && (
                             <div className="mt-2 text-xs text-blue-700">
                                 <span>Unmapped: </span>
@@ -273,12 +276,12 @@ const ColumnMappingModal = ({
                         >
                             {processing ? (
                                 <>
-                                    <RefreshCw className="animate-spin" size={16} />
+                                    <RefreshCw className="animate-spin" size={16}/>
                                     <span>Applying...</span>
                                 </>
                             ) : (
                                 <>
-                                    <Database size={16} />
+                                    <Database size={16}/>
                                     <span>Apply Mapping ({getMappedCount()})</span>
                                 </>
                             )}

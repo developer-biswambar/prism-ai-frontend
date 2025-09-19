@@ -3,41 +3,41 @@
  * Displays individual use case information in list format
  */
 
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
-    Star,
-    Users,
-    Clock,
-    Tag,
     CheckCircle,
+    Clock,
+    Copy,
+    ExternalLink,
+    Eye,
     MoreVertical,
     Settings,
-    Copy,
+    Star,
+    Tag,
     Trash2,
-    Eye,
-    ExternalLink
+    Users
 } from 'lucide-react';
-import { useCaseService } from '../../services/useCaseService';
+import {useCaseService} from '../../services/useCaseService';
 
-const UseCaseListItem = ({ 
-    useCase, 
-    isSelected = false, 
-    onSelect, 
-    onRate = null,
-    onEdit = null,
-    onDelete = null,
-    onDuplicate = null,
-    onView = null,
-    onApply = null,
-    showActions = false 
-}) => {
+const UseCaseListItem = ({
+                             useCase,
+                             isSelected = false,
+                             onSelect,
+                             onRate = null,
+                             onEdit = null,
+                             onDelete = null,
+                             onDuplicate = null,
+                             onView = null,
+                             onApply = null,
+                             showActions = false
+                         }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [rating, setRating] = useState(0);
     const [isRating, setIsRating] = useState(false);
 
     const handleRatingClick = async (newRating) => {
         if (!onRate) return;
-        
+
         try {
             setIsRating(true);
             await onRate(newRating);
@@ -86,7 +86,7 @@ const UseCaseListItem = ({
                         i <= Math.round(rating) ? 'text-yellow-500' : 'text-gray-300'
                     } ${isRating ? 'opacity-50' : ''}`}
                 >
-                    <Star size={12} fill="currentColor" />
+                    <Star size={12} fill="currentColor"/>
                 </button>
             );
         }
@@ -103,10 +103,10 @@ const UseCaseListItem = ({
     };
 
     return (
-        <div 
+        <div
             className={`group relative bg-white rounded-lg border p-4 transition-all duration-200 hover:shadow-md cursor-pointer w-full max-w-full overflow-hidden ${
-                isSelected 
-                    ? 'border-blue-500 shadow-md ring-2 ring-blue-100' 
+                isSelected
+                    ? 'border-blue-500 shadow-md ring-2 ring-blue-100'
                     : 'border-gray-200 hover:border-gray-300'
             }`}
             onClick={onSelect}
@@ -114,35 +114,37 @@ const UseCaseListItem = ({
             <div className="flex items-center space-x-4">
                 {/* Icon & Basic Info */}
                 <div className="flex items-center space-x-3 flex-1 min-w-0">
-                    <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
+                    <div
+                        className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
                         {useCaseService.getUseCaseTypeIcon(useCase.use_case_type)}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                             <h3 className="font-semibold text-gray-900 text-sm truncate">
                                 {useCase.name}
                             </h3>
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                                getUseCaseTypeColor(useCase.use_case_type)
-                            }`}>
+                            <span
+                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
+                                    getUseCaseTypeColor(useCase.use_case_type)
+                                }`}>
                                 {useCaseService.formatUseCaseTypeDisplay(useCase.use_case_type)}
                             </span>
                         </div>
-                        
+
                         <p className="text-sm text-gray-600 truncate">
                             {useCase.description}
                         </p>
-                        
+
                         <div className="flex items-center space-x-3 mt-2">
                             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                                 {useCase.category}
                             </span>
-                            
+
                             {/* Tags */}
                             {useCase.tags && useCase.tags.length > 0 && (
                                 <div className="flex items-center space-x-1">
-                                    <Tag size={10} className="text-gray-400" />
+                                    <Tag size={10} className="text-gray-400"/>
                                     <span className="text-xs text-gray-500">
                                         {useCase.tags.slice(0, 2).join(', ')}
                                         {useCase.tags.length > 2 && ` +${useCase.tags.length - 2}`}
@@ -150,14 +152,14 @@ const UseCaseListItem = ({
                                 </div>
                             )}
                         </div>
-                        
+
                         {/* File Roles Display */}
                         {useCase?.use_case_metadata?.file_requirements?.file_roles && (
                             <div className="mt-2">
                                 <div className="text-xs text-gray-500 mb-1">Required Files:</div>
                                 <div className="flex flex-wrap gap-1">
                                     {Object.entries(useCase.use_case_metadata.file_requirements.file_roles).map(([role, label]) => (
-                                        <span 
+                                        <span
                                             key={role}
                                             className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200"
                                         >
@@ -182,7 +184,7 @@ const UseCaseListItem = ({
                                 isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                             }`}
                         >
-                            <MoreVertical size={16} />
+                            <MoreVertical size={16}/>
                         </button>
                         {showMenu && (
                             <div className="absolute right-0 top-6 w-48 bg-white rounded-md shadow-lg z-20 border">
@@ -196,7 +198,7 @@ const UseCaseListItem = ({
                                             }}
                                             className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                         >
-                                            <Settings size={14} />
+                                            <Settings size={14}/>
                                             <span>Edit</span>
                                         </button>
                                     )}
@@ -209,11 +211,11 @@ const UseCaseListItem = ({
                                             }}
                                             className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                         >
-                                            <Copy size={14} />
+                                            <Copy size={14}/>
                                             <span>Duplicate</span>
                                         </button>
                                     )}
-                                    {(onEdit || onDuplicate) && onDelete && <hr className="my-1" />}
+                                    {(onEdit || onDuplicate) && onDelete && <hr className="my-1"/>}
                                     {onDelete && (
                                         <button
                                             onClick={(e) => {
@@ -223,7 +225,7 @@ const UseCaseListItem = ({
                                             }}
                                             className="flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
                                         >
-                                            <Trash2 size={14} />
+                                            <Trash2 size={14}/>
                                             <span>Delete</span>
                                         </button>
                                     )}
@@ -236,16 +238,16 @@ const UseCaseListItem = ({
                 {/* Stats */}
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
                     <div className="flex items-center space-x-1">
-                        <Users size={14} />
+                        <Users size={14}/>
                         <span>{useCase.usage_count || 0}</span>
                     </div>
-                    
+
                     <div className="flex items-center space-x-1">
                         {renderStars(useCase.rating || 0, useCase.rating_count || 0)}
                     </div>
-                    
+
                     <div className="flex items-center space-x-1">
-                        <Clock size={12} />
+                        <Clock size={12}/>
                         <span className="text-xs">{formatDate(useCase.updated_at)}</span>
                     </div>
                 </div>
@@ -262,12 +264,12 @@ const UseCaseListItem = ({
                             className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 border border-green-200 transition-colors"
                         >
                             <div className="flex items-center space-x-1">
-                                <ExternalLink size={10} />
+                                <ExternalLink size={10}/>
                                 <span>Apply</span>
                             </div>
                         </button>
                     )}
-                    
+
                     {/* View Button (when selected) */}
                     {isSelected && onView && (
                         <button
@@ -278,12 +280,12 @@ const UseCaseListItem = ({
                             className="px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200 transition-colors"
                         >
                             <div className="flex items-center space-x-1">
-                                <Eye size={10} />
+                                <Eye size={10}/>
                                 <span>View</span>
                             </div>
                         </button>
                     )}
-                    
+
                 </div>
             </div>
 
@@ -296,8 +298,9 @@ const UseCaseListItem = ({
 
             {/* Selection Indicator */}
             {isSelected && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                    <CheckCircle size={16} className="text-white" />
+                <div
+                    className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                    <CheckCircle size={16} className="text-white"/>
                 </div>
             )}
         </div>

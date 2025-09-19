@@ -1,491 +1,125 @@
-// src/App.jsx - Updated with Transformation Processing Support
+// Clean App.jsx - Simple 3-panel layout
 import React from 'react';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
-import {messageService} from './services/messageService';
-import {
-    useDocumentTitle,
-    useFileManagement,
-    useFileSelection,
-    useMessageManagement,
-    usePanelResize,
-    useProcessManagement,
-    useTemplateManagement
-} from './hooks/useAppState';
+import {useAnalyticsManagement, useDocumentTitle, useFileManagement, usePanelResize} from './hooks/useAppState';
 import LeftSidebar from './components/core/LeftSideBar.jsx';
-import ProcessAnalyticsRightSideBar from './components/core/ProcessAnalyticsRightSideBar.jsx';
+import RightSidebar from './components/core/RightSidebar.jsx';
 import AppHeader from './components/core/AppHeader.jsx';
 import UseCaseGallery from './components/usecases/UseCaseGallery.jsx';
 import MiscellaneousFlow from './components/miscellaneous/MiscellaneousFlow.jsx';
 import ViewerPage from './pages/ViewerPage';
 import FileLibraryPage from './pages/FileLibraryPage';
-import RecentResultsPage from './pages/RecentResultsPage';
 
 const MainApp = () => {
-    // All state management is now handled by custom hooks
+    console.log('🔥 MainApp component render start');
+    // Hooks
+    console.log('🔥 About to call useFileManagement');
     const {files, uploadProgress, loadFiles, uploadFile} = useFileManagement();
-    const {templates} = useTemplateManagement();
+    console.log('🔥 useFileManagement completed');
+    // Mock values instead of complex hooks
+    const isProcessing = false;
+    const activeProcess = null;
+
+    const initializeChat = () => {
+    };
+
+    const selectedFiles = {};
+    const setSelectedFiles = () => {
+    };
+    const {leftPanelWidth, rightPanelWidth} = usePanelResize();
+    console.log('🔥 usePanelResize completed');
+
+    console.log('🔥 About to call useAnalyticsManagement');
     const {
-        recentResults,
-        isProcessing,
-        activeProcess,
-        startProcess,
-        getDetailedResults,
-        downloadResults,
-        loadProcessedFiles,
-        addProcessingResult,
-        updateProcessingResult
-    } = useProcessManagement();
-    const {
-        messages,
-        isTyping,
-        typingMessage,
-        addMessage,
-        sendMessage,
-        initializeChat
-    } = useMessageManagement();
-    const {
-        selectedFiles,
-        setSelectedFiles,
-        selectedTemplate,
-        requiredFiles,
-        currentInput,
-        setCurrentInput,
-        handleTemplateSelect,
-        areAllFilesSelected
-    } = useFileSelection();
-    const {
-        leftPanelWidth,
-        rightPanelWidth,
-        isResizing,
-        setIsResizing,
-        isInitialized
-    } = usePanelResize();
-    
-    // Debug logging for panel resize hook
-    React.useEffect(() => {
-        console.log('🏠 App.jsx: usePanelResize hook state changed:', {
-            leftPanelWidth,
-            rightPanelWidth,
-            isResizing,
-            isInitialized,
-            timestamp: new Date().toISOString()
-        });
-    }, [leftPanelWidth, rightPanelWidth, isResizing, isInitialized]);
+        analyticsData,
+        processes,
+        loading: analyticsLoading,
+        error: analyticsError,
+        loadAnalytics
+    } = useAnalyticsManagement();
+    console.log('🔥 useAnalyticsManagement completed');
 
-    // Monitor the main grid container
-    React.useEffect(() => {
-        const timer = setTimeout(() => {
-            const gridContainer = document.querySelector('[data-debug="grid-container"]');
-            if (gridContainer) {
-                console.log('🏠 App.jsx: Grid container measurement:', {
-                    containerWidth: gridContainer.offsetWidth,
-                    containerHeight: gridContainer.offsetHeight,
-                    computedGrid: window.getComputedStyle(gridContainer).gridTemplateColumns,
-                    computedDisplay: window.getComputedStyle(gridContainer).display,
-                    timestamp: new Date().toISOString()
-                });
-
-                // Set up ResizeObserver for main container
-                const containerObserver = new ResizeObserver((entries) => {
-                    for (const entry of entries) {
-                        const { width: containerWidth } = entry.contentRect;
-                        console.log('🔍 RESIZE OBSERVER - Main grid container changed:', {
-                            containerWidth,
-                            timestamp: new Date().toISOString(),
-                            trigger: 'MainContainerResize'
-                        });
-                    }
-                });
-
-                containerObserver.observe(gridContainer);
-
-                return () => {
-                    containerObserver.disconnect();
-                };
-            }
-        }, 100);
-
-        return () => clearTimeout(timer);
-    }, []);
-
-    // New UI state management
-    const [currentView, setCurrentView] = React.useState('gallery'); // 'gallery' or 'miscellaneous'
+    // UI state
+    console.log('🔥 About to call useState hooks');
+    const [currentView, setCurrentView] = React.useState('gallery');
+    console.log('🔥 currentView useState completed');
+    console.log('🔥 About to call selectedUseCase useState');
     const [selectedUseCase, setSelectedUseCase] = React.useState(null);
+    console.log('🔥 selectedUseCase useState completed');
+    console.log('🔥 About to call miscellaneousData useState');
     const [miscellaneousData, setMiscellaneousData] = React.useState({
         userPrompt: '',
         selectedFiles: [],
         processId: null,
         results: null
     });
+    console.log('🔥 miscellaneousData useState completed');
 
-    // Set document title based on current state
+    // Navigation ref to handle delayed navigation
+    console.log('🔥 About to call useRef');
+    const navigationRef = React.useRef(null);
+    console.log('🔥 useRef completed');
+
+    // Set document title
+    console.log('🔥 About to call useDocumentTitle');
     useDocumentTitle(isProcessing, activeProcess, uploadProgress, selectedFiles);
+    console.log('🔥 useDocumentTitle completed');
 
-    // Initialize chat on mount - prevent double execution
-    const didInitialize = React.useRef(false);
+    // Initialize chat on mount
+    console.log('🔥 About to call useEffect for initializeChat');
     React.useEffect(() => {
-        if (didInitialize.current) return;
-        didInitialize.current = true;
         initializeChat();
-    }, [initializeChat]);
+    }, []);
+    console.log('🔥 initializeChat useEffect completed');
+
+    // Handle delayed navigation
+    console.log('🔥 About to call useEffect for navigation');
+    React.useEffect(() => {
+        if (navigationRef.current) {
+            const {action, data} = navigationRef.current;
+            if (action === 'navigate') {
+                setCurrentView(data.view);
+                navigationRef.current = null;
+            }
+        }
+    });
+    console.log('🔥 navigation useEffect completed');
 
     // File upload handler
     const handleFileUpload = async (file) => {
-        if (!file) return;
-
-        addMessage('system', messageService.getUploadProgressMessage(file.name), true);
-
-        const result = await uploadFile(file);
-
-        if (result.success) {
-            addMessage('system', messageService.getUploadSuccessMessage(result.file), true);
-        } else {
-            addMessage('error', messageService.getErrorMessage(result.error, 'Upload failed'), false);
+        if (file) {
+            const result = await uploadFile(file);
+            // Handle result...
         }
     };
 
-    // Template selection handler
-    const onTemplateSelect = (template) => {
-        handleTemplateSelect(template);
-
-        if (template) {
-            addMessage('user', `📋 Selected process: ${template.name}`, false);
-            const templateMessage = messageService.getTemplateSelectedMessage(template);
-            addMessage('system', templateMessage, true);
-        }
-    };
-
-    // Merge file generation processing with regular processed files for the sidebar
-    const allProcessedFiles = React.useMemo(() => {
-        return recentResults;
-    }, [recentResults]);
-
-    // Process handlers
-    const handleReconciliation = async (reconciliationConfig) => {
-        if (!selectedTemplate || !areAllFilesSelected()) {
-            addMessage('error', '❌ Please select a process and all required files first.', false);
-            return;
-        }
-
-        // Build process config
-        const processConfig = {
-            process_type: selectedTemplate.category,
-            process_name: selectedTemplate.name,
-            user_requirements: reconciliationConfig?.user_requirements || currentInput,
-            files: Object.entries(selectedFiles).map(([key, file]) => ({
-                file_id: file.file_id,
-                role: key,
-                label: selectedTemplate.fileLabels[parseInt(key.split('_')[1])]
-            }))
-        };
-
-        if (reconciliationConfig && selectedTemplate.category.includes('reconciliation')) {
-            processConfig.reconciliation_config = reconciliationConfig;
-        }
-
-        // Start process
-        addMessage('user', `Starting ${selectedTemplate.name.toLowerCase()}...`, false);
-        addMessage('system', messageService.getProcessStartMessage(selectedTemplate, true), true);
-
-        const result = await startProcess('reconciliation', processConfig);
-
-        if (result.success) {
-            addMessage('system', '✅ Process started! Monitoring progress...', true);
-            setCurrentInput('');
-
-            // Simulate completion after 3 seconds
-            setTimeout(() => {
-                addMessage('success', `🎉 ${selectedTemplate?.name || 'Process'} completed successfully!`, true);
-
-                const resultText = messageService.formatReconciliationResults(result);
-                addMessage('result', resultText, true);
-            }, 3000);
-        } else {
-            addMessage('error', messageService.getErrorMessage(result.error, 'Failed to start'), false);
-        }
-    };
-
-    const handleStartTransformation = async (fileTransformationConfig) => {
-
-        if (!selectedTemplate || !areAllFilesSelected()) {
-            addMessage('error', '❌ Please select a process and all required files first.', false);
-            return;
-        }
-
-        // Start process
-        addMessage('user', `Starting ${selectedTemplate.name.toLowerCase()}...`, false);
-        addMessage('system', messageService.getProcessStartMessage(selectedTemplate, true), true);
-
-        const result = await startProcess('file-transformation', fileTransformationConfig);
-
-        if (result.success) {
-            addMessage('system', '✅ Process started! Monitoring progress...', true);
-            setCurrentInput('');
-
-            // Simulate completion after 3 seconds
-            setTimeout(() => {
-                addMessage('success', `🎉 ${selectedTemplate?.name || 'Process'} completed successfully!`, true);
-
-                const resultText = messageService.formatFileTransformationResult(result);
-                addMessage('result', resultText, true);
-            }, 3000);
-        } else {
-            addMessage('error', messageService.getErrorMessage(result.error, 'Failed to start'), false);
-        }
-
-    };
-    const handleDeltaGeneration = async (deltaConfig) => {
-        if (!selectedTemplate || !areAllFilesSelected()) {
-            addMessage('error', '❌ Please select a process and all required files first.', false);
-            return;
-        }
-
-        // Build delta config
-        const processConfig = {
-            files: Object.entries(selectedFiles).map(([key, file]) => ({
-                file_id: file.file_id,
-                role: key,
-                label: selectedTemplate.fileLabels[parseInt(key.split('_')[1])]
-            })),
-            ...deltaConfig
-        };
-
-        addMessage('user', `Starting ${selectedTemplate.name.toLowerCase()}...`, false);
-        addMessage('system', `📊 Starting Delta Generation...\n\n⏳ Analyzing changes between older and newer files...`, true);
-
-        const result = await startProcess('delta-generation', processConfig);
-
-        if (result.success) {
-            // Simulate completion after 3 seconds
-            setTimeout(() => {
-                const summaryText = messageService.formatDeltaResults(result.summary, result.processId);
-                addMessage('result', summaryText, true);
-
-                setTimeout(() => {
-                    addMessage('system', '💡 Use "Display Detailed Results" button above or download options in the right panel to view the delta details.', true);
-                }, 1000);
-            }, 3000);
-        } else {
-            addMessage('error', messageService.getErrorMessage(result.error, 'Delta generation failed'), false);
-        }
-    };
-
-    // Display detailed results handler
-    const displayDetailedResults = async (resultId) => {
-        try {
-            // Determine process type
-            const deltaRecord = recentResults.find(f => f.delta_id === resultId);
-            const reconRecord = recentResults.find(f => f.reconciliation_id === resultId);
-            const generationRecord = recentResults.find(f => f.generation_id === resultId);
-
-            let processType = 'unknown';
-            if (deltaRecord) processType = 'delta-generation';
-            else if (reconRecord) processType = 'reconciliation';
-            else if (generationRecord) processType = 'file-generation';
-
-            addMessage('system', '🔍 Fetching detailed results...', true);
-
-            if (processType === 'file-generation') {
-                // Handle file generation results
-                const {apiService} = await import('./services/defaultApi.js');
-                const result = await apiService.getFileTransformationResults(resultId);
-
-                if (result.data) {
-                    // Display file generation results
-                    const previewData = result.data.slice(0, 10);
-                    let detailsMessage = `📄 **Generated File Details**\n\n`;
-                    detailsMessage += `📊 **Total Records:** ${result.data.length.toLocaleString()}\n`;
-                    detailsMessage += `📋 **Columns:** ${Object.keys(result.data[0] || {}).join(', ')}\n\n`;
-                    detailsMessage += `🔍 **Preview (First 10 rows):**\n`;
-
-                    // Create a simple preview table
-                    if (previewData.length > 0) {
-                        const headers = Object.keys(previewData[0]);
-                        const tableData = previewData.map(row =>
-                            headers.map(header => row[header] || '').join(' | ')
-                        ).join('\n');
-                        detailsMessage += `\n${headers.join(' | ')}\n${'-'.repeat(headers.join(' | ').length)}\n${tableData}`;
-                    }
-
-                    addMessage('result', detailsMessage, true);
-                } else {
-                    addMessage('error', 'Could not retrieve file generation details', false);
-                }
-            } else {
-                // Handle delta/reconciliation results
-                const result = await getDetailedResults(resultId, processType);
-
-                if (result.success) {
-                    setTimeout(() => {
-                        if (result.type === 'delta') {
-                            // Handle delta results (existing logic)
-                            const categories = messageService.getDeltaTableCategories();
-
-                            Object.entries(result.data).forEach(([category, data]) => {
-                                if (data.length > 0) {
-                                    const categoryInfo = categories[category];
-                                    const tableData = messageService.createTableData(
-                                        `${categoryInfo.name} (${data.length} total)`,
-                                        data,
-                                        categoryInfo.color,
-                                        data.length
-                                    );
-
-                                    const tableMessage = {
-                                        id: Date.now() + Math.random() + category,
-                                        type: 'table',
-                                        content: tableData.title,
-                                        tableData,
-                                        timestamp: new Date()
-                                    };
-                                    setMessages(prev => [...prev, tableMessage]);
-                                }
-                            });
-
-                            const summaryText = messageService.formatDetailedResultsSummary('delta', result.data);
-                            addMessage('result', summaryText, true);
-
-                        } else {
-                            // Handle reconciliation results (existing logic)
-                            const categories = messageService.getReconciliationTableCategories();
-
-                            Object.entries(result.data).forEach(([category, data]) => {
-                                if (data.length > 0) {
-                                    const categoryInfo = categories[category];
-                                    const tableData = messageService.createTableData(
-                                        `${categoryInfo.name} (${data.length} records)`,
-                                        data,
-                                        categoryInfo.color,
-                                        data.length
-                                    );
-
-                                    const tableMessage = {
-                                        id: Date.now() + Math.random(),
-                                        type: 'table',
-                                        content: tableData.title,
-                                        tableData,
-                                        timestamp: new Date()
-                                    };
-                                    setMessages(prev => [...prev, tableMessage]);
-                                }
-                            });
-
-                            const summaryText = messageService.formatDetailedResultsSummary('reconciliation', result.data);
-                            addMessage('result', summaryText, true);
-                        }
-                    }, 1500);
-                } else {
-                    addMessage('error', messageService.getErrorMessage(result.error, 'Failed to fetch detailed results'), false);
-                }
-            }
-
-        } catch (error) {
-            console.error('Error displaying detailed results:', error);
-            addMessage('error', messageService.getErrorMessage(error.message, 'Failed to fetch detailed results'), false);
-        }
-    };
-
-    // Download results handler
-    const handleDownloadResults = async (resultId, resultType) => {
-        try {
-            if (recentResults.length === 0) return
-            // Determine process type
-            const deltaRecord = recentResults.find(f => f.delta_id === resultId);
-            const generationRecord = recentResults.find(f => f.generation_id === resultId);
-
-            let processType = 'reconciliation';
-            if (deltaRecord) processType = 'delta-generation';
-            else if (generationRecord) processType = 'file-generation';
-
-            addMessage('system', `📥 Preparing ${resultType.replace('_', ' ')} download...`, true);
-
-            if (processType === 'file-generation') {
-                // Handle file generation downloads
-                const {deltaApiService} = await import('./services/deltaApiService');
-                const result = await deltaApiService.downloadFileGenerationResults(
-                    resultId,
-                    resultType === 'all_excel' ? 'excel' : 'csv'
-                );
-
-                if (result.success) {
-                    addMessage('system', `✅ File downloaded: ${result.filename}`, true);
-                } else {
-                    addMessage('error', 'Download failed', false);
-                }
-            } else {
-                // Handle delta/reconciliation downloads
-                const result = await downloadResults(resultId, resultType, processType);
-
-                if (result.success) {
-                    addMessage('system', `✅ ${result.message}`, true);
-                } else {
-                    addMessage('error', messageService.getErrorMessage(result.error, 'Download failed'), false);
-                }
-            }
-
-        } catch (error) {
-            console.error('Download failed:', error);
-            addMessage('error', messageService.getErrorMessage(error.message, 'Download failed'), false);
-        }
-    };
-
-    // Function to open File Library in new tab
+    // File Library
     const openFileLibrary = () => {
-        const fileLibraryUrl = '/file-library';
-        const newWindow = window.open(
-            fileLibraryUrl,
-            'file_library',
-            'toolbar=yes,scrollbars=yes,resizable=yes,width=1600,height=1000,menubar=yes,location=yes,directories=no,status=yes'
-        );
-
-        if (newWindow) {
-            newWindow.focus();
-        } else {
-            window.open(fileLibraryUrl, '_blank');
-        }
+        window.open('/file-library', '_blank');
     };
 
-    // Function to open Recent Results in new tab
-    const openRecentResults = () => {
-        const recentResultsUrl = '/recent-results';
-        const newWindow = window.open(
-            recentResultsUrl,
-            'recent_results',
-            'toolbar=yes,scrollbars=yes,resizable=yes,width=1600,height=1000,menubar=yes,location=yes,directories=no,status=yes'
-        );
-
-        if (newWindow) {
-            newWindow.focus();
-        } else {
-            window.open(recentResultsUrl, '_blank');
-        }
-    };
-
-    // New UI handler functions
-    const handleUseCaseSelect = async (useCase) => {
+    // Use case handlers
+    const handleUseCaseSelect = (useCase) => {
         console.log('Use case selected:', useCase);
+
+        // Only update data, don't navigate immediately
         setSelectedUseCase(useCase);
-        setCurrentView('miscellaneous');
-        
-        // Pre-populate miscellaneous data if it's a saved use case
-        if (useCase && useCase.id !== 'start_fresh') {
-            setMiscellaneousData({
-                userPrompt: useCase.user_prompt || '',
-                selectedFiles: [], // Will be populated after file selection
-                processId: null,
-                results: null
-            });
-        } else {
-            // Start fresh - blank state
-            setMiscellaneousData({
-                userPrompt: '',
-                selectedFiles: [],
-                processId: null,
-                results: null
-            });
-        }
-        
-        return Promise.resolve();
+
+        // Always set miscellaneous data - determine userPrompt based on use case
+        const userPrompt = (useCase && useCase.id !== 'start_fresh') ? (useCase.user_prompt || '') : '';
+
+        setMiscellaneousData({
+            userPrompt: userPrompt,
+            selectedFiles: [],
+            processId: null,
+            results: null
+        });
+
+        // Queue navigation for next render cycle
+        navigationRef.current = {
+            action: 'navigate',
+            data: {view: 'miscellaneous'}
+        };
     };
 
     const handleBackToGallery = () => {
@@ -499,113 +133,84 @@ const MainApp = () => {
         });
     };
 
+    console.log('🔥 About to return JSX - all hooks completed');
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
-            {/* Prevent layout shifts during loading */}
-            <style jsx>{`
-                * {
-                    box-sizing: border-box;
-                }
-                .layout-stable {
-                    min-height: 100vh;
-                    height: 100vh;
-                    max-height: 100vh;
-                }
-                /* Minimal CSS to prevent layout shifts without overriding grid */
-                [data-debug="grid-container"] {
-                    min-height: calc(100vh - 120px); /* Account for header height */
-                }
-                [data-debug="center-panel"] {
-                    background: white;
-                    overflow: hidden;
-                }
-                [data-debug="center-panel-inner"] {
-                    overflow-y: auto;
-                }
-                /* Prevent content from collapsing during loading */
-                [data-debug="use-case-gallery"] {
-                    min-height: calc(100vh - 200px); /* Prevent collapse during loading */
-                }
-            `}</style>
-            {/* Conditional rendering based on current view */}
-            {currentView === 'miscellaneous' ? (
-                /* Full screen Miscellaneous Flow */
+            {/* Full screen Miscellaneous Flow - always render but hide when not needed */}
+            <div style={{display: currentView === 'miscellaneous' ? 'block' : 'none', width: '100%', height: '100%'}}>
                 <MiscellaneousFlow
                     selectedFiles={miscellaneousData.selectedFiles}
-                    setSelectedFiles={(files) => setMiscellaneousData(prev => ({ ...prev, selectedFiles: files }))}
+                    setSelectedFiles={(files) => setMiscellaneousData(prev => ({...prev, selectedFiles: files}))}
                     userPrompt={miscellaneousData.userPrompt}
-                    setUserPrompt={(prompt) => setMiscellaneousData(prev => ({ ...prev, userPrompt: prompt }))}
+                    setUserPrompt={(prompt) => setMiscellaneousData(prev => ({...prev, userPrompt: prompt}))}
                     processResults={miscellaneousData.results}
                     processId={miscellaneousData.processId}
-                    setProcessResults={(results) => setMiscellaneousData(prev => ({ ...prev, results: results }))}
-                    setProcessId={(id) => setMiscellaneousData(prev => ({ ...prev, processId: id }))}
+                    setProcessResults={(results) => setMiscellaneousData(prev => ({...prev, results: results}))}
+                    setProcessId={(id) => setMiscellaneousData(prev => ({...prev, processId: id}))}
                     files={files}
                     onBackToGallery={handleBackToGallery}
                     selectedUseCase={selectedUseCase}
                     onRefreshFiles={loadFiles}
                     onCancel={handleBackToGallery}
                 />
-            ) : (
-                /* Three-panel layout for Gallery view */
-                <div className="flex flex-col h-full layout-stable">
-                    {/* Header */}
-                    <AppHeader
-                        title="Forte AI - Data Processing Platform"
-                        subtitle="Select a use case or start fresh with AI based data processing"
-                        showBackButton={false}
-                        showCloseButton={false}
-                        showFileLibrary={true}
-                        onFileLibraryClick={openFileLibrary}
-                    />
-                    
-                    {/* Main Content Area - CSS Grid for stable layout */}
-                    <div 
-                        className="flex-1 min-h-0 overflow-hidden"
-                        data-debug="grid-container"
-                        style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: '320px 1fr 320px',
-                            gridTemplateRows: '1fr'
+            </div>
+
+            {/* Main 3-Panel Layout - always render but hide when not needed */}
+            <div style={{display: currentView !== 'miscellaneous' ? 'block' : 'none'}}
+                 className="flex flex-col h-full w-full">
+                {/* Header */}
+                <AppHeader
+                    title="Forte AI - Data Processing Platform"
+                    subtitle="Select a use case or start fresh with AI based data processing"
+                    showBackButton={false}
+                    showCloseButton={false}
+                    showFileLibrary={true}
+                    onFileLibraryClick={openFileLibrary}
+                />
+
+                {/* Main Content - 3 Panel Layout */}
+                <div className="flex-1 flex">
+                    {/* Left Panel */}
+                    <LeftSidebar
+                        files={files}
+                        templates={[]}
+                        selectedFiles={selectedFiles}
+                        setSelectedFiles={setSelectedFiles}
+                        selectedTemplate={null}
+                        requiredFiles={0}
+                        currentInput={''}
+                        uploadProgress={uploadProgress}
+                        onFileUpload={handleFileUpload}
+                        onTemplateSelect={() => {
                         }}
-                    >
-                        {/* Left Sidebar - Grid Column 1 */}
-                        <LeftSidebar
-                            files={files}
-                            templates={[]} // Remove templates for new flow
-                            selectedFiles={selectedFiles}
-                            setSelectedFiles={setSelectedFiles}
-                            selectedTemplate={null}
-                            requiredFiles={0}
-                            currentInput={''}
-                            uploadProgress={uploadProgress}
-                            onFileUpload={handleFileUpload}
-                            onTemplateSelect={() => {}} // No template selection
-                            onRefreshFiles={loadFiles}
-                            onOpenFileLibrary={openFileLibrary}
-                        />
+                        onRefreshFiles={loadFiles}
+                        onOpenFileLibrary={openFileLibrary}
+                        width={leftPanelWidth}
+                    />
 
-
-                        {/* Center Panel - Grid Column 2 */}
-                        <div className="overflow-hidden bg-white h-full" data-debug="center-panel">
-                            <div className="h-full min-h-0 overflow-y-auto p-6" data-debug="center-panel-inner">
-                                <div className="min-h-full">
-                                    <UseCaseGallery
-                                        onUseCaseSelect={handleUseCaseSelect}
-                                        selectedUseCase={selectedUseCase}
-                                        showCreateButton={true}
-                                        userPrompt=""
-                                        fileSchemas={files.map(f => ({ filename: f.filename, columns: f.columns || [] }))}
-                                    />
-                                </div>
-                            </div>
+                    {/* Middle Panel - Use Case Gallery */}
+                    <div className="flex-1 bg-white flex flex-col">
+                        <div className="flex-1 overflow-auto p-6">
+                            <UseCaseGallery
+                                onUseCaseSelect={handleUseCaseSelect}
+                                selectedUseCase={selectedUseCase}
+                                showCreateButton={true}
+                                userPrompt=""
+                                fileSchemas={files.map(f => ({filename: f.filename, columns: f.columns || []}))}
+                            />
                         </div>
-
-
-                        {/* Right Sidebar - Grid Column 3 */}
-                        <ProcessAnalyticsRightSideBar />
                     </div>
+
+                    {/* Right Panel */}
+                    <RightSidebar
+                        analyticsData={analyticsData}
+                        processes={processes}
+                        loading={analyticsLoading}
+                        error={analyticsError}
+                        onRefresh={React.useCallback(() => loadAnalytics(true), [loadAnalytics])}
+                    />
                 </div>
-            )}
+            </div>
         </div>
     );
 };
@@ -617,7 +222,6 @@ const App = () => {
                 <Route path="/" element={<MainApp/>}/>
                 <Route path="/viewer/:fileId" element={<ViewerPage/>}/>
                 <Route path="/file-library" element={<FileLibraryPage/>}/>
-                <Route path="/recent-results" element={<RecentResultsPage/>}/>
             </Routes>
         </Router>
     );

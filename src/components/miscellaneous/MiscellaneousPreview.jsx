@@ -5,11 +5,9 @@ import {
     Code,
     Copy,
     Database,
-    Download,
     Edit,
     Eye,
     EyeOff,
-    ExternalLink,
     FileSpreadsheet,
     FileText,
     Play,
@@ -20,13 +18,22 @@ import {
     Trash2,
     XCircle
 } from 'lucide-react';
-import { formatSQL } from '../../utils/sqlFormatter';
-import { API_ENDPOINTS } from '../../config/environment';
+import {formatSQL} from '../../utils/sqlFormatter';
+import {API_ENDPOINTS} from '../../config/environment';
 import PromptSaveLoad from './PromptSaveLoad';
 import ColumnMappingModal from './ColumnMappingModal';
 
 // Save Prompt Modal Component
-const SavePromptModal = ({ idealPrompt, onSave, onCancel, saving, error, originalPrompt, processName, selectedFiles }) => {
+const SavePromptModal = ({
+                             idealPrompt,
+                             onSave,
+                             onCancel,
+                             saving,
+                             error,
+                             originalPrompt,
+                             processName,
+                             selectedFiles
+                         }) => {
     const [editedPrompt, setEditedPrompt] = useState(idealPrompt);
     const [promptName, setPromptName] = useState('');
     const [promptDescription, setPromptDescription] = useState('');
@@ -66,14 +73,14 @@ const SavePromptModal = ({ idealPrompt, onSave, onCancel, saving, error, origina
                 <div className="p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                            <Sparkles className="text-purple-600" size={20} />
+                            <Sparkles className="text-purple-600" size={20}/>
                             <span>Save Optimized Prompt</span>
                         </h3>
                         <button
                             onClick={onCancel}
                             className="text-gray-400 hover:text-gray-600"
                         >
-                            <XCircle size={20} />
+                            <XCircle size={20}/>
                         </button>
                     </div>
 
@@ -88,7 +95,7 @@ const SavePromptModal = ({ idealPrompt, onSave, onCancel, saving, error, origina
 
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                             <h4 className="text-sm font-medium text-green-800 mb-2 flex items-center space-x-1">
-                                <Sparkles size={14} />
+                                <Sparkles size={14}/>
                                 <span>AI-Optimized Prompt:</span>
                             </h4>
                             <textarea
@@ -164,7 +171,7 @@ const SavePromptModal = ({ idealPrompt, onSave, onCancel, saving, error, origina
                     {error && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                             <div className="flex items-start space-x-2">
-                                <XCircle className="text-red-600 mt-0.5" size={14} />
+                                <XCircle className="text-red-600 mt-0.5" size={14}/>
                                 <div>
                                     <span className="text-sm font-medium text-red-800">Error</span>
                                     <p className="text-sm text-red-700 mt-1">{error}</p>
@@ -189,12 +196,12 @@ const SavePromptModal = ({ idealPrompt, onSave, onCancel, saving, error, origina
                         >
                             {saving ? (
                                 <>
-                                    <RefreshCw className="animate-spin" size={16} />
+                                    <RefreshCw className="animate-spin" size={16}/>
                                     <span>Saving...</span>
                                 </>
                             ) : (
                                 <>
-                                    <Save size={16} />
+                                    <Save size={16}/>
                                     <span>Save Prompt</span>
                                 </>
                             )}
@@ -207,20 +214,20 @@ const SavePromptModal = ({ idealPrompt, onSave, onCancel, saving, error, origina
 };
 
 const MiscellaneousPreview = ({
-    userPrompt,
-    processName,
-    selectedFiles,
-    isProcessing,
-    processResults,
-    generatedSQL,
-    processingError,
-    processId,
-    processingTimeSeconds,
-    onProcess,
-    onDownload,
-    onClear,
-    onCreateTemplate
-}) => {
+                                  userPrompt,
+                                  processName,
+                                  selectedFiles,
+                                  isProcessing,
+                                  processResults,
+                                  generatedSQL,
+                                  processingError,
+                                  processId,
+                                  processingTimeSeconds,
+                                  onProcess,
+                                  onDownload,
+                                  onClear,
+                                  onCreateTemplate
+                              }) => {
 
     const [showSQL, setShowSQL] = useState(false);
     const [showAllRows, setShowAllRows] = useState(false);
@@ -262,7 +269,7 @@ const MiscellaneousPreview = ({
         if (!editableSQL.trim()) return;
 
         console.log('🔍 executeSQL called with:', {
-            processId, 
+            processId,
             editableSQL: editableSQL?.substring(0, 50) + '...',
             processingError
         });
@@ -305,7 +312,7 @@ const MiscellaneousPreview = ({
     const generateIdealPrompt = async () => {
         setSavingPrompt(true);
         setSavePromptError(null);
-        
+
         try {
             const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/generate-ideal-prompt`, {
                 method: 'POST',
@@ -351,10 +358,10 @@ const MiscellaneousPreview = ({
     // Save the ideal prompt
     const saveIdealPrompt = async (promptData) => {
         console.log('💾 saveIdealPrompt called with:', promptData);
-        
+
         setSavingPrompt(true);
         setSavePromptError(null);
-        
+
         try {
             const response = await fetch(`${API_ENDPOINTS.MISCELLANEOUS}/save-prompt`, {
                 method: 'POST',
@@ -387,7 +394,7 @@ const MiscellaneousPreview = ({
     // Function to open results in viewer tab
     const openResultsInViewer = () => {
         if (!processId) return;
-        
+
         const viewerUrl = `/viewer/${processId}`;
         const newWindow = window.open(
             viewerUrl,
@@ -405,7 +412,7 @@ const MiscellaneousPreview = ({
 
     const getResultsPreview = () => {
         if (!processResults?.data) return [];
-        
+
         if (showAllRows) {
             return processResults.data;
         } else {
@@ -424,7 +431,7 @@ const MiscellaneousPreview = ({
         try {
             // Apply the column mapping to the SQL and re-execute
             console.log('🔧 Applying column mapping:', columnMapping);
-            
+
             // Transform the SQL by replacing missing columns with mapped columns
             let updatedSQL = generatedSQL || editableSQL;
             Object.entries(columnMapping).forEach(([missingCol, mappedCol]) => {
@@ -434,7 +441,7 @@ const MiscellaneousPreview = ({
             });
 
             console.log('📝 Updated SQL with mapping:', updatedSQL);
-            
+
             // Execute the updated SQL
             await handleExecuteSQL(updatedSQL);
             setShowColumnMappingModal(false);
@@ -456,12 +463,12 @@ const MiscellaneousPreview = ({
         if (processResults?.error_analysis?.available_columns) {
             return processResults.error_analysis.available_columns;
         }
-        
+
         // Fallback: extract from file data if available
         if (selectedFiles.length > 0 && selectedFiles[0].columns) {
             return selectedFiles[0].columns;
         }
-        
+
         return [];
     };
 
@@ -469,24 +476,24 @@ const MiscellaneousPreview = ({
         if (processResults?.error_analysis?.missing_columns) {
             return processResults.error_analysis.missing_columns;
         }
-        
+
         // Extract missing columns from error message if available
         const errorMessage = processResults?.error || processResults?.errors?.[0] || '';
         const columnMatches = errorMessage.match(/Referenced column "([^"]+)" not found/g);
         if (columnMatches) {
             return columnMatches.map(match => match.match(/Referenced column "([^"]+)"/)[1]);
         }
-        
+
         return [];
     };
 
     // Generic SQL execution function
     const handleExecuteSQL = async (sqlQuery) => {
         if (!sqlQuery?.trim()) return;
-        
+
         // processId should always be available when this function is called
         console.log('🔍 handleExecuteSQL: processId:', processId);
-        
+
         setExecutingSQL(true);
         setExecuteError(null);
         setExecuteResults(null);
@@ -544,28 +551,29 @@ const MiscellaneousPreview = ({
             {/* Query Summary */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-blue-800 mb-3 flex items-center space-x-2">
-                    <FileText size={16} />
+                    <FileText size={16}/>
                     <span>Query Summary</span>
                 </h4>
-                
+
                 <div className="space-y-3">
                     <div>
                         <span className="text-xs font-medium text-blue-700">Process Name:</span>
                         <p className="text-sm text-blue-800">{processName}</p>
                     </div>
-                    
+
                     <div>
-                        <span className="text-xs font-medium text-blue-700">Selected Files ({selectedFiles.length}):</span>
+                        <span
+                            className="text-xs font-medium text-blue-700">Selected Files ({selectedFiles.length}):</span>
                         <div className="mt-1 space-y-1">
                             {selectedFiles.map((file, index) => (
                                 <div key={index} className="text-sm text-blue-700 flex items-center space-x-2">
-                                    <FileSpreadsheet size={14} />
+                                    <FileSpreadsheet size={14}/>
                                     <span><strong>file_{index + 1}</strong>: {file.filename} ({file.totalRows} rows)</span>
                                 </div>
                             ))}
                         </div>
                     </div>
-                    
+
                     <div>
                         <span className="text-xs font-medium text-blue-700">Your Query:</span>
                         <p className="text-sm text-blue-800 bg-white p-2 rounded border italic whitespace-pre-wrap">
@@ -579,7 +587,7 @@ const MiscellaneousPreview = ({
             {isProcessing && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <div className="flex items-center space-x-2">
-                        <RefreshCw className="animate-spin text-yellow-600" size={16} />
+                        <RefreshCw className="animate-spin text-yellow-600" size={16}/>
                         <span className="text-sm font-medium text-yellow-800">Processing your request...</span>
                     </div>
                     <div className="text-xs text-yellow-700 mt-2">
@@ -592,19 +600,22 @@ const MiscellaneousPreview = ({
             {processingError && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-start space-x-2">
-                        <XCircle className="text-red-600 mt-0.5" size={16} />
+                        <XCircle className="text-red-600 mt-0.5" size={16}/>
                         <div className="flex-1">
                             <span className="text-sm font-medium text-red-800">Processing Failed</span>
                             <p className="text-sm text-red-700 mt-1">{processingError}</p>
                             {processId && (
                                 <div className="mt-3 bg-blue-50 border border-blue-200 rounded p-3">
                                     <div className="flex items-start space-x-2">
-                                        <Database className="text-blue-600 mt-0.5" size={14} />
+                                        <Database className="text-blue-600 mt-0.5" size={14}/>
                                         <div>
-                                            <p className="text-xs font-medium text-blue-800">Manual Data Exploration Available</p>
+                                            <p className="text-xs font-medium text-blue-800">Manual Data Exploration
+                                                Available</p>
                                             <p className="text-xs text-blue-700 mt-1">
-                                                Your raw data is still available for custom SQL queries. 
-                                                Use table names: <code className="bg-blue-100 px-1 rounded">file_1</code>, <code className="bg-blue-100 px-1 rounded">file_2</code>, etc.
+                                                Your raw data is still available for custom SQL queries.
+                                                Use table names: <code
+                                                className="bg-blue-100 px-1 rounded">file_1</code>, <code
+                                                className="bg-blue-100 px-1 rounded">file_2</code>, etc.
                                             </p>
                                         </div>
                                     </div>
@@ -624,7 +635,7 @@ const MiscellaneousPreview = ({
                         disabled={isProcessing}
                         className="flex items-center space-x-2 px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
                     >
-                        <Play size={16} />
+                        <Play size={16}/>
                         <span>Process Data with AI</span>
                     </button>
                 </div>
@@ -636,48 +647,49 @@ const MiscellaneousPreview = ({
                     {/* Success Header */}
                     {processResults.success !== false && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                                <CheckCircle className="text-green-600" size={20} />
-                                <span className="text-sm font-medium text-green-800">Processing Completed Successfully</span>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                                {processingTimeSeconds && (
-                                    <div className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-md">
-                                        <span className="text-xs text-green-700">⚡</span>
-                                        <span className="text-xs font-medium text-green-700">
-                                            {processingTimeSeconds < 1 
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <CheckCircle className="text-green-600" size={20}/>
+                                    <span className="text-sm font-medium text-green-800">Processing Completed Successfully</span>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    {processingTimeSeconds && (
+                                        <div className="flex items-center space-x-1 bg-green-100 px-2 py-1 rounded-md">
+                                            <span className="text-xs text-green-700">⚡</span>
+                                            <span className="text-xs font-medium text-green-700">
+                                            {processingTimeSeconds < 1
                                                 ? `${(processingTimeSeconds * 1000).toFixed(0)}ms`
                                                 : `${processingTimeSeconds.toFixed(2)}s`
                                             }
                                         </span>
-                                    </div>
-                                )}
-                                <span className="text-sm text-green-700">
-                                    {processResults.total_count && processResults.total_count !== processResults.data?.length ? 
+                                        </div>
+                                    )}
+                                    <span className="text-sm text-green-700">
+                                    {processResults.total_count && processResults.total_count !== processResults.data?.length ?
                                         `Showing ${processResults.data?.length || 0} of ${processResults.total_count.toLocaleString()} total records` :
                                         `${processResults.data?.length || 0} records returned`
                                     }
                                 </span>
+                                </div>
                             </div>
+
+                            {processResults.metadata?.processing_info && (
+                                <div className="mt-2 text-xs text-green-700">
+                                    Query Type: {processResults.metadata.processing_info.query_type} |
+                                    Files
+                                    Used: {processResults.metadata.processing_info.input_files || selectedFiles.length}
+                                    {processResults.total_count && processResults.total_count !== processResults.data?.length && (
+                                        <span> | Total Records: {processResults.total_count.toLocaleString()} (sample of {processResults.data?.length || 0} shown)</span>
+                                    )}
+                                    {processingTimeSeconds && (
+                                        <span> | Processing Time: {processingTimeSeconds < 1
+                                            ? `${(processingTimeSeconds * 1000).toFixed(0)}ms`
+                                            : `${processingTimeSeconds.toFixed(2)}s`
+                                        }</span>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                        
-                        {processResults.metadata?.processing_info && (
-                            <div className="mt-2 text-xs text-green-700">
-                                Query Type: {processResults.metadata.processing_info.query_type} | 
-                                Files Used: {processResults.metadata.processing_info.input_files || selectedFiles.length}
-                                {processResults.total_count && processResults.total_count !== processResults.data?.length && (
-                                    <span> | Total Records: {processResults.total_count.toLocaleString()} (sample of {processResults.data?.length || 0} shown)</span>
-                                )}
-                                {processingTimeSeconds && (
-                                    <span> | Processing Time: {processingTimeSeconds < 1 
-                                        ? `${(processingTimeSeconds * 1000).toFixed(0)}ms`
-                                        : `${processingTimeSeconds.toFixed(2)}s`
-                                    }</span>
-                                )}
-                            </div>
-                        )}
-                    </div>
                     )}
 
                     {/* Error Header */}
@@ -685,7 +697,7 @@ const MiscellaneousPreview = ({
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-2">
-                                    <XCircle className="text-red-600" size={20} />
+                                    <XCircle className="text-red-600" size={20}/>
                                     <span className="text-sm font-medium text-red-800">Processing Failed</span>
                                 </div>
                                 <div className="flex items-center space-x-4">
@@ -696,7 +708,7 @@ const MiscellaneousPreview = ({
                                     )}
                                 </div>
                             </div>
-                            
+
                             {processResults.error_analysis && (
                                 <div className="mt-3 p-3 bg-red-100 rounded-md">
                                     <p className="text-sm font-medium text-red-800 mb-2">Error Analysis:</p>
@@ -705,10 +717,13 @@ const MiscellaneousPreview = ({
                                     ) : (
                                         <div className="text-sm text-red-700 space-y-2">
                                             {processResults.error_analysis.user_friendly_message && (
-                                                <p><strong>Issue:</strong> {processResults.error_analysis.user_friendly_message}</p>
+                                                <p>
+                                                    <strong>Issue:</strong> {processResults.error_analysis.user_friendly_message}
+                                                </p>
                                             )}
                                             {processResults.error_analysis.root_cause && (
-                                                <p><strong>Root Cause:</strong> {processResults.error_analysis.root_cause}</p>
+                                                <p><strong>Root
+                                                    Cause:</strong> {processResults.error_analysis.root_cause}</p>
                                             )}
                                             {processResults.error_analysis.suggested_fixes && Array.isArray(processResults.error_analysis.suggested_fixes) && (
                                                 <div>
@@ -721,7 +736,8 @@ const MiscellaneousPreview = ({
                                                 </div>
                                             )}
                                             {processResults.error_analysis.prevention_tip && (
-                                                <p><strong>Prevention Tip:</strong> {processResults.error_analysis.prevention_tip}</p>
+                                                <p><strong>Prevention
+                                                    Tip:</strong> {processResults.error_analysis.prevention_tip}</p>
                                             )}
                                         </div>
                                     )}
@@ -733,12 +749,12 @@ const MiscellaneousPreview = ({
                     {/* SQL Editor - Available when we have processId or generatedSQL (success or failure) */}
                     {(processId || generatedSQL) && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg">
-                            <div 
+                            <div
                                 className="flex items-center justify-between p-3 cursor-pointer"
                                 onClick={() => setShowSQL(!showSQL)}
                             >
                                 <div className="flex items-center space-x-2">
-                                    <Code className="text-gray-600" size={16} />
+                                    <Code className="text-gray-600" size={16}/>
                                     <span className="text-sm font-medium text-gray-700">Generated Query</span>
                                     {isEditingSQL && (
                                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
@@ -748,17 +764,18 @@ const MiscellaneousPreview = ({
                                 </div>
                                 <div className="flex items-center space-x-2">
                                     <span className="text-xs text-gray-500">Click to {showSQL ? 'hide' : 'view'}</span>
-                                    {showSQL ? <EyeOff size={14} /> : <Eye size={14} />}
+                                    {showSQL ? <EyeOff size={14}/> : <Eye size={14}/>}
                                 </div>
                             </div>
-                            
+
                             {showSQL && (
                                 <div className="px-3 pb-3">
                                     <div className="relative">
                                         {!isEditingSQL ? (
                                             // Read-only view
                                             <>
-                                                <pre className="bg-gray-900 text-green-400 p-4 pr-20 rounded text-sm overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed border border-gray-700">
+                                                <pre
+                                                    className="bg-gray-900 text-green-400 p-4 pr-20 rounded text-sm overflow-x-auto whitespace-pre-wrap font-mono leading-relaxed border border-gray-700">
                                                     <code>{formatSQL(generatedSQL)}</code>
                                                 </pre>
                                                 <div className="absolute top-2 right-2 flex items-center space-x-2">
@@ -772,9 +789,9 @@ const MiscellaneousPreview = ({
                                                         title="Execute SQL"
                                                     >
                                                         {executingSQL ? (
-                                                            <RefreshCw className="animate-spin" size={12} />
+                                                            <RefreshCw className="animate-spin" size={12}/>
                                                         ) : (
-                                                            <Play size={12} />
+                                                            <Play size={12}/>
                                                         )}
                                                         <span>{executingSQL ? 'Running...' : 'Execute'}</span>
                                                     </button>
@@ -783,7 +800,7 @@ const MiscellaneousPreview = ({
                                                         className="text-xs text-gray-400 hover:text-blue-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors"
                                                         title="Edit SQL"
                                                     >
-                                                        <Edit size={12} />
+                                                        <Edit size={12}/>
                                                         <span>Edit</span>
                                                     </button>
                                                     <button
@@ -791,10 +808,11 @@ const MiscellaneousPreview = ({
                                                         className="text-xs text-gray-400 hover:text-blue-400 bg-gray-800 px-2 py-1 rounded flex items-center space-x-1 transition-colors"
                                                         title="Copy SQL"
                                                     >
-                                                        <Copy size={12} />
+                                                        <Copy size={12}/>
                                                         <span>{copied ? 'Copied!' : 'Copy'}</span>
                                                     </button>
-                                                    <div className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                                                    <div
+                                                        className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
                                                         SQL
                                                     </div>
                                                 </div>
@@ -851,7 +869,7 @@ const MiscellaneousPreview = ({
                                                             onClick={copySQL}
                                                             className="text-xs text-gray-600 hover:text-blue-600 px-3 py-1 rounded border flex items-center space-x-1"
                                                         >
-                                                            <Copy size={12} />
+                                                            <Copy size={12}/>
                                                             <span>{copied ? 'Copied!' : 'Copy'}</span>
                                                         </button>
                                                     </div>
@@ -862,12 +880,12 @@ const MiscellaneousPreview = ({
                                                     >
                                                         {executingSQL ? (
                                                             <>
-                                                                <RefreshCw className="animate-spin" size={14} />
+                                                                <RefreshCw className="animate-spin" size={14}/>
                                                                 <span>Executing...</span>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Play size={14} />
+                                                                <Play size={14}/>
                                                                 <span>Execute Query</span>
                                                             </>
                                                         )}
@@ -878,7 +896,7 @@ const MiscellaneousPreview = ({
                                     </div>
                                 </div>
                             )}
-                            
+
                             {/* Quick Execute Button below SQL */}
                             {showSQL && !isEditingSQL && (
                                 <div className="px-3 pb-3 pt-0">
@@ -892,12 +910,12 @@ const MiscellaneousPreview = ({
                                     >
                                         {executingSQL ? (
                                             <>
-                                                <RefreshCw className="animate-spin" size={16} />
+                                                <RefreshCw className="animate-spin" size={16}/>
                                                 <span>Executing Query...</span>
                                             </>
                                         ) : (
                                             <>
-                                                <Play size={16} />
+                                                <Play size={16}/>
                                                 <span>Execute This SQL Query</span>
                                             </>
                                         )}
@@ -912,44 +930,50 @@ const MiscellaneousPreview = ({
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center space-x-2">
-                                    <CheckCircle className="text-blue-600" size={16} />
-                                    <span className="text-sm font-medium text-blue-800">Query Executed Successfully</span>
+                                    <CheckCircle className="text-blue-600" size={16}/>
+                                    <span
+                                        className="text-sm font-medium text-blue-800">Query Executed Successfully</span>
                                 </div>
                                 <span className="text-sm text-blue-700">
                                     {executeResults.data?.length || 0} rows returned
                                 </span>
                             </div>
-                            
+
                             {executeResults.data && executeResults.data.length > 0 && (
                                 <div className="bg-white border border-blue-200 rounded overflow-hidden">
                                     <div className="overflow-x-auto max-h-64">
                                         <table className="w-full text-xs">
                                             <thead className="bg-blue-50 sticky top-0">
-                                                <tr>
-                                                    {Object.keys(executeResults.data[0]).map((column) => (
-                                                        <th key={column} className="px-3 py-2 text-left font-medium text-blue-800 border-b border-blue-200">
-                                                            {column}
-                                                        </th>
-                                                    ))}
-                                                </tr>
+                                            <tr>
+                                                {Object.keys(executeResults.data[0]).map((column) => (
+                                                    <th key={column}
+                                                        className="px-3 py-2 text-left font-medium text-blue-800 border-b border-blue-200">
+                                                        {column}
+                                                    </th>
+                                                ))}
+                                            </tr>
                                             </thead>
                                             <tbody>
-                                                {executeResults.data.slice(0, 10).map((row, rowIndex) => (
-                                                    <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-blue-25'}>
-                                                        {Object.keys(executeResults.data[0]).map((column) => (
-                                                            <td key={column} className="px-3 py-2 text-gray-700 border-b border-blue-100">
-                                                                {formatCellValue(row[column])}
-                                                            </td>
-                                                        ))}
-                                                    </tr>
-                                                ))}
+                                            {executeResults.data.slice(0, 10).map((row, rowIndex) => (
+                                                <tr key={rowIndex}
+                                                    className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-blue-25'}>
+                                                    {Object.keys(executeResults.data[0]).map((column) => (
+                                                        <td key={column}
+                                                            className="px-3 py-2 text-gray-700 border-b border-blue-100">
+                                                            {formatCellValue(row[column])}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
                                             </tbody>
                                         </table>
                                     </div>
-                                    
+
                                     {executeResults.data.length > 10 && (
-                                        <div className="bg-blue-50 px-4 py-2 text-center text-xs text-blue-700 border-t border-blue-200">
-                                            Showing first 10 of {executeResults.data.length} rows from custom query execution.
+                                        <div
+                                            className="bg-blue-50 px-4 py-2 text-center text-xs text-blue-700 border-t border-blue-200">
+                                            Showing first 10 of {executeResults.data.length} rows from custom query
+                                            execution.
                                         </div>
                                     )}
                                 </div>
@@ -961,7 +985,7 @@ const MiscellaneousPreview = ({
                     {executeError && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                             <div className="flex items-start space-x-2">
-                                <XCircle className="text-red-600 mt-0.5" size={16} />
+                                <XCircle className="text-red-600 mt-0.5" size={16}/>
                                 <div>
                                     <span className="text-sm font-medium text-red-800">Query Execution Failed</span>
                                     <p className="text-sm text-red-700 mt-1">{executeError}</p>
@@ -974,7 +998,7 @@ const MiscellaneousPreview = ({
                     {processResults?.metadata?.processing_info?.description && (
                         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                             <div className="flex items-start space-x-2">
-                                <Sparkles className="text-purple-600 mt-0.5" size={16} />
+                                <Sparkles className="text-purple-600 mt-0.5" size={16}/>
                                 <div>
                                     <span className="text-sm font-medium text-purple-800">What the AI Did:</span>
                                     <p className="text-sm text-purple-700 mt-1">
@@ -990,58 +1014,61 @@ const MiscellaneousPreview = ({
                         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                             <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
                                 <div className="flex items-center space-x-2">
-                                    <Table className="text-gray-600" size={16} />
+                                    <Table className="text-gray-600" size={16}/>
                                     <span className="text-sm font-medium text-gray-700">Results Preview</span>
                                     <span className="text-xs text-gray-500">
-                                        {processResults.total_count && processResults.total_count > processResults.data.length ? 
+                                        {processResults.total_count && processResults.total_count > processResults.data.length ?
                                             `(showing ${processResults.data.length} of ${processResults.total_count.toLocaleString()} total rows)` :
                                             `(${processResults.data.length} rows)`
                                         }
                                     </span>
                                 </div>
-                                
+
                                 {(processResults.data.length > 10 || processResults.is_limited) && (
                                     <button
                                         onClick={processResults.is_limited ? openResultsInViewer : () => setShowAllRows(!showAllRows)}
                                         className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                                     >
-                                        {processResults.is_limited ? 
-                                            `View all ${(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows in Data Viewer` : 
+                                        {processResults.is_limited ?
+                                            `View all ${(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows in Data Viewer` :
                                             (showAllRows ? 'Show first 10 rows' : 'Show all rows')
                                         }
                                     </button>
                                 )}
                             </div>
-                            
+
                             <div className="overflow-x-auto max-h-96">
                                 <table className="w-full text-xs">
                                     <thead className="bg-gray-50 sticky top-0">
-                                        <tr>
-                                            {getResultColumns().map((column) => (
-                                                <th key={column} className="px-3 py-2 text-left font-medium text-gray-700 border-b border-gray-200">
-                                                    {column}
-                                                </th>
-                                            ))}
-                                        </tr>
+                                    <tr>
+                                        {getResultColumns().map((column) => (
+                                            <th key={column}
+                                                className="px-3 py-2 text-left font-medium text-gray-700 border-b border-gray-200">
+                                                {column}
+                                            </th>
+                                        ))}
+                                    </tr>
                                     </thead>
                                     <tbody>
-                                        {getResultsPreview().map((row, rowIndex) => (
-                                            <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                                {getResultColumns().map((column) => (
-                                                    <td key={column} className="px-3 py-2 text-gray-700 border-b border-gray-100">
-                                                        {formatCellValue(row[column])}
-                                                    </td>
-                                                ))}
-                                            </tr>
-                                        ))}
+                                    {getResultsPreview().map((row, rowIndex) => (
+                                        <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                            {getResultColumns().map((column) => (
+                                                <td key={column}
+                                                    className="px-3 py-2 text-gray-700 border-b border-gray-100">
+                                                    {formatCellValue(row[column])}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
                                     </tbody>
                                 </table>
                             </div>
-                            
+
                             {!showAllRows && processResults.data.length > 10 && !processResults.is_limited && (
-                                <div className="bg-gray-50 px-4 py-2 text-center text-xs text-gray-500 border-t border-gray-200">
-                                    Showing first 10 of {processResults.data.length} rows. 
-                                    <button 
+                                <div
+                                    className="bg-gray-50 px-4 py-2 text-center text-xs text-gray-500 border-t border-gray-200">
+                                    Showing first 10 of {processResults.data.length} rows.
+                                    <button
                                         onClick={() => setShowAllRows(true)}
                                         className="text-blue-600 hover:text-blue-700 ml-1"
                                     >
@@ -1049,15 +1076,19 @@ const MiscellaneousPreview = ({
                                     </button>
                                 </div>
                             )}
-                            
+
                             {processResults.is_limited && (
-                                <div className="bg-blue-50 px-4 py-2 text-center text-xs text-blue-700 border-t border-blue-200">
-                                    Showing first {processResults.data?.length || 0} of {(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows. 
-                                    <button 
+                                <div
+                                    className="bg-blue-50 px-4 py-2 text-center text-xs text-blue-700 border-t border-blue-200">
+                                    Showing
+                                    first {processResults.data?.length || 0} of {(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows.
+                                    <button
                                         onClick={openResultsInViewer}
                                         className="text-blue-600 hover:text-blue-800 ml-1 font-medium"
                                     >
-                                        View all {(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows in Data Viewer
+                                        View
+                                        all {(processResults.total_count || processResults.row_count || 0).toLocaleString()} rows
+                                        in Data Viewer
                                     </button>
                                 </div>
                             )}
@@ -1065,22 +1096,23 @@ const MiscellaneousPreview = ({
                     ) : processResults && processResults.error && !processingError ? (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
                             <div className="flex items-start space-x-3">
-                                <XCircle className="text-red-600 mt-0.5" size={20} />
+                                <XCircle className="text-red-600 mt-0.5" size={20}/>
                                 <div className="flex-1">
                                     <p className="text-sm font-medium text-red-800">SQL Execution Failed</p>
                                     <p className="text-sm text-red-700 mt-1">
                                         {processResults.error || 'An error occurred while executing the query'}
                                     </p>
-                                    
-                                    
+
+
                                     {/* AI Error Analysis Section */}
                                     {processResults.error_analysis && (
                                         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                                             <div className="flex items-start space-x-2">
-                                                <Sparkles className="text-blue-600 mt-0.5" size={16} />
+                                                <Sparkles className="text-blue-600 mt-0.5" size={16}/>
                                                 <div className="flex-1">
-                                                    <p className="text-sm font-medium text-blue-800 mb-2">🤖 AI Error Analysis</p>
-                                                    
+                                                    <p className="text-sm font-medium text-blue-800 mb-2">🤖 AI Error
+                                                        Analysis</p>
+
                                                     {processResults.error_analysis.user_friendly_message && (
                                                         <div className="mb-3">
                                                             <p className="text-sm text-blue-700">
@@ -1088,22 +1120,25 @@ const MiscellaneousPreview = ({
                                                             </p>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {processResults.error_analysis.technical_details && (
                                                         <div className="mb-3">
-                                                            <p className="text-xs font-medium text-blue-800 mb-1">Technical Details:</p>
+                                                            <p className="text-xs font-medium text-blue-800 mb-1">Technical
+                                                                Details:</p>
                                                             <p className="text-xs text-blue-700 bg-white p-2 rounded border">
                                                                 {processResults.error_analysis.technical_details}
                                                             </p>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {processResults.error_analysis.suggested_fixes && processResults.error_analysis.suggested_fixes.length > 0 && (
                                                         <div className="mb-3">
-                                                            <p className="text-xs font-medium text-blue-800 mb-2">💡 Suggested Fixes:</p>
+                                                            <p className="text-xs font-medium text-blue-800 mb-2">💡
+                                                                Suggested Fixes:</p>
                                                             <ul className="text-xs text-blue-700 space-y-1">
                                                                 {processResults.error_analysis.suggested_fixes.map((fix, index) => (
-                                                                    <li key={index} className="flex items-start space-x-2">
+                                                                    <li key={index}
+                                                                        className="flex items-start space-x-2">
                                                                         <span className="text-blue-600 mt-0.5">•</span>
                                                                         <span>{fix}</span>
                                                                     </li>
@@ -1111,36 +1146,39 @@ const MiscellaneousPreview = ({
                                                             </ul>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {processResults.error_analysis.prevention_tip && (
                                                         <div className="mb-2">
-                                                            <p className="text-xs font-medium text-blue-800 mb-1">💭 Prevention Tip:</p>
+                                                            <p className="text-xs font-medium text-blue-800 mb-1">💭
+                                                                Prevention Tip:</p>
                                                             <p className="text-xs text-blue-700 italic bg-white p-2 rounded border">
                                                                 {processResults.error_analysis.prevention_tip}
                                                             </p>
                                                         </div>
                                                     )}
-                                                    
+
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center space-x-2 text-xs">
                                                             <span className="text-blue-600">Error Type:</span>
-                                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                            <span
+                                                                className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                                                 {processResults.error_analysis.error_type || 'unknown'}
                                                             </span>
                                                             <span className="text-blue-600">Confidence:</span>
-                                                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                            <span
+                                                                className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                                                 {processResults.error_analysis.confidence || 'medium'}
                                                             </span>
                                                         </div>
-                                                        
+
                                                         {/* Column Mapping Button - show only for column-related errors */}
-                                                        {(processResults.error_analysis.error_type === 'column_not_found' || 
-                                                          getMissingColumns().length > 0) && (
+                                                        {(processResults.error_analysis.error_type === 'column_not_found' ||
+                                                            getMissingColumns().length > 0) && (
                                                             <button
                                                                 onClick={handleOpenColumnMapping}
                                                                 className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 flex items-center space-x-1"
                                                             >
-                                                                <Settings size={12} />
+                                                                <Settings size={12}/>
                                                                 <span>Fix Columns</span>
                                                             </button>
                                                         )}
@@ -1149,7 +1187,7 @@ const MiscellaneousPreview = ({
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {processResults.errors && processResults.errors.length > 0 && (
                                         <div className="mt-2">
                                             <p className="text-xs font-medium text-red-800 mb-1">Error Details:</p>
@@ -1175,10 +1213,11 @@ const MiscellaneousPreview = ({
                         </div>
                     ) : processResults.success !== false ? (
                         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-                            <AlertCircle className="text-yellow-600 mx-auto mb-2" size={24} />
+                            <AlertCircle className="text-yellow-600 mx-auto mb-2" size={24}/>
                             <p className="text-sm font-medium text-yellow-800">No Results Found</p>
                             <p className="text-xs text-yellow-700 mt-1">
-                                Your query completed successfully but returned no data. Try adjusting your query or checking your data.
+                                Your query completed successfully but returned no data. Try adjusting your query or
+                                checking your data.
                             </p>
                         </div>
                     ) : null}
@@ -1190,7 +1229,7 @@ const MiscellaneousPreview = ({
                             disabled={!processResults?.data || processResults.data.length === 0 || !userPrompt}
                             className="flex items-center space-x-1 px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
                         >
-                            <Save size={16} />
+                            <Save size={16}/>
                             <span>Save Prompt</span>
                         </button>
                         <button
@@ -1208,7 +1247,7 @@ const MiscellaneousPreview = ({
                             disabled={!processResults?.data || processResults.data.length === 0 || !userPrompt || !onCreateTemplate}
                             className="flex items-center space-x-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
                         >
-                            <Sparkles size={16} />
+                            <Sparkles size={16}/>
                             <span>Save as UseCase</span>
                         </button>
                         <button
@@ -1216,14 +1255,14 @@ const MiscellaneousPreview = ({
                             disabled={isProcessing}
                             className="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
                         >
-                            <RefreshCw size={16} />
+                            <RefreshCw size={16}/>
                             <span>Reprocess</span>
                         </button>
                         <button
                             onClick={onClear}
                             className="flex items-center space-x-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                         >
-                            <Trash2 size={16} />
+                            <Trash2 size={16}/>
                             <span>Clear Results</span>
                         </button>
                     </div>
@@ -1232,7 +1271,7 @@ const MiscellaneousPreview = ({
                     {savePromptError && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                             <div className="flex items-start space-x-2">
-                                <XCircle className="text-red-600 mt-0.5" size={14} />
+                                <XCircle className="text-red-600 mt-0.5" size={14}/>
                                 <div>
                                     <span className="text-sm font-medium text-red-800">Failed to Generate Prompt</span>
                                     <p className="text-sm text-red-700 mt-1">{savePromptError}</p>
@@ -1271,7 +1310,8 @@ const MiscellaneousPreview = ({
                     processResults={processResults}
                     generatedSQL={generatedSQL}
                     processId={processId}
-                    onPromptLoaded={() => {}} // Not used in save mode
+                    onPromptLoaded={() => {
+                    }} // Not used in save mode
                     onPromptSaved={() => {
                         setShowSavePromptModal(false);
                         console.log('✅ Prompt saved from results section');

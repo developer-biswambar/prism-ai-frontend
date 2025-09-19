@@ -1,17 +1,20 @@
 // src/hooks/useAppState.js
 import {useCallback, useEffect, useState} from 'react';
 import {fileManagementService} from '../services/fileManagementService';
-import {processManagementService} from '../services/processManagementService';
-import {messageService} from '../services/messageService';
 
 export const useFileManagement = () => {
     const [files, setFiles] = useState([]);
     const [uploadProgress, setUploadProgress] = useState(false);
 
     const loadFiles = useCallback(async () => {
+        console.log('🔄 [useFileManagement] loadFiles called');
         const result = await fileManagementService.getFiles();
+        console.log('📁 [useFileManagement] fileManagementService.getFiles result:', result);
         if (result.success) {
+            console.log('✅ [useFileManagement] Setting files:', result.files.length, 'files');
             setFiles(result.files);
+        } else {
+            console.log('❌ [useFileManagement] getFiles failed:', result.error);
         }
         return result;
     }, []);
@@ -51,285 +54,18 @@ export const useFileManagement = () => {
     };
 };
 
-export const useTemplateManagement = () => {
-    const [templates, setTemplates] = useState([]);
-
-    const loadTemplates = useCallback(async () => {
-        const result = await fileManagementService.getTemplates();
-        if (result.success) {
-            setTemplates(result.templates);
-        }
-        return result;
-    }, []);
-
-    useEffect(() => {
-        loadTemplates();
-    }, [loadTemplates]);
-
-    return {
-        templates,
-        loadTemplates
-    };
-};
-
-export const useProcessManagement = () => {
-    const [recentResults, setRecentResults] = useState([]);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [activeProcess, setActiveProcess] = useState(null);
-    const [autoRefreshInterval, setAutoRefreshInterval] = useState(null);
-
-    const loadAllProcessedResult = useCallback(async () => {
-        const result = await processManagementService.getAllProcessedResult();
-        if (result.success) {
-            setRecentResults(result.processedFiles);
-        }
-        return result;
-    }, []);
-
-    useEffect(() => {
-        loadAllProcessedResult(); // runs once when the component mounts (on page load)
-    }, [loadAllProcessedResult]);
-
-    const startProcess = useCallback(async (type, config) => {
-        setIsProcessing(true);
-
-        let result;
-        if (type === 'reconciliation') {
-            result = await processManagementService.startReconciliation(config);
-        } else if (type === 'delta-generation') {
-            result = await processManagementService.startDeltaGeneration(config);
-        } else if (type === 'file-transformation') {
-            result = await processManagementService.startFileTransformation(config)
-        }
-
-        if (result.success) {
-            setActiveProcess({
-                id: result.processId,
-                type,
-                status: 'processing'
-            });
-
-            // Add to processed files list
-            setRecentResults(prev => [result.process, ...prev]);
-
-            // Monitor the process
-            monitorProcess(result.processId, type);
-        } else {
-            setIsProcessing(false);
-        }
-
-        return result;
-    }, []);
-
-    const monitorProcess = useCallback(async (processId, type) => {
-        const result = await processManagementService.monitorProcess(processId, type);
-
-        if (result.success && result.status === 'completed') {
-            setIsProcessing(false);
-            setActiveProcess(null);
-
-            // Update the processed file status
-            setRecentResults(prev =>
-                prev.map(file => {
-                    let idField = 'reconciliation'
-                    if (type === 'delta-generation') {
-                        idField = 'delta_id'
-                    } else if (type === 'file-transformation') {
-                        idField = 'generation_id'
-                    }
-                    return file[idField] === processId
-                        ? {...file, status: 'completed'}
-                        : file;
-                })
-            );
-        }
-
-        return result;
-    }, []);
-
-    const getDetailedResults = useCallback(async (resultId, type) => {
-        return await processManagementService.getDetailedResults(resultId, type);
-    }, []);
-
-    const downloadResults = useCallback(async (resultId, resultType, processType) => {
-        return await processManagementService.downloadResults(resultId, resultType, processType);
-    }, []);
-
-    const addProcessingResult = (processingEntry) => {
-        setRecentResults(prev => [processingEntry, ...prev]);
-    };
-
-// Function to update a processing result (e.g., from processing to completed)
-    const updateProcessingResult = (tempId, updatedEntry) => {
-        setRecentResults(prev =>
-            prev.map(file => {
-                // Check different ID fields based on process type
-                if (file.generation_id === tempId ||
-                    file.delta_id === tempId ||
-                    file.reconciliation_id === tempId ||
-                    file.process_id === tempId ||
-                    file.id === tempId) {
-                    return updatedEntry;
-                }
-                return file;
-            })
-        );
-    };
-
-// Function to remove a processing result (if needed)
-    const removeProcessingResult = (tempId) => {
-        setRecentResults(prev =>
-            prev.filter(file =>
-                file.generation_id !== tempId &&
-                file.delta_id !== tempId &&
-                file.reconciliation_id !== tempId &&
-                file.process_id !== tempId &&
-                file.id !== tempId
-            )
-        );
-    };
-
-    // Cleanup auto-refresh interval on unmount
-    useEffect(() => {
-        return () => {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-            }
-        };
-    }, [autoRefreshInterval]);
-
-    return {
-        recentResults,
-        isProcessing,
-        activeProcess,
-        loadAllProcessedResult,
-        startProcess,
-        monitorProcess,
-        getDetailedResults,
-        downloadResults,
-        addProcessingResult,
-        updateProcessingResult,
-        removeProcessingResult
-    };
-};
-
-export const useMessageManagement = () => {
-    const [messages, setMessages] = useState([]);
-    const [isTyping, setIsTyping] = useState(false);
-    const [typingMessage, setTypingMessage] = useState('');
-    const [isInitialized, setIsInitialized] = useState(false);
-
-    const addMessage = useCallback((type, content, useTyping = true, tableData = null) => {
-        if (useTyping && (type === 'system' || type === 'success' || type === 'result')) {
-            setIsTyping(true);
-            setTypingMessage('');
-
-            messageService.simulateTyping(
-                content,
-                (progress) => setTypingMessage(progress),
-                () => {
-                    setIsTyping(false);
-                    setTypingMessage('');
-                    const newMessage = messageService.createMessage(type, content, tableData);
-                    setMessages(prev => [...prev, newMessage]);
-                }
-            );
-        } else {
-            const newMessage = messageService.createMessage(type, content, tableData);
-            setMessages(prev => [...prev, newMessage]);
-        }
-    }, []);
-
-    const sendMessage = useCallback((type, content) => {
-        addMessage(type, content, false);
-    }, [addMessage]);
-
-    const clearMessages = useCallback(() => {
-        setMessages([]);
-        setIsInitialized(false);
-    }, []);
-
-    const initializeChat = useCallback(() => {
-        // Prevent double initialization
-        if (isInitialized) return;
-
-        setIsInitialized(true);
-        const welcomeMessage = messageService.getWelcomeMessage();
-        addMessage('system', welcomeMessage, true);
-    }, [addMessage, isInitialized]);
-
-    return {
-        messages,
-        isTyping,
-        typingMessage,
-        isInitialized,
-        addMessage,
-        sendMessage,
-        clearMessages,
-        initializeChat
-    };
-};
-
-export const useFileSelection = () => {
-    const [selectedFiles, setSelectedFiles] = useState({});
-    const [selectedTemplate, setSelectedTemplate] = useState(null);
-    const [requiredFiles, setRequiredFiles] = useState([]);
-    const [currentInput, setCurrentInput] = useState('');
-
-
-    const handleTemplateSelect = useCallback((template) => {
-        setSelectedTemplate(prevTemplate => {
-            // Only update input if template actually changed or is being cleared
-            if (prevTemplate?.name !== template?.name) {
-                setCurrentInput(template?.user_requirements || '');
-            }
-            return template;
-        });
-        setSelectedFiles({}); // Reset selected files when template changes
-
-        if (template) {
-            const fileRequirements = fileManagementService.setupFileRequirements(template);
-            setRequiredFiles(fileRequirements);
-        } else {
-            setRequiredFiles([]);
-            setCurrentInput('');
-        }
-    }, []);
-
-    const validateSelection = useCallback(() => {
-        return fileManagementService.validateFileSelection(selectedFiles, requiredFiles);
-    }, [selectedFiles, requiredFiles]);
-
-    const areAllFilesSelected = useCallback(() => {
-        if (!selectedTemplate || !requiredFiles || requiredFiles.length === 0) {
-            return false;
-        }
-        return requiredFiles.every(rf => selectedFiles[rf.key]);
-    }, [selectedTemplate, requiredFiles, selectedFiles]);
-
-    return {
-        selectedFiles,
-        setSelectedFiles,
-        selectedTemplate,
-        requiredFiles,
-        currentInput,
-        setCurrentInput,
-        handleTemplateSelect,
-        validateSelection,
-        areAllFilesSelected
-    };
-};
 
 export const usePanelResize = () => {
     // Fixed panel widths - no resizing functionality
     const leftPanelWidth = 320;
     const rightPanelWidth = 320;
-    
+
     return {
         leftPanelWidth,
         rightPanelWidth,
         isResizing: null,
-        setIsResizing: () => {}, // No-op function for compatibility
+        setIsResizing: () => {
+        }, // No-op function for compatibility
         isInitialized: true
     };
 };
@@ -358,3 +94,57 @@ export const useDocumentTitle = (
         };
     }, [isProcessing, activeProcess, uploadProgress, selectedFiles]);
 };
+
+export const useAnalyticsManagement = () => {
+    const [analyticsData, setAnalyticsData] = useState(null);
+    const [processes, setProcesses] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const loadAnalytics = useCallback(async (forceRefresh = false) => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Import and use the real analytics service
+            const analyticsService = await import('../services/analyticsService');
+            const service = analyticsService.default;
+
+            const [summary, processesData] = await Promise.all([
+                service.getAnalyticsSummary('default_user', forceRefresh),
+                service.getUserProcesses({
+                    userId: 'default_user',
+                    limit: 20,
+                    forceRefresh
+                })
+            ]);
+
+            setAnalyticsData(summary);
+            setProcesses(processesData.processes || []);
+
+        } catch (err) {
+            console.error('Error loading analytics:', err);
+            setError('Failed to connect to analytics service');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadAnalytics();
+
+        // Set up auto-refresh every 2 minutes
+        const interval = setInterval(() => loadAnalytics(true), 120000);
+
+        return () => clearInterval(interval);
+    }, [loadAnalytics]);
+
+    return {
+        analyticsData,
+        processes,
+        loading,
+        error,
+        loadAnalytics
+    };
+};
+
