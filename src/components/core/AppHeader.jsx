@@ -1,5 +1,6 @@
 import React from 'react';
 import {Brain, ChevronLeft, FolderOpen, X, Zap} from 'lucide-react';
+import ForteLogo from './ForteLogo.jsx';
 
 const AppHeader = ({
                        title = "AI based Data Processing",
@@ -46,8 +47,8 @@ const AppHeader = ({
                         {/* Enhanced Logo */}
                         <div className="relative">
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl blur-lg opacity-30"></div>
-                            <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                                <Brain className="text-white" size={22}/>
+                            <div className="relative">
+                                <ForteLogo size={40} animated={true} />
                             </div>
                         </div>
 
