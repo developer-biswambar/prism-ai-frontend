@@ -432,10 +432,12 @@ const LeftSidebar = ({
                         </div>
 
                         <div className="flex-1 overflow-y-auto px-3 pb-3 min-h-0">
-                            {isRefreshing ? (
+                            {isRefreshing || !files ? (
                                 <div className="text-center py-12">
                                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-                                    <p className="text-sm text-gray-600 font-medium">Refreshing files...</p>
+                                    <p className="text-sm text-gray-600 font-medium">
+                                        {isRefreshing ? 'Refreshing files...' : 'Loading files...'}
+                                    </p>
                                     <p className="text-xs text-gray-500 mt-1">Please wait while we update your file list</p>
                                 </div>
                             ) : files.length === 0 ? (
