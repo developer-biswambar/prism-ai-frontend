@@ -42,13 +42,12 @@ class AnalyticsService {
     }
 
     /**
-     * Get analytics summary for a user
-     * @param {string} userId - User ID (defaults to 'default_user')
+     * Get analytics summary for all users
      * @param {boolean} forceRefresh - Force refresh ignoring cache
      * @returns {Promise<Object>} Analytics summary data
      */
-    async getAnalyticsSummary(userId = 'default_user', forceRefresh = false) {
-        const cacheKey = `summary_${userId}`;
+    async getAnalyticsSummary(forceRefresh = false) {
+        const cacheKey = 'summary_universal';
 
         // Return cached data if valid and not forcing refresh
         if (!forceRefresh && this._isCacheValid(cacheKey)) {
@@ -67,7 +66,7 @@ class AnalyticsService {
             console.log('🔄 Fetching fresh analytics summary');
             this.lastFetchTime.set(cacheKey, Date.now());
 
-            const response = await fetch(`${API_ENDPOINTS.ANALYTICS_SUMMARY}?user_id=${userId}`, {
+            const response = await fetch(API_ENDPOINTS.ANALYTICS_SUMMARY, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -104,35 +103,33 @@ class AnalyticsService {
     }
 
     /**
-     * Get user processes with pagination
+     * Get all processes with pagination
      * @param {Object} options - Query options
-     * @param {string} options.userId - User ID
      * @param {number} options.limit - Number of processes to fetch
      * @param {string} options.lastEvaluatedKey - Pagination key
      * @returns {Promise<Object>} Process list with pagination info
      */
-    async getUserProcesses({userId = 'default_user', limit = 50, lastEvaluatedKey = null, forceRefresh = false} = {}) {
-        const cacheKey = `processes_${userId}_${limit}_${lastEvaluatedKey || 'first'}`;
+    async getUserProcesses({limit = 50, lastEvaluatedKey = null, forceRefresh = false} = {}) {
+        const cacheKey = `processes_universal_${limit}_${lastEvaluatedKey || 'first'}`;
 
         // Return cached data if valid and not forcing refresh
         if (!forceRefresh && this._isCacheValid(cacheKey)) {
-            console.log('📋 Using cached user processes');
+            console.log('📋 Using cached processes');
             return this.cache.get(cacheKey).data;
         }
 
         // Check throttling
         if (!forceRefresh && this._shouldThrottle(cacheKey)) {
-            console.log('⏱️ User processes call throttled, using cache if available');
+            console.log('⏱️ Processes call throttled, using cache if available');
             const cached = this.cache.get(cacheKey);
             if (cached) return cached.data;
         }
 
         try {
-            console.log('🔄 Fetching fresh user processes');
+            console.log('🔄 Fetching fresh processes');
             this.lastFetchTime.set(cacheKey, Date.now());
 
             const params = new URLSearchParams({
-                user_id: userId,
                 limit: limit.toString()
             });
 
@@ -179,12 +176,11 @@ class AnalyticsService {
     /**
      * Get recent processes (convenience method)
      * @param {number} limit - Number of recent processes to fetch
-     * @param {string} userId - User ID
      * @returns {Promise<Array>} Recent processes array
      */
-    async getRecentProcesses(limit = 10, userId = 'default_user') {
+    async getRecentProcesses(limit = 10) {
         try {
-            const data = await this.getUserProcesses({userId, limit});
+            const data = await this.getUserProcesses({limit});
             return data.processes || [];
         } catch (error) {
             console.error('Error fetching recent processes:', error);
@@ -194,14 +190,13 @@ class AnalyticsService {
 
     /**
      * Get analytics data for dashboard (combines summary and recent processes)
-     * @param {string} userId - User ID
      * @returns {Promise<Object>} Combined analytics data
      */
-    async getDashboardData(userId = 'default_user') {
+    async getDashboardData() {
         try {
             const [summary, processes] = await Promise.all([
-                this.getAnalyticsSummary(userId),
-                this.getRecentProcesses(20, userId)
+                this.getAnalyticsSummary(),
+                this.getRecentProcesses(20)
             ]);
 
             return {
