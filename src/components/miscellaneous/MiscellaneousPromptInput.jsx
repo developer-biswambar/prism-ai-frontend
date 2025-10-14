@@ -65,6 +65,7 @@ const MiscellaneousPromptInput = ({
     const textareaRef = useRef(null);
     const expandedTextareaRef = useRef(null);
     const cobolFileInputRef = useRef(null);
+    const cobolResultsRef = useRef(null);
 
     const examplePrompts = [
         {
@@ -353,6 +354,16 @@ const MiscellaneousPromptInput = ({
             if (response.ok && data.success) {
                 setCobolGenerationResult(data);
                 setCobolGenerationError('');
+
+                // Scroll to results after a short delay to allow rendering
+                setTimeout(() => {
+                    if (cobolResultsRef.current) {
+                        cobolResultsRef.current.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }, 300);
             } else {
                 setCobolGenerationError(data.detail || 'Failed to generate prompt from COBOL');
                 setCobolGenerationResult(null);
@@ -1126,32 +1137,36 @@ Be as specific as possible about:
 
             {/* COBOL Generation Modal */}
             {showCobolModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+                <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[95vh] flex flex-col animate-slideUp">
                         {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-teal-50">
+                        <div className="flex items-center justify-between p-8 border-b border-gray-200 bg-gradient-to-r from-green-50 via-teal-50 to-cyan-50 rounded-t-2xl">
                             <div>
-                                <h2 className="text-xl font-semibold text-gray-900 flex items-center space-x-2">
-                                    <FileCode className="text-green-600" size={24}/>
-                                    <span>Generate Prompt from COBOL</span>
+                                <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-3">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                                        <FileCode className="text-white" size={24}/>
+                                    </div>
+                                    <span className="bg-gradient-to-r from-green-700 to-teal-700 bg-clip-text text-transparent">
+                                        Generate Prompt from COBOL
+                                    </span>
                                 </h2>
-                                <p className="text-sm text-gray-600 mt-1">
-                                    Upload COBOL files to automatically generate a natural language prompt
+                                <p className="text-sm text-gray-600 mt-2 ml-1">
+                                    🚀 Intelligently analyze your COBOL programs and auto-generate prompts with field mappings
                                 </p>
                             </div>
                             <button
                                 onClick={closeCobolModal}
-                                className="text-gray-400 hover:text-gray-600 p-1"
+                                className="text-gray-400 hover:text-gray-600 hover:bg-white/50 p-2 rounded-lg transition-all duration-200"
                                 disabled={isGeneratingFromCobol}
                             >
-                                <X size={24}/>
+                                <X size={28}/>
                             </button>
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-8 space-y-6">
                             {/* Selected Files Info */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <h3 className="text-sm font-medium text-blue-800 mb-2 flex items-center space-x-2">
                                     <Database size={16}/>
                                     <span>Selected Input Data Files</span>
@@ -1175,10 +1190,11 @@ Be as specific as possible about:
 
                             {/* COBOL File Upload */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Upload COBOL Files
+                                <label className="block text-base font-semibold text-gray-800 mb-2 flex items-center space-x-2">
+                                    <Upload className="text-green-600" size={16}/>
+                                    <span>Upload COBOL Files</span>
                                 </label>
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 hover:bg-green-50/30 transition-all duration-200">
+                                <div className="border-2 border-dashed border-gray-300 rounded-xl p-5 text-center hover:border-green-500 hover:bg-green-50/50 transition-all duration-300 cursor-pointer group">
                                     <input
                                         ref={cobolFileInputRef}
                                         type="file"
@@ -1189,19 +1205,19 @@ Be as specific as possible about:
                                         disabled={isGeneratingFromCobol}
                                     />
                                     <div className="flex flex-col items-center space-y-3">
-                                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                                            <Upload className="text-green-600" size={32}/>
+                                        <div className="w-14 h-14 bg-gradient-to-br from-green-100 to-teal-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                                            <Upload className="text-green-600 group-hover:text-green-700" size={28}/>
                                         </div>
-                                        <div>
+                                        <div className="space-y-1">
                                             <button
                                                 onClick={() => cobolFileInputRef.current?.click()}
                                                 disabled={isGeneratingFromCobol}
-                                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-300"
+                                                className="px-5 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white font-medium text-sm rounded-lg hover:from-green-700 hover:to-teal-700 transition-all duration-300 disabled:from-gray-400 disabled:to-gray-400 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none"
                                             >
-                                                Choose COBOL Files
+                                                📁 Choose COBOL Files
                                             </button>
-                                            <p className="text-xs text-gray-500 mt-2">
-                                                Supported: .cbl, .cob, .cobol, .txt
+                                            <p className="text-xs text-gray-600 mt-1">
+                                                <span className="font-mono text-green-700">.cbl, .cob, .cobol, .txt</span>
                                             </p>
                                         </div>
                                     </div>
@@ -1209,33 +1225,44 @@ Be as specific as possible about:
 
                                 {/* Selected COBOL Files List */}
                                 {cobolFiles.length > 0 && (
-                                    <div className="mt-4 space-y-2">
-                                        <p className="text-sm font-medium text-gray-700">
-                                            Selected COBOL Files ({cobolFiles.length})
-                                        </p>
-                                        {cobolFiles.map((file, index) => (
-                                            <div
-                                                key={index}
-                                                className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg"
-                                            >
-                                                <div className="flex items-center space-x-3">
-                                                    <FileCode className="text-green-600" size={18}/>
-                                                    <div>
-                                                        <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                                                        <p className="text-xs text-gray-500">
-                                                            {(file.size / 1024).toFixed(1)} KB
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => removeCobolFile(index)}
-                                                    disabled={isGeneratingFromCobol}
-                                                    className="text-red-600 hover:text-red-700 disabled:text-gray-400"
+                                    <div className="mt-5 space-y-3 animate-slideDown">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-base font-semibold text-gray-800 flex items-center space-x-2">
+                                                <FileCode className="text-green-600" size={18}/>
+                                                <span>Selected COBOL Files ({cobolFiles.length})</span>
+                                            </p>
+                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                                {(cobolFiles.reduce((acc, f) => acc + f.size, 0) / 1024).toFixed(1)} KB total
+                                            </span>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {cobolFiles.map((file, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-teal-50 border-2 border-green-200 rounded-xl hover:shadow-md transition-all duration-200 group"
                                                 >
-                                                    <X size={18}/>
-                                                </button>
-                                            </div>
-                                        ))}
+                                                    <div className="flex items-center space-x-3 flex-1">
+                                                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                            <FileCode className="text-green-600" size={20}/>
+                                                        </div>
+                                                        <div className="flex-1">
+                                                            <p className="text-sm font-semibold text-gray-900">{file.name}</p>
+                                                            <p className="text-xs text-gray-600">
+                                                                📊 Size: {(file.size / 1024).toFixed(1)} KB
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeCobolFile(index)}
+                                                        disabled={isGeneratingFromCobol}
+                                                        className="text-red-500 hover:text-red-700 hover:bg-red-100 disabled:text-gray-400 p-2 rounded-lg transition-all duration-200"
+                                                        title="Remove file"
+                                                    >
+                                                        <X size={20}/>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -1252,7 +1279,7 @@ Be as specific as possible about:
 
                             {/* Generation Result */}
                             {cobolGenerationResult && (
-                                <div className="space-y-4">
+                                <div ref={cobolResultsRef} className="space-y-4 scroll-mt-8">
                                     {/* Clear Button */}
                                     <div className="flex justify-end">
                                         <button
