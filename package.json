@@ -10,7 +10,13 @@
     "type": "git",
     "url": "https://github.com/your-org/prism-ai-frontend.git"
   },
-  "keywords": ["react", "vite", "financial", "data-processing", "frontend"],
+  "keywords": [
+    "react",
+    "vite",
+    "financial",
+    "data-processing",
+    "frontend"
+  ],
   "engines": {
     "node": ">=22.0.0",
     "npm": ">=10.0.0"
@@ -44,7 +50,7 @@
     "test:setup": "node testing/utils/test-data-setup.js",
     "test:debug": "playwright test --headed --debug",
     "test:visual": "node testing/visual-test-runner.js demo",
-    "test:interactive": "node testing/visual-test-runner.js interactive", 
+    "test:interactive": "node testing/visual-test-runner.js interactive",
     "test:step": "node testing/visual-test-runner.js debug",
     "test:discover": "playwright test testing/e2e/simple-ui-test.spec.js --headed --reporter=line",
     "test:reconciliation": "playwright test testing/e2e/reconciliation-functionality.spec.js --headed --reporter=line",
@@ -67,6 +73,7 @@
     "docker:logs": "docker logs -f prism-ai-frontend"
   },
   "dependencies": {
+    "@datadog/browser-rum": "^6.23.0",
     "axios": "^1.10.0",
     "lucide-react": "^0.522.0",
     "react": "^19.1.0",
